@@ -52,11 +52,11 @@ Contract owners, created in Milestone 1:
   operations, persistence, and catalogue sync. These stay in the host.
 - The Firna adoption itself. It is a post-merge follow-up in `futex-ai/firna`.
 
-## Open decisions (proposed 2026-10-20, awaiting the user)
+## Decisions (settled 2026-10-20)
 
-The milestones below apply the recommended option of each decision until
-the user answers. A different answer updates this plan and the protocol
-docs before the affected milestone starts.
+The user answered every decision on 2026-10-20. Each item keeps its options
+as the record of the alternatives. The **Outcome** line gives the choice.
+The milestones apply the outcomes.
 
 ### 1. Crate layout and names
 
@@ -83,6 +83,7 @@ docs before the affected milestone starts.
     Consumers of the client add two dependencies. Effort: Large.
 - **Recommendation:** C. The types crate has no async runtime, and webhook
   receivers and stores use it without the client.
+- **Outcome:** C, chosen by the user on 2026-10-20.
 
 ### 2. Error runtime and publishing target
 
@@ -110,6 +111,7 @@ docs before the affected milestone starts.
 - **Recommendation:** A. It keeps one error contract across futex crates and
   matches how Firna consumes shared libraries. Publishing becomes a
   follow-up when `internal-error` reaches crates.io.
+- **Outcome:** A, chosen by the user on 2026-10-20.
 
 ### 3. API surface in V1
 
@@ -133,6 +135,7 @@ docs before the affected milestone starts.
     which duplicate the Connect routes. Effort: Large.
 - **Recommendation:** B. An SDK that covers the documented API needs no
   second pass, and the extra groups are small CRUD resources.
+- **Outcome:** B, chosen by the user on 2026-10-20.
 
 ### 4. Transport defaults and retries
 
@@ -157,6 +160,7 @@ docs before the affected milestone starts.
     method, 60-second timeout, no response cap. Effort: Medium.
 - **Recommendation:** B. It never replays a mutation, and callers tune the
   limits for their workload.
+- **Outcome:** B, chosen by the user on 2026-10-20.
 
 ### 5. Secret wrapping granularity
 
@@ -181,6 +185,7 @@ docs before the affected milestone starts.
   - **C.** Wrap nothing. Effort: Small.
 - **Recommendation:** A. Credentials never reach logs, and consumers read
   app data without ceremony.
+- **Outcome:** A, chosen by the user on 2026-10-20.
 
 ### 6. Smoke tooling
 
@@ -197,6 +202,8 @@ docs before the affected milestone starts.
     read-only operations. Effort: Large.
 - **Recommendation:** A. Examples double as documentation and need no new
   crate.
+- **Outcome:** B, chosen by the user on 2026-10-20. The recommendation was
+  A. The CLI scope is a design decision below.
 
 ## Design decisions (2026-10-20)
 
@@ -245,6 +252,15 @@ no user answer. Each records the alternative and the reason.
   conversion.
 - **Toolchain.** Edition 2024, MIT licence, `rust-toolchain.toml` pinned to
   the same channel as `futex-ai/ai`, `cargo xtask check` as the gate.
+- **CLI scope.** The `pipedream-cli` crate covers the read operations. It
+  also covers the explicit smoke mutations: token creation, action run,
+  proxy request, and trigger deploy and delete. Every mutation needs its
+  own subcommand.
+  The CLI reads configuration from flags or the `PIPEDREAM_*` environment
+  variables and prints JSON. It depends on the resource traits, not on
+  the concrete client. It is never published. Rejected: read-only commands
+  plus separate examples. Reason: one tool serves every smoke test. Decided
+  by the plan author on 2026-10-20 after decision 6.
 
 ## Public API sketch
 
@@ -269,6 +285,18 @@ let response = client
 `PipedreamClient::new(config, transport, clock)` takes
 `Arc<dyn HttpTransport>` and `Arc<dyn Clock>` for composition roots and
 tests. The builder constructs the reqwest transport and the system clock.
+
+The CLI sketch, with credentials from the `PIPEDREAM_*` variables:
+
+```sh
+pipedream-cli apps list --query calendar
+pipedream-cli components list --app google_calendar --type action
+pipedream-cli tokens create --external-user-id user_1
+pipedream-cli proxy get --external-user-id user_1 --account apn_x URL
+pipedream-cli triggers deploy --external-user-id user_1 \
+  --component google_calendar-new-or-updated-event-instant \
+  --props props.json --webhook-url https://example.com/hook
+```
 
 The public error contract of the client crate:
 
@@ -316,19 +344,22 @@ recommended options applied.
   - [ ] Connection event payloads and trigger delivery payloads.
   - [ ] Key selection between trigger webhooks and the project environment
         webhook.
-- [ ] Write `docs/architecture.md`: the three crates, the transport and
-      clock boundaries, the token provider, and the host responsibilities.
-- [ ] Write the workspace `README.md`: features, quick start, developer
-      get-started, key code, and links to the docs and `plans/`.
+- [ ] Write `docs/architecture.md`: the three library crates, the CLI, the
+      transport and clock boundaries, the token provider, and the host
+      responsibilities.
+- [ ] Write the workspace `README.md`: features, quick start, the CLI
+      commands, developer get-started, key code, and links to the docs and
+      `plans/`.
 - [ ] Validate the Markdown, review the diff, commit, and push.
 
 ## Milestone 2: Repository bootstrap
 
 Summary: a compiling workspace with the gate and CI, no SDK code yet.
 
-- [ ] Create the Cargo workspace: `crates/pipedream-connect-types`,
-      `crates/pipedream-connect`, `crates/pipedream-connect-webhooks`, and
-      `xtask`, each with a `README.md` in the required section order.
+- [ ] Create the Cargo workspace with `crates/pipedream-connect-types`,
+      `crates/pipedream-connect`, `crates/pipedream-connect-webhooks`,
+      `crates/pipedream-cli`, and `xtask`. Mark the CLI `publish = false`.
+      Give each a `README.md` in the required section order.
 - [ ] Add `rust-toolchain.toml`, `.cargo/config.toml` with the `xtask`
       alias, `LICENSE`, and `.gitignore` entries for `target` and `.context/`.
 - [ ] Add `internal-error` as a workspace git dependency at revision
@@ -341,8 +372,9 @@ Summary: a compiling workspace with the gate and CI, no SDK code yet.
   - [ ] A Rust file-length lint with the 300-line cap.
 - [ ] Add `.github/workflows/ci.yml` that runs the same steps on pull
       requests and on `main`.
-- [ ] Create `AGENTS.md` from the shared template: commands, repository
-      rules, review focus, and status. Add `CLAUDE.md` as a symlink to it.
+- [ ] Create `AGENTS.md` from the shared template: commands including the
+      CLI smoke, repository rules, review focus, and status. Add `CLAUDE.md`
+      as a symlink to it.
 - [ ] Run the gate, commit, and push.
 
 ## Milestone 3: Typed models
@@ -448,9 +480,17 @@ real API.
       lists its actions and triggers in a development project. It skips
       without `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, and
       `PIPEDREAM_PROJECT_ID`.
-- [ ] The `list_apps` example. Update the READMEs and the resources protocol
-      doc only if a contract changed.
-- [ ] Run the gate, run the example, commit, and push.
+- [ ] Create `pipedream-cli` with `clap`:
+  - [ ] Shared configuration flags, the `PIPEDREAM_*` variables, and JSON
+        output.
+  - [ ] The commands `apps list`, `apps get`, `categories list`,
+        `components list`, `components get`, `actions list`, and
+        `actions run`.
+  - [ ] The CLI README with the command reference.
+- [ ] Update the READMEs and the resources protocol doc only if a contract
+      changed.
+- [ ] Run the gate, run the read commands against a development project,
+      commit, and push.
 
 ## Milestone 6: Managed auth and proxy resources
 
@@ -468,10 +508,11 @@ Summary: tokens, accounts, users, and the proxy work against the real API.
 - [ ] Unit tests: ownership checks, `include_credentials` handling with
       redacted `Debug`, every blocked header, prefixing, target encoding,
       and upstream error statuses preserved.
-- [ ] The `connect_link` example that creates a token and prints the Connect
+- [ ] CLI commands `tokens create`, `accounts list`, `accounts get`,
+      `users list`, and `proxy <method>`. `tokens create` prints the Connect
       Link URL for an external user.
-- [ ] Run the gate, run the example against a development project, commit,
-      and push.
+- [ ] Run the gate, run the new commands against a development project,
+      commit, and push.
 
 ## Milestone 7: Trigger lifecycle resources
 
@@ -490,7 +531,10 @@ Summary: deploy and manage triggers for an external user.
       and the emitter variants.
 - [ ] A credential-gated live test that deploys a timer-free Google
       Calendar trigger to a loopback webhook URL, lists it, and deletes it.
-- [ ] Run the gate, commit, and push.
+- [ ] CLI commands `triggers list`, `triggers get`, `triggers deploy`,
+      `triggers delete`, and `triggers events`.
+- [ ] Run the gate, run the new commands against a development project,
+      commit, and push.
 
 ## Milestone 8: Administration resources
 
@@ -509,6 +553,7 @@ Summary: the remaining Connect operations.
       URL with the external user and environment headers.
 - [ ] A coverage test that reads the vendored OpenAPI document and asserts
       that every `operationId` appears in the SDK coverage table.
+- [ ] CLI commands `project info`, `usage`, and `webhook get`.
 - [ ] Unit tests per resource. Update the READMEs.
 - [ ] Run the gate, commit, and push.
 
@@ -529,19 +574,18 @@ Summary: the `pipedream-connect-webhooks` crate.
       README.
 - [ ] Run the gate, commit, and push.
 
-## Milestone 10: Examples, smoke, and release readiness
+## Milestone 10: CLI polish, smoke, and release readiness
 
-Summary: the SDK is usable by a stranger.
+Summary: the SDK and the CLI are usable by a stranger.
 
-- [ ] Examples: `list_apps`, `connect_link`, `run_action`, `proxy_request`,
-      and `deploy_trigger`, each reading configuration from environment
-      variables.
-- [ ] Each crate `lib.rs` includes its README as crate docs, so the Quick
-      Start compiles as a doctest.
+- [ ] CLI unit tests with mocked resource traits for every command:
+      argument parsing, request mapping, JSON output, and exit codes.
+- [ ] Each library crate `lib.rs` includes its README as crate docs, so the
+      Quick Start compiles as a doctest.
 - [ ] `cargo doc --no-deps` builds without warnings, and `Cargo.toml`
       carries description, repository, keywords, and categories.
-- [ ] Run the complete smoke against a development project: every example
-      and both live tests. Save the output under
+- [ ] Run the complete smoke against a development project: every CLI
+      command and both live tests. Save the output under
       `.context/pipedream-connect-sdk/smoke.md`.
 - [ ] Update the workspace README and the architecture doc for anything
       learnt.
@@ -566,7 +610,7 @@ Summary: the final checks and the review loop.
 
 - [ ] Open a plan in `futex-ai/firna` that makes `fna-connectors-pipedream`
       depend on the SDK and keeps its `ConnectorProvider` mapping.
-- [ ] Publish the crates to crates.io when `internal-error` is published,
-      if decision 2 stays at option A.
+- [ ] Publish the library crates to crates.io when `internal-error` is
+      published.
 - [ ] Consider an MCP server client and the legacy workflow REST API as
       separate plans.
