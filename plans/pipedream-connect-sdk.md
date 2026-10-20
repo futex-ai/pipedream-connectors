@@ -1,7 +1,8 @@
 # Pipedream Connect Rust SDK
 
-Status: Active. The plan lives on branch `calummoore/pipedream-rust-sdk-plan`. No pull
-request is open yet. The plan closes when its PR merges.
+Status: Active. The plan lives on branch
+`calummoore/pipedream-rust-sdk-plan`. No pull request is open yet. The plan
+closes when its PR merges.
 
 Pipedream Connect is a hosted integration API. It gives a server access to
 more than 3,000 third-party apps: managed OAuth accounts, prebuilt actions,
