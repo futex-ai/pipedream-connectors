@@ -24,6 +24,7 @@ fn policy(attempts: u32) -> RetryPolicy {
 async fn retry_after_dates_seconds_and_fallback_delays_obey_the_cap() {
     for (header, delay) in [
         (Some("4".to_owned()), 4),
+        (Some("30".to_owned()), 30),
         (
             Some(httpdate::fmt_http_date(
                 UNIX_EPOCH + Duration::from_secs(1012),
@@ -51,6 +52,23 @@ async fn retry_after_dates_seconds_and_fallback_delays_obey_the_cap() {
             [Duration::from_secs(delay)]
         );
     }
+}
+
+#[tokio::test]
+async fn fallback_delays_remain_capped_when_no_retry_after_is_available() {
+    let policy = RetryPolicy::new(
+        NonZeroU32::new(2).unwrap(),
+        Duration::from_secs(30),
+        Duration::from_secs(120),
+    );
+    let harness = Harness::script(
+        static_config().with_retry_policy(policy),
+        vec![Ok(response(503, json!({}))), Ok(response(200, json!({})))],
+    )
+    .record_sleeps();
+    harness.get().await.unwrap();
+    harness.assert_requests(2);
+    assert_eq!(*harness.sleeps.lock().unwrap(), [Duration::from_secs(30)]);
 }
 
 #[tokio::test]

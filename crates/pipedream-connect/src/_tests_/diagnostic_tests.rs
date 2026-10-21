@@ -63,3 +63,17 @@ fn response_decode_records_its_actual_caller() {
     assert_eq!(source.caller_at().file(), file!());
     assert_eq!(source.caller_at().line(), call_line);
 }
+
+#[test]
+fn unknown_execution_origin_and_provider_codes_stay_out_of_debug() {
+    let execution = serde_json::from_value(json!({"attribution":{"origin":"secret-origin"},"name":"secret-name","message":"secret-message"})).unwrap();
+    let rejected = error::Error::Rejected {
+        status: 422,
+        code: Some("secret-code".into()),
+        message: Some("secret-message".into()),
+    };
+    let execution = error::Error::ExecutionFailed(Box::new(execution));
+    for error in [rejected, execution] {
+        assert!(!format!("{error:?} {error}").contains("secret"));
+    }
+}

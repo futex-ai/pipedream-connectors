@@ -652,7 +652,7 @@ no resource yet.
 Evidence: `.context/client-core/` contains the targeted test results, smoke
 results, regression evidence, Markdown checks, and the complete gate.
 
-- [ ] Resolve Milestone 4 review items 1 to 14 with regression tests,
+- [x] Resolve Milestone 4 review items 1 to 14 with regression tests,
       aligned docs, the complete gate, separate fix and test commits,
       and a push. Evidence: `.context/client-review-fixes/`.
 

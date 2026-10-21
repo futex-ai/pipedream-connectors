@@ -9,7 +9,9 @@ use serde_json::json;
 use unimock::{MockFn, Unimock, matching};
 
 use crate::error::Error;
-use crate::pagination::{BoundedPaginator, PageSourceMock, Paginator};
+use crate::pagination::{
+    BoundedPaginator, PageSourceMock, PaginationEnd, PaginationError, Paginator,
+};
 
 use super::support::{Harness, config, response, token};
 
@@ -38,6 +40,34 @@ async fn a_page_failure_keeps_prior_records_page_count_and_resume_request() {
     assert!(debug.contains("pages: 1"), "lost page count: {debug}");
     assert!(debug.contains("resume"), "lost resume request: {debug}");
     assert!(debug.contains("records: 2"), "lost prior records: {debug}");
+    let PaginationError::Interrupted {
+        data,
+        pages,
+        request,
+        source,
+    } = error;
+    assert_eq!(data, [7, 8]);
+    assert_eq!(pages, 1);
+    assert_eq!(request.after.as_ref().unwrap().as_str(), "resume");
+    assert_eq!(request.limit, 100);
+    assert!(matches!(source, Error::Unavailable { status: Some(503) }));
+    let source = Arc::new(Unimock::new(
+        PageSourceMock::fetch
+            .with_types::<u32>()
+            .next_call(matching!((request) if request.after.as_ref().unwrap().as_str() == "resume"))
+            .returns(Ok(serde_json::from_value(
+                json!({"data":[9],"page_info":{}}),
+            )
+            .unwrap())),
+    ));
+    let paginator: BoundedPaginator<u32> = BoundedPaginator::new(source);
+    let resumed = paginator
+        .paginate(request, NonZeroUsize::new(3).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(resumed.data, [9]);
+    assert_eq!(resumed.pages, 1);
+    assert_eq!(resumed.end, PaginationEnd::Exhausted);
 }
 
 #[tokio::test]
