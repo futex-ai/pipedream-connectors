@@ -306,6 +306,13 @@ no user answer. Each records the alternative and the reason.
   testing only response examples, because the fetched OpenAPI document has no
   response examples.
 
+- **Webhook ingress inputs (2026-10-21).** The verifier requires a caller
+  supplied body limit and receipt `SystemTime`, and the payload decoders offer
+  bounded entry points. Webhook JSON uses arbitrary-precision numbers so large
+  session IDs and app events remain lossless. Rejected: an ambient clock, an
+  invented body-limit default, or floating-point JSON, because hosts own
+  ingress admission and the protocol requires lossless payloads.
+
 ## Open decisions
 
 - **GET retry defaults (2026-10-21).** Decision 4 requires an opt-in GET
@@ -616,18 +623,18 @@ Summary: the remaining Connect operations.
 
 Summary: the `pipedream-connect-webhooks` crate.
 
-- [ ] `WebhookSignatureVerifier` trait with the HMAC-SHA256 verifier:
-  - [ ] Exact `t=<seconds>,v1=<hex>` parsing and constant-time comparison.
-  - [ ] A configurable tolerance with a 300-second default, a body cap, and
+- [x] `WebhookSignatureVerifier` trait with the HMAC-SHA256 verifier:
+  - [x] Exact `t=<seconds>,v1=<hex>` parsing and constant-time comparison.
+  - [x] A configurable tolerance with a 300-second default, a body cap, and
         an explicit receipt time.
-- [ ] `ConnectionEvent` for `CONNECTION_SUCCESS` and `CONNECTION_ERROR`
+- [x] `ConnectionEvent` for `CONNECTION_SUCCESS` and `CONNECTION_ERROR`
       with the account, Connect token, environment, and session id.
-- [ ] `TriggerDelivery` with the event payload and the context id and
+- [x] `TriggerDelivery` with the event payload and the context id and
       timestamp, and a fallback event id from the body hash.
-- [ ] Unit tests with fixed timestamps: valid, stale, future, duplicate
+- [x] Unit tests with fixed timestamps: valid, stale, future, duplicate
       header parts, bad hex, empty key, and oversize body. Write the crate
       README.
-- [ ] Run the gate, commit, and push.
+- [x] Run the gate, commit, and push.
 
 ## Milestone 10: CLI
 

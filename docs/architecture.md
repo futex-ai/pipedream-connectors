@@ -37,8 +37,9 @@ an HTTP library at this boundary.
 The default transport uses an HTTPS client with redirects disabled, the
 configured connection and total timeouts, and a streaming response limit.
 
-The clock boundary supplies the current time for token expiry, HTTP-date
-retry delays, and webhook replay checks.
+The clock boundary supplies the current time for token expiry and HTTP-date
+retry delays. The webhook verifier receives an explicit receipt time from its
+host, so it does not read a clock.
 
 The sleeper boundary waits between opt-in GET retry attempts. Tests provide a
 fake sleeper, and the host can provide a runtime sleeper.

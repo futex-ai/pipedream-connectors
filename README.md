@@ -1,6 +1,6 @@
 # pipedream-connectors
 
-Status: The typed model crate is available. The client and webhook crates are
+Status: The typed model and webhook crates are available. The client crate is
 still under construction under the Pipedream Connect SDK plan.
 
 This repository will provide a Rust SDK for the Pipedream Connect API. The
@@ -75,8 +75,8 @@ The planned CLI commands are:
 
 ## Developer start
 
-The workspace and `xtask` gate are available. The typed model crate is under
-active development. To work on the repository:
+The workspace and `xtask` gate are available. The typed model and webhook
+crates are under active development. To work on the repository:
 
 1. Install the pinned Rust toolchain.
 2. Copy the required Pipedream variables into the shell environment.
