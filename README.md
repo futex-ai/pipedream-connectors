@@ -15,7 +15,8 @@ The SDK uses three library crates:
 - `crates/pipedream-connect` for the asynchronous client and resources.
 - `crates/pipedream-connect-webhooks` for signature verification and payloads.
 
-Milestone 10 will add the unpublished `crates/pipedream-cli` command.
+The unpublished `crates/pipedream-cli` crate provides the `pipedream-cli`
+command line.
 
 ## Quick start
 
@@ -47,29 +48,29 @@ The client uses `https://api.pipedream.com` by default. Set
 `PIPEDREAM_LIVE_TESTS=1` for live development smoke commands. The live checks
 skip when any variable is absent.
 
-## Planned CLI
+## CLI
 
-The planned CLI will read credentials from flags or `PIPEDREAM_*` variables
-and print JSON.
+The `pipedream-cli` command runs SDK operations and prints each result as
+JSON. It reads settings from flags or from the `PIPEDREAM_CLIENT_ID`,
+`PIPEDREAM_CLIENT_SECRET`, `PIPEDREAM_PROJECT_ID`, `PIPEDREAM_ENVIRONMENT`,
+and `PIPEDREAM_API_ORIGIN` variables. It redacts credentials unless the
+caller passes `--show-secrets`. Each failure has a documented exit code.
 
-```text
-pipedream-cli apps list --query calendar
-pipedream-cli components list --app google_calendar --type action
-pipedream-cli tokens create --external-user-id user_1
-pipedream-cli proxy get --external-user-id user_1 --account apn_x URL
-pipedream-cli triggers deploy --external-user-id user_1 \
-  --component google_calendar-new-or-updated-event-instant \
-  --props props.json --webhook-url https://example.com/hook
+```sh
+export PIPEDREAM_ENVIRONMENT=development
+cargo run -p pipedream-cli -- apps list --query calendar
+cargo run -p pipedream-cli -- components list --app google_calendar --type action
+cargo run -p pipedream-cli -- actions run google_calendar-list-events \
+  --external-user-id user_1 --props props.json
 ```
 
-The planned CLI commands are:
-
-- Read commands: `apps list`, `apps get`, `categories list`,
-  `components list`, `components get`, `actions list`, `accounts list`,
-  `accounts get`, `users list`, `triggers list`, `triggers get`,
-  `triggers events`, `project info`, `usage`, and `webhook get`.
-- Explicit smoke mutations: `tokens create`, `actions run`, `proxy <method>`,
-  `triggers deploy`, and `triggers delete`.
+The available commands are `apps list`, `apps get`, `categories list`,
+`components list`, `components get`, `actions list`, and `actions run`.
+These commands are planned and wait for their SDK resources: `tokens create`,
+`accounts list`, `accounts get`, `users list`, `proxy <method>`,
+`project info`, `triggers list`, `triggers get`, `triggers deploy`,
+`triggers delete`, `triggers events`, `usage`, and `webhook get`. The
+[CLI README](crates/pipedream-cli/README.md) is the command reference.
 
 ## Developer start
 
@@ -80,7 +81,9 @@ active development. To work on the repository:
 2. Copy the required Pipedream variables into the shell environment.
 3. Run `cargo xtask check`.
 4. Run the credential-gated live checks when a development project exists.
-5. Run `npx --yes markdownlint-cli2` on changed Markdown files.
+5. Run `cargo test -p pipedream-cli --test cli_smoke` for the CLI smoke
+   without credentials.
+6. Run `npx --yes markdownlint-cli2` on changed Markdown files.
 
 Do not commit credentials. Keep scratch output under `.context/`.
 
@@ -102,7 +105,8 @@ The main entry points are:
   handles, query encoding, and the client accessors.
 - `crates/pipedream-connect-webhooks` for raw-body signature checks and
   webhook payload decoding.
-- `crates/pipedream-cli` for smoke commands and JSON output.
+- `crates/pipedream-cli` for the command line, its JSON output, and its exit
+  codes.
 - `xtask` for the complete repository gate.
 
 ## Documentation

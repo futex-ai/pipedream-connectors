@@ -489,6 +489,46 @@ no user answer. Each records the alternative and the reason.
   Reason: shared checks keep construction and deserialization aligned without
   adding validation beyond the assigned range checks.
 
+- **CLI settings (2026-10-21).** Each connection flag takes precedence over
+  its `PIPEDREAM_*` variable. An injected reader resolves the variables after
+  parsing. An empty variable counts as unset. One message names every missing
+  required setting. `PIPEDREAM_API_ORIGIN` is the optional origin variable.
+  The environment has no default. Rejected: clap's `env` attribute, because
+  it reads the process environment during parsing, which unit tests must not
+  touch. Rejected: a development default, because the client protocol keeps
+  the environment explicit.
+- **CLI pipeline (2026-10-21).** The CLI parses arguments, resolves settings,
+  validates the command, and reads its input files. Then it builds the client
+  once and sends the request. Rejected: building the client first, because a
+  validation failure must exit before any client or request exists.
+- **CLI output and redaction (2026-10-21).** A successful command prints one
+  pretty JSON document that is encoded before any write. Every printed model
+  implements a `Redact` trait that replaces its credential-class fields.
+  `--show-secrets` skips it. A command that exists to produce a credential
+  uses an explicit revealed document. An accepted action run prints
+  `{"status": "accepted"}` and exits with code 0. Rejected: JSON-path
+  redaction, because it does not follow model changes. Rejected: a failure
+  exit for an accepted run, because the protocol defines it as a result.
+- **CLI failures (2026-10-21).** The exit codes are 0 success, 1 internal,
+  2 usage or validation, 3 authentication or access, 4 not found, 5 rate
+  limited, 6 unavailable, and 7 rejected request or failed action. Each
+  message names the failure, the flag or variable, and one recovery action.
+  Messages never print provider messages, provider codes, or bodies. JSON
+  input errors keep only the line and the column. Rejected: provider text in
+  errors, because SDK diagnostics hide it, as it can echo credentials.
+- **CLI pages (2026-10-21).** Paged list commands take `--limit`, `--after`,
+  `--before`, and `--all` with a `--max-pages` budget of 10 by default.
+  `--all` prints the records, the page count, the stop reason, and the next
+  request. A failed page prints no records and names the resume cursor.
+  `categories list` takes no page flags, because Pipedream returns a bare
+  array. Rejected: an unbounded `--all`, because a cursor fault could exhaust
+  memory. Rejected: a required budget flag, because it burdens every call.
+- **CLI command shape (2026-10-21).** A command that reads or runs one app or
+  registry component takes its key as a positional argument: `apps get <APP>`,
+  `components get <COMPONENT>`, and `actions run <ACTION>`. Rejected: an
+  `--action` flag, because one positional rule keeps these commands
+  consistent.
+
 ## Open decisions
 
 - **GET retry defaults (2026-10-21).** Decision 4 requires an opt-in GET
@@ -524,6 +564,15 @@ no user answer. Each records the alternative and the reason.
   metadata. Effort: Medium. **Recommendation:** A, because it matches the
   provider contract without fabricated page data. No list option is applied
   before the user answers. This blocks category listing and its tests.
+
+- **CLI contract home (2026-10-21).** The CLI exit codes, settings, output,
+  and redaction rules are requirements at the CLI boundary. They live in the
+  CLI README and in the plan decisions. No protocol doc holds them. **A.** Keep
+  them in the CLI README. Effort: Small. **B.** Add `docs/protocol/cli.md`
+  with the CLI requirements and the decisions in force, and link it from the
+  CLI README. Effort: Large. **Recommendation:** B, because the post-push
+  review checks behaviour against protocol docs. No protocol doc is added
+  before the user answers.
 
 ## Public API sketch
 
@@ -884,11 +933,11 @@ Tags: ui
 Summary: the `pipedream-cli` crate runs every smoke command against the
 resource traits.
 
-- [ ] Create `crates/pipedream-cli` with `clap`. Mark it `publish = false`.
+- [x] Create `crates/pipedream-cli` with `clap`. Mark it `publish = false`.
       Give it a `README.md` in the required section order.
-- [ ] Shared configuration flags, the `PIPEDREAM_*` variables, JSON output,
+- [x] Shared configuration flags, the `PIPEDREAM_*` variables, JSON output,
       and exit codes.
-- [ ] Registry and execution commands: `apps list`, `apps get`,
+- [x] Registry and execution commands: `apps list`, `apps get`,
       `categories list`, `components list`, `components get`,
       `actions list`, and `actions run`.
 - [ ] Managed-auth and proxy commands: `tokens create`, `accounts list`,
@@ -899,10 +948,28 @@ resource traits.
 - [ ] Administration commands: `project info`, `usage`, and `webhook get`.
 - [ ] CLI unit tests with mocked resource traits for every command:
       argument parsing, request mapping, JSON output, and exit codes.
+  - [x] Registry and execution commands, settings, input files, the
+        redaction of every credential-bearing model, failure text, and exit
+        codes.
+  - [ ] Managed-auth, proxy, trigger, and administration commands, with the
+        redaction of each response that holds a secret.
 - [ ] The CLI README with the command reference. Add the CLI to the
       workspace README, and the CLI smoke command to `AGENTS.md`.
+  - [x] Write the reference with the planned commands marked, the workspace
+        README CLI section, and the `AGENTS.md` smoke command.
+  - [ ] Replace the planned entries when Milestones 6 to 8 merge.
+- [x] Add a credential-free smoke: build the binary, print the help of every
+      command, and run every command without credentials. Evidence:
+      `.context/cli/smoke-phase1.txt` in the CLI worktree.
 - [ ] Run the gate, run every command against a development project,
       commit, and push.
+  - [x] Run the gate and commit the registry and execution commands. The
+        assigned worktree branch does not push. The orchestrator merges it.
+        Evidence: `.context/cli/gate-phase1.txt` in the CLI worktree.
+  - [ ] Merge Milestones 6 to 8, add the remaining commands, rerun the gate,
+        and commit.
+  - [ ] Run every command against a development project. Blocked: the
+        Pipedream credential variables are absent.
 
 ## Milestone 11: Smoke and release readiness
 

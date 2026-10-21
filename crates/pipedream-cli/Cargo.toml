@@ -1,0 +1,25 @@
+[package]
+name = "pipedream-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "A smoke-test command line for the Pipedream Connect SDK."
+readme = "README.md"
+publish = false
+
+[dependencies]
+async-trait.workspace = true
+clap.workspace = true
+internal-error.workspace = true
+pipedream-connect.workspace = true
+pipedream-connect-types.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
+
+[dev-dependencies]
+pipedream-connect = { workspace = true, features = ["unimock"] }
+unimock.workspace = true
