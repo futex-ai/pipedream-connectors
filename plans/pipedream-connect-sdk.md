@@ -26,7 +26,9 @@ repository.
 
 Research evidence lives under `.context/pipedream-connect-sdk/`:
 `research-notes.md`, `openapi-operations.md`, and the vendored
-`pipedream_openapi_swagger.json` fetched on 2026-10-20.
+`pipedream_openapi_swagger.json` fetched on 2026-10-20. A read-only sparse
+clone of the Firna connector crates at commit `905976b` lives under
+`.context/firna/`.
 
 Contract owners, created in Milestone 1:
 
@@ -261,6 +263,13 @@ no user answer. Each records the alternative and the reason.
   the concrete client. It is never published. Rejected: read-only commands
   plus separate examples. Reason: one tool serves every smoke test. Decided
   by the plan author on 2026-10-20 after decision 6.
+- **CLI milestone (2026-10-21).** The CLI is the user interface of the SDK.
+  All CLI work moves into Milestone 10, a `Tags: ui` milestone after the
+  resource and webhook milestones. Milestones 5 to 8 keep only library
+  work. Rejected: CLI commands inside each resource milestone. Reason: the
+  plans rule keeps UI and backend work in separate milestones, and one
+  milestone gives the CLI one consistent design. Decided by the implementer
+  on 2026-10-21.
 
 ## Public API sketch
 
@@ -357,9 +366,9 @@ recommended options applied.
 Summary: a compiling workspace with the gate and CI, no SDK code yet.
 
 - [ ] Create the Cargo workspace with `crates/pipedream-connect-types`,
-      `crates/pipedream-connect`, `crates/pipedream-connect-webhooks`,
-      `crates/pipedream-cli`, and `xtask`. Mark the CLI `publish = false`.
-      Give each a `README.md` in the required section order.
+      `crates/pipedream-connect`, `crates/pipedream-connect-webhooks`, and
+      `xtask`. Give each a `README.md` in the required section order.
+      Milestone 10 adds `crates/pipedream-cli`.
 - [ ] Add `rust-toolchain.toml`, `.cargo/config.toml` with the `xtask`
       alias, `LICENSE`, and `.gitignore` entries for `target` and `.context/`.
 - [ ] Add `internal-error` as a workspace git dependency at revision
@@ -372,9 +381,9 @@ Summary: a compiling workspace with the gate and CI, no SDK code yet.
   - [ ] A Rust file-length lint with the 300-line cap.
 - [ ] Add `.github/workflows/ci.yml` that runs the same steps on pull
       requests and on `main`.
-- [ ] Create `AGENTS.md` from the shared template: commands including the
-      CLI smoke, repository rules, review focus, and status. Add `CLAUDE.md`
-      as a symlink to it.
+- [ ] Create `AGENTS.md` from the shared template: commands, repository
+      rules, review focus, and status. Add `CLAUDE.md` as a symlink to it.
+      Milestone 10 adds the CLI smoke command.
 - [ ] Run the gate, commit, and push.
 
 ## Milestone 3: Typed models
@@ -480,17 +489,10 @@ real API.
       lists its actions and triggers in a development project. It skips
       without `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, and
       `PIPEDREAM_PROJECT_ID`.
-- [ ] Create `pipedream-cli` with `clap`:
-  - [ ] Shared configuration flags, the `PIPEDREAM_*` variables, and JSON
-        output.
-  - [ ] The commands `apps list`, `apps get`, `categories list`,
-        `components list`, `components get`, `actions list`, and
-        `actions run`.
-  - [ ] The CLI README with the command reference.
 - [ ] Update the READMEs and the resources protocol doc only if a contract
       changed.
-- [ ] Run the gate, run the read commands against a development project,
-      commit, and push.
+- [ ] Run the gate and the live test against a development project, commit,
+      and push.
 
 ## Milestone 6: Managed auth and proxy resources
 
@@ -508,11 +510,9 @@ Summary: tokens, accounts, users, and the proxy work against the real API.
 - [ ] Unit tests: ownership checks, `include_credentials` handling with
       redacted `Debug`, every blocked header, prefixing, target encoding,
       and upstream error statuses preserved.
-- [ ] CLI commands `tokens create`, `accounts list`, `accounts get`,
-      `users list`, and `proxy <method>`. `tokens create` prints the Connect
-      Link URL for an external user.
-- [ ] Run the gate, run the new commands against a development project,
-      commit, and push.
+- [ ] Update the READMEs and the resources protocol doc only if a contract
+      changed.
+- [ ] Run the gate, commit, and push.
 
 ## Milestone 7: Trigger lifecycle resources
 
@@ -531,10 +531,10 @@ Summary: deploy and manage triggers for an external user.
       and the emitter variants.
 - [ ] A credential-gated live test that deploys a timer-free Google
       Calendar trigger to a loopback webhook URL, lists it, and deletes it.
-- [ ] CLI commands `triggers list`, `triggers get`, `triggers deploy`,
-      `triggers delete`, and `triggers events`.
-- [ ] Run the gate, run the new commands against a development project,
-      commit, and push.
+- [ ] Update the READMEs and the resources protocol doc only if a contract
+      changed.
+- [ ] Run the gate and the live test against a development project, commit,
+      and push.
 
 ## Milestone 8: Administration resources
 
@@ -553,7 +553,6 @@ Summary: the remaining Connect operations.
       URL with the external user and environment headers.
 - [ ] A coverage test that reads the vendored OpenAPI document and asserts
       that every `operationId` appears in the SDK coverage table.
-- [ ] CLI commands `project info`, `usage`, and `webhook get`.
 - [ ] Unit tests per resource. Update the READMEs.
 - [ ] Run the gate, commit, and push.
 
@@ -574,12 +573,37 @@ Summary: the `pipedream-connect-webhooks` crate.
       README.
 - [ ] Run the gate, commit, and push.
 
-## Milestone 10: CLI polish, smoke, and release readiness
+## Milestone 10: CLI
+
+Tags: ui
+
+Summary: the `pipedream-cli` crate runs every smoke command against the
+resource traits.
+
+- [ ] Create `crates/pipedream-cli` with `clap`. Mark it `publish = false`.
+      Give it a `README.md` in the required section order.
+- [ ] Shared configuration flags, the `PIPEDREAM_*` variables, JSON output,
+      and exit codes.
+- [ ] Registry and execution commands: `apps list`, `apps get`,
+      `categories list`, `components list`, `components get`,
+      `actions list`, and `actions run`.
+- [ ] Managed-auth and proxy commands: `tokens create`, `accounts list`,
+      `accounts get`, `users list`, and `proxy <method>`. `tokens create`
+      prints the Connect Link URL for an external user.
+- [ ] Trigger commands: `triggers list`, `triggers get`, `triggers deploy`,
+      `triggers delete`, and `triggers events`.
+- [ ] Administration commands: `project info`, `usage`, and `webhook get`.
+- [ ] CLI unit tests with mocked resource traits for every command:
+      argument parsing, request mapping, JSON output, and exit codes.
+- [ ] The CLI README with the command reference. Add the CLI to the
+      workspace README, and the CLI smoke command to `AGENTS.md`.
+- [ ] Run the gate, run every command against a development project,
+      commit, and push.
+
+## Milestone 11: Smoke and release readiness
 
 Summary: the SDK and the CLI are usable by a stranger.
 
-- [ ] CLI unit tests with mocked resource traits for every command:
-      argument parsing, request mapping, JSON output, and exit codes.
 - [ ] Each library crate `lib.rs` includes its README as crate docs, so the
       Quick Start compiles as a doctest.
 - [ ] `cargo doc --no-deps` builds without warnings, and `Cargo.toml`
@@ -591,7 +615,7 @@ Summary: the SDK and the CLI are usable by a stranger.
       learnt.
 - [ ] Run the gate, commit, and push.
 
-## Milestone 11: Verification, commit, and review
+## Milestone 12: Verification, commit, and review
 
 Summary: the final checks and the review loop.
 
