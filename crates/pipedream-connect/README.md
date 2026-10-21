@@ -1,9 +1,8 @@
 # pipedream-connect
 
-`pipedream-connect` provides asynchronous authentication, registry discovery,
-property configuration, and action execution for Pipedream Connect. Depend
-on this crate when a server needs authenticated HTTP access. Use
-`pipedream-connect-types` for request and response models.
+`pipedream-connect` provides asynchronous authentication and typed resources
+for Pipedream Connect. Depend on this crate when a server needs authenticated
+HTTP access. Use `pipedream-connect-types` for request and response models.
 
 ## Responsibilities
 
@@ -14,6 +13,10 @@ on this crate when a server needs authenticated HTTP access. Use
 - Support explicit GET retry and pagination budgets.
 - Discover apps, components, actions, and registry triggers.
 - Configure properties, reload dynamic properties, and run actions once.
+- Manage projects, custom OAuth clients, app overrides, and project webhooks.
+- List Connect usage and create custom rate-limit tokens.
+- Download File Stash files without following redirects.
+- Invoke workflow endpoints for external users.
 
 ## What This Crate Does
 
@@ -22,8 +25,8 @@ redirects and performs no transport retries. Its default connection timeout
 is 10 seconds. Its default total request timeout is 60 seconds. Its default
 response limit is 10 MiB. The builder can change each limit.
 
-`apps()`, `components()`, `actions()`, and `triggers()` return shared resource
-trait objects. Each group has a `unimock` mock under the `unimock` feature.
+Resource accessors return shared trait objects. Each group has a `unimock`
+mock under the `unimock` feature.
 Paged lists return `Page<T>` with provider metadata. App and component
 retrieval returns the complete `Data<T>` envelope and checks its identity.
 `app_categories()` lists the bare category array and provides checked category
@@ -42,6 +45,10 @@ The `HttpTransport`, `Clock`, `Sleeper`, and `AccessTokenProvider` traits each
 have a mock under the `unimock` feature. Disable default features to use a
 host transport without reqwest. Inject a custom sleeper or token provider
 with the client methods before obtaining a dispatcher.
+
+Apply a token returned by `rate_limits().create(...)` with
+`client.with_rate_limit_token(token.token)`. The method returns a configured
+client clone and keeps the token redacted in diagnostics.
 
 OAuth refresh uses the smaller of 30 seconds or ten percent of the token
 lifetime. A 401 invalidates the cached bearer without replaying the request.
@@ -123,6 +130,10 @@ The URL library skips literal `.` and `..` segments. Their identifier policy
 is still an open plan decision. Slash, percent, question mark, and hash
 characters are encoded inside each segment.
 
+Workflow invocations use `ResponseMode::PassThrough` and send the external
+user and environment headers to the HTTPS endpoint. File Stash downloads
+return bytes or a redirect location without following the redirect.
+
 ## Development
 
 Run the targeted tests and the workspace gate:
@@ -186,6 +197,14 @@ let _pages = paginator.paginate(PageRequest::default(), std::num::NonZeroUsize::
 - `src/request.rs` defines operations and the shared URL builder.
 - `src/validation.rs` requires each JSON request model to own its validation.
 - `src/resources/` defines the resource traits, handles, and client accessors.
+- `src/resources/admin_operations.rs` builds administration and workflow
+  requests and checks returned identities.
+- `src/resources/projects.rs` manages projects and enabled project apps.
+- `src/resources/oauth_apps.rs` and `src/resources/app_overrides.rs` manage
+  project-owned OAuth clients and app overrides.
+- `src/resources/project_webhooks.rs` manages environment webhooks and keys.
+- `src/resources/file_stash.rs` preserves File Stash bytes and redirects.
+- `src/resources/workflows.rs` invokes external-user workflow endpoints.
 - `src/resources/operation.rs` builds, dispatches, decodes, and checks
   resource operations.
 - `src/token.rs` defines static and single-flight OAuth token providers.

@@ -13,6 +13,7 @@ use serde::de::DeserializeOwned;
 use crate::client::RequestDispatcher;
 use crate::error::{Error, Result, WireFailure};
 use crate::request::{ApiPath, ApiRequest, ResponseMode};
+use crate::transport::HttpResponse;
 
 /// A resource catalog route.
 #[derive(Clone, Copy)]
@@ -42,6 +43,14 @@ pub(super) async fn json<T: DeserializeOwned>(
     request: Result<ApiRequest>,
 ) -> Result<T> {
     dispatcher.dispatch(request?).await?.json()
+}
+
+/// Dispatches an operation while retaining its status, headers, and body.
+pub(super) async fn dispatch(
+    dispatcher: &Arc<dyn RequestDispatcher + Send + Sync>,
+    request: Result<ApiRequest>,
+) -> Result<HttpResponse> {
+    dispatcher.dispatch(request?).await
 }
 
 /// Builds the app list request.

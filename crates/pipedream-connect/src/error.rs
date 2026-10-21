@@ -46,6 +46,9 @@ pub enum InvalidRequest {
     /// A header value cannot be sent over HTTP.
     #[error("[pipedream-connect/request] invalid header value")]
     Header,
+    /// A workflow invocation uses an unsupported HTTP method.
+    #[error("[pipedream-connect/request] unsupported workflow method")]
+    WorkflowMethod,
     /// The builder is missing a required setting.
     #[error("[pipedream-connect/config] missing {field}")]
     MissingConfiguration {
@@ -168,4 +171,6 @@ pub(crate) enum WireFailure {
     QueryShape,
     #[error("[pipedream-connect/resources] response identity does not match the request")]
     IdentityMismatch,
+    #[error("[pipedream-connect/resources] redirect response has no location")]
+    MissingLocation,
 }

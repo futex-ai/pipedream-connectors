@@ -488,6 +488,21 @@ no user answer. Each records the alternative and the reason.
   the request constructor. Rejected: separate range checks for serde.
   Reason: shared checks keep construction and deserialization aligned without
   adding validation beyond the assigned range checks.
+- **Administration response forms (2026-10-21).** File Stash downloads return
+  a `FileStashDownload` enum with bytes or a redirect location, and workflow
+  calls return the shared pass-through HTTP response. Rejected: decoding both
+  responses as JSON, because file contents and workflow statuses are not
+  limited to JSON.
+- **Workflow method and target validation (2026-10-21).** Workflow calls use
+  `http::Method`, accept only GET, POST, PUT, DELETE, and PATCH, and validate
+  an absolute HTTPS target before bearer acquisition. Rejected: accepting any
+  HTTP method or building a project-relative URL, because the documented
+  workflow endpoint is an HTTPS URL with a fixed method set.
+- **Runtime rate-limit token selection (2026-10-21).** The client exposes a
+  `with_rate_limit_token` method in addition to builder configuration, so a
+  token returned by `RateLimitsApi` can be applied to a cloned client. Rejected:
+  mutating a live client configuration in place, because client settings are
+  immutable after construction.
 
 ## Open decisions
 
@@ -800,7 +815,7 @@ Summary: tokens, accounts, users, and the proxy work against the real API.
 - [ ] `UsersApi`: list, delete, and list the accounts of one external user.
 - [ ] `ProxyApi`: GET, POST, PUT, PATCH, and DELETE with the header policy,
       the base64 target, byte bodies, and the lossless response.
-- [ ] `ProjectsApi::info` for the apps enabled in the project environment.
+- [x] `ProjectsApi::info` for the apps enabled in the project environment.
 - [ ] Unit tests: ownership checks, `include_credentials` handling with
       redacted `Debug`, every blocked header, prefixing, target encoding,
       and upstream error statuses preserved.
@@ -834,21 +849,22 @@ Summary: deploy and manage triggers for an external user.
 
 Summary: the remaining Connect operations.
 
-- [ ] `ProjectsApi`: list, create, get, update, delete, and update logo.
-- [ ] `OauthAppsApi` and `AppOverridesApi`: list, create, get, update, and
+- [x] `ProjectsApi`: list, create, get, update, delete, and update logo.
+- [x] `OauthAppsApi` and `AppOverridesApi`: list, create, get, update, and
       delete.
-- [ ] `ProjectWebhooksApi`: get, set, delete, and regenerate the signing
+- [x] `ProjectWebhooksApi`: get, set, delete, and regenerate the signing
       key for the project environment webhook.
-- [ ] `UsageApi::list` for a time window, and `RateLimitsApi::create` that
+- [x] `UsageApi::list` for a time window, and `RateLimitsApi::create` that
       returns the token for the `x-pd-rate-limit` header.
-- [ ] `FileStashApi::download` that returns bytes or the redirect location
+- [x] `FileStashApi::download` that returns bytes or the redirect location
       without following it.
-- [ ] `WorkflowsApi::invoke_for_external_user` against a workflow endpoint
+- [x] `WorkflowsApi::invoke_for_external_user` against a workflow endpoint
       URL with the external user and environment headers.
 - [ ] A coverage test that reads the vendored OpenAPI document and asserts
       that every `operationId` appears in the SDK coverage table.
-- [ ] Unit tests per resource. Update the READMEs.
-- [ ] Run the gate, commit, and push.
+- [x] Unit tests per resource. Update the READMEs.
+- [x] Run the gate, commit, and hand off. The assigned worktree branch must
+      not push. The orchestrator merges and pushes it.
 
 ## Milestone 9: Webhook verification
 
