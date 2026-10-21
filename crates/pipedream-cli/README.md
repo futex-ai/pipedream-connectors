@@ -55,35 +55,35 @@ The CLI reports every missing required setting in one message.
 
 ### Commands
 
-The CLI implements the commands whose SDK resource traits exist. The other
-commands are planned. They wait for the milestone that adds their resource.
-
 <!-- markdownlint-disable MD013 -->
 
-| Command | Status | What it does |
+| Command | What it does | Changes data |
 | --- | --- | --- |
-| `apps list` | Available | Lists catalog apps. |
-| `apps get <APP>` | Available | Reads one app by slug or ID. |
-| `categories list` | Available | Lists every app category. |
-| `components list` | Available | Lists registry components. |
-| `components get <COMPONENT>` | Available | Reads one component and its props. |
-| `actions list` | Available | Lists registry actions. |
-| `actions run <ACTION>` | Available | Runs one action for an external user. |
-| `tokens create` | Planned, Milestone 6 | Creates a Connect token for an external user. |
-| `accounts list` | Planned, Milestone 6 | Lists connected accounts. |
-| `accounts get` | Planned, Milestone 6 | Reads one connected account. |
-| `users list` | Planned, Milestone 6 | Lists external users. |
-| `proxy get`, `post`, `put`, `patch`, `delete` | Planned, Milestone 6 | Sends one request through the Connect proxy. |
-| `project info` | Planned, Milestone 6 | Lists the apps enabled in the project environment. |
-| `triggers list` | Planned, Milestone 7 | Lists the deployed triggers of an external user. |
-| `triggers get` | Planned, Milestone 7 | Reads one deployed trigger. |
-| `triggers deploy` | Planned, Milestone 7 | Deploys a registry trigger. |
-| `triggers delete` | Planned, Milestone 7 | Deletes a deployed trigger. |
-| `triggers events` | Planned, Milestone 7 | Lists recent events of a deployed trigger. |
-| `usage` | Planned, Milestone 8 | Lists Connect usage for a time window. |
-| `webhook get` | Planned, Milestone 8 | Reads the project environment webhook. |
+| `apps list` | Lists catalog apps. | No |
+| `apps get <APP>` | Reads one app by slug or ID. | No |
+| `categories list` | Lists every app category. | No |
+| `components list` | Lists registry components. | No |
+| `components get <COMPONENT>` | Reads one component and its props. | No |
+| `actions list` | Lists registry actions. | No |
+| `actions run <ACTION>` | Runs one action for an external user. | Yes |
+| `tokens create` | Creates a Connect token and its Connect Link URL. | Yes |
+| `accounts list` | Lists connected accounts. | No |
+| `accounts get <ACCOUNT>` | Reads one connected account. | No |
+| `users list` | Lists external users. | No |
+| `proxy get <URL>` | Sends a GET request through the Connect proxy. | No |
+| `proxy post`, `put`, `patch`, `delete` `<URL>` | Sends a request that can change app data. | Yes |
+| `triggers list` | Lists the deployed triggers of an external user. | No |
+| `triggers get <TRIGGER>` | Reads one deployed trigger. | No |
+| `triggers deploy <COMPONENT>` | Deploys a registry trigger. | Yes |
+| `triggers delete <TRIGGER>` | Deletes a deployed trigger. | Yes |
+| `triggers events <TRIGGER>` | Lists the recent events of a deployed trigger. | No |
+| `project info` | Lists the apps enabled in the project environment. | No |
+| `usage` | Lists Connect usage for a time window. | No |
+| `webhook get` | Reads the project environment webhook. | No |
 
 <!-- markdownlint-enable MD013 -->
+
+The CLI sends a command that changes data once and never retries it.
 
 `apps list` takes these filters:
 
@@ -109,12 +109,72 @@ Without it, Pipedream returns the latest version.
 - `--stash-id <STASH>` selects a File Stash. `NEW`, `true`, and `false` are
   selectors. Any other value is a stash ID.
 
-The planned commands follow the same rules. `tokens create` will print the
-Connect token, its expiry, and the Connect Link URL. `proxy <method>` will
-take `--external-user-id`, `--account`, the target URL, a repeatable
-`--header 'Name: value'`, and `--body <FILE>` or `--body -`. It will print the
-upstream status, every header, and the body. A UTF-8 body prints as text, and
-any other body prints as base64 with its encoding named.
+`tokens create` takes `--external-user-id <ID>`, which is required. It also
+takes these options:
+
+- `--expires-in <SECONDS>` sets the token lifetime, from 1 to 14400. The
+  default is 14400.
+- `--allowed-origin <ORIGIN>` names a browser origin that may use the token.
+  Repeat it for more origins.
+- `--success-redirect-uri <URL>`, `--error-redirect-uri <URL>`, and
+  `--webhook-uri <URL>` take HTTPS URLs.
+- `--scope <SCOPE>` and `--allow-progressive-scopes` set the Connect scope.
+
+`tokens create` prints the Connect token, its expiry, and the Connect Link
+URL.
+
+`accounts list` takes `--external-user-id <ID>`, `--app <APP>`,
+`--oauth-app-id <ID>`, `--include-credentials`, and the page flags.
+`accounts get <ACCOUNT>` takes `--include-credentials`. With
+`--external-user-id <ID>`, it also checks that the account belongs to that
+user. Pipedream returns credentials only with `--include-credentials`, and the
+CLI prints them only with `--show-secrets`.
+
+`users list` takes `--query <TEXT>` and the page flags.
+
+`proxy <method> <URL>` takes `--external-user-id <ID>` and
+`--account <ACCOUNT>`, which are required. The URL is an HTTPS URL or a path
+that starts with `/` on the base URL of the app. Repeat
+`--header 'Name: value'` for each upstream header. `--body <FILE>` sends the
+file bytes, and `--body -` sends standard input. The CLI checks each header
+before any request. Pipedream reserves some names, such as `Cookie`, `Host`,
+and every `X-PD-` name. An error names a bad header by its name or position,
+never by its value.
+
+A proxy command prints the upstream status, every header, and the body. Valid
+UTF-8 prints as text. Other bytes print as base64. The `encoding` field says
+which:
+
+```json
+{
+  "status": 404,
+  "headers": [
+    { "name": "content-type", "encoding": "utf-8", "value": "application/json" }
+  ],
+  "body": { "encoding": "utf-8", "value": "{\"ok\":false}" }
+}
+```
+
+An upstream status of 400 or more still exits with code 0, because the proxy
+call succeeded. Check `status` in the output, as with `curl` without `--fail`.
+
+`triggers list` takes `--external-user-id <ID>`, which is required,
+`--emitter-type <email|http|source|timer>`, and the page flags.
+`triggers get`, `triggers delete`, and `triggers events` take the trigger ID
+and `--external-user-id <ID>`. `triggers delete` takes `--ignore-hook-errors`
+and prints `{"status": "deleted"}`. `triggers events` takes
+`--limit <COUNT>`, from 1 to 100. The default is 20, the Pipedream default.
+
+`triggers deploy <COMPONENT>` takes `--external-user-id <ID>`, which is
+required. It also takes `--props <FILE>`, `--version <VERSION>`,
+`--dynamic-props-id <ID>`, `--workflow-id <ID>`, and `--emit-on-deploy`.
+`--webhook-url <URL>` takes an HTTPS URL or an HTTP URL on `localhost`. The
+response holds webhook signing keys, which print only with `--show-secrets`.
+
+`project info` prints the apps enabled in the project environment.
+`usage --start <TIME> --end <TIME>` takes Unix seconds or RFC 3339 times,
+such as `2026-10-01T00:00:00Z`. `webhook get` prints the project environment
+webhook, or `"data": null` when the project has none.
 
 ### Pages
 
@@ -149,8 +209,9 @@ cursor to use. When Pipedream repeats a cursor, the CLI stops, and the result
 can contain repeated records. When a page fails, the command prints no
 records. For a failure that a retry can fix, the error names the flag that
 continues from the failed page.
-`categories list` has no page flags, because Pipedream returns every category
-in one response.
+
+`categories list`, `triggers events`, and `usage` have no cursor flags.
+Pipedream returns all their records in one response.
 
 ### Output and redaction
 
@@ -163,9 +224,8 @@ output.
 The SDK types some values as credentials: account credentials and webhook
 signing keys. Each of them prints as `"[REDACTED]"`. Pass `--show-secrets` to
 print them. Only a command that exists to produce a credential prints it
-without the flag. The planned `tokens create` prints the Connect token and the
-Connect Link URL. Provider fields that the SDK does not model print as they
-are.
+without the flag: `tokens create` prints the Connect token and the Connect
+Link URL. Provider fields that the SDK does not model print as they are.
 
 An action run that Pipedream accepts for later completion prints
 `{"status": "accepted"}` and exits with code 0.
@@ -174,7 +234,7 @@ An action run that Pipedream accepts for later completion prints
 
 | Code | Meaning |
 | --- | --- |
-| 0 | The command printed its result. |
+| 0 | The command printed its result, also for an upstream proxy error. |
 | 1 | The CLI could not complete the command or read the response. |
 | 2 | A flag, a variable, or an input is not valid. No request was sent. |
 | 3 | Pipedream rejected the credentials or denied access. |
@@ -222,6 +282,18 @@ echo '{"calendarId": "primary"}' | cargo run -p pipedream-cli -- actions run \
   google_calendar-list-events --external-user-id user_1 --props -
 ```
 
+Create a Connect token, call an app API, and deploy a trigger:
+
+```sh
+cargo run -p pipedream-cli -- tokens create --external-user-id user_1
+cargo run -p pipedream-cli -- proxy get /api/conversations.list \
+  --external-user-id user_1 --account apn_abc123 \
+  --header 'Accept: application/json'
+cargo run -p pipedream-cli -- triggers deploy \
+  google_calendar-new-or-updated-event-instant --external-user-id user_1 \
+  --props props.json --webhook-url https://example.com/hook
+```
+
 Run `cargo run -p pipedream-cli -- --help` or add `--help` to any command for
 its flags.
 
@@ -239,8 +311,9 @@ Unit tests mock the environment variables, the input files, the client
 construction, and every resource trait with `unimock`. They capture standard
 output and standard error in memory. No unit test touches the network, the
 clock, the disk, or the process environment. The smoke test runs the built
-binary with an empty environment. It checks the help of every command, the
-missing-setting error, and the exit codes without a request to Pipedream.
+binary with an empty environment and an API origin on a closed local port. It
+checks the help of every command, the missing-setting error, the network
+error with each warning, and the exit codes without a request to Pipedream.
 
 To add a command, add its group module under `src/commands/`. Define its
 `clap` arguments, a `prepare` function that validates them, and a `run`
@@ -258,8 +331,12 @@ each model that it prints.
 - `src/commands/task.rs` validates a command and hands it its trait object.
 - `src/commands/pages.rs` defines the page flags and the bounded `--all`
   listing.
+- `src/commands/proxy/` checks proxy headers and prints upstream responses.
+- `src/commands/triggers/` splits trigger commands between the deployed and
+  the registry trigger traits.
 - `src/redact.rs` replaces credential-class values before output.
 - `src/report/` maps each failure to its exit code and message.
+- `src/report/target.rs` holds the failure text of each command target.
 - `tests/cli_smoke.rs` runs the binary without credentials.
 
 ### Related Docs

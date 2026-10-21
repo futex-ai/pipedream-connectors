@@ -9,25 +9,74 @@ use std::process::{Command, Output, Stdio};
 /// The API origin of every run: a local port that accepts no connection.
 const ORIGIN: &str = "https://127.0.0.1:9";
 
-/// Every implemented command, with the arguments that its grammar requires.
-const COMMANDS: [&[&str]; 7] = [
-    &["apps", "list"],
-    &["apps", "get", "google_calendar"],
-    &["categories", "list"],
-    &["components", "list"],
-    &["components", "get", "google_calendar-list-events"],
-    &["actions", "list"],
-    &[
-        "actions",
-        "run",
-        "google_calendar-list-events",
-        "--external-user-id",
-        "user_1",
-    ],
+/// One command: its path, the arguments that its grammar requires, and its
+/// warning when a change may have happened without an answer.
+type Case = (&'static str, &'static str, Option<&'static str>);
+
+const RUN: &str = "The action may have run. Check its effects before you run it again.";
+const TOKEN: &str = "Pipedream may have created the token. Run the command again for a new one.";
+const WRITE: &str =
+    "The upstream request may have run. Check its effects before you send it again.";
+const DEPLOY: &str =
+    "Pipedream may have deployed the trigger. Check triggers list before you deploy it again.";
+const DELETE: &str = "Pipedream may have deleted the trigger. Check it with triggers get.";
+
+/// The arguments of every proxy case.
+const PROXY: &str = "/v1/items --external-user-id user_1 --account apn_Account1";
+
+/// The arguments of every case that names a deployed trigger.
+const TRIGGER: &str = "dc_Trigger1 --external-user-id user_1";
+
+/// Every command that the CLI implements.
+const CASES: [Case; 24] = [
+    ("apps list", "", None),
+    ("apps get", "google_calendar", None),
+    ("categories list", "", None),
+    ("components list", "", None),
+    ("components get", "google_calendar-list-events", None),
+    ("actions list", "", None),
+    (
+        "actions run",
+        "google_calendar-list-events --external-user-id user_1",
+        Some(RUN),
+    ),
+    ("tokens create", "--external-user-id user_1", Some(TOKEN)),
+    ("accounts list", "", None),
+    ("accounts get", "apn_Account1", None),
+    ("users list", "", None),
+    ("proxy get", PROXY, None),
+    ("proxy post", PROXY, Some(WRITE)),
+    ("proxy put", PROXY, Some(WRITE)),
+    ("proxy patch", PROXY, Some(WRITE)),
+    ("proxy delete", PROXY, Some(WRITE)),
+    ("triggers list", "--external-user-id user_1", None),
+    ("triggers get", TRIGGER, None),
+    (
+        "triggers deploy",
+        "google_calendar-new-event --external-user-id user_1",
+        Some(DEPLOY),
+    ),
+    ("triggers delete", TRIGGER, Some(DELETE)),
+    ("triggers events", TRIGGER, None),
+    ("project info", "", None),
+    ("usage", "--start 1700000000 --end 1700086400", None),
+    ("webhook get", "", None),
 ];
 
-/// Commands that change data, so an unanswered request may have run.
-const MUTATIONS: [&str; 1] = ["actions run"];
+/// The command groups that have subcommands.
+const GROUPS: [&str; 11] = [
+    "apps",
+    "categories",
+    "components",
+    "actions",
+    "tokens",
+    "accounts",
+    "users",
+    "proxy",
+    "triggers",
+    "project",
+    "webhook",
+];
 
 /// Fake settings that pass validation. No request with them can reach Pipedream.
 const VARIABLES: [(&str, &str); 4] = [
@@ -36,6 +85,14 @@ const VARIABLES: [(&str, &str); 4] = [
     ("PIPEDREAM_PROJECT_ID", "proj_Smoke1"),
     ("PIPEDREAM_ENVIRONMENT", "development"),
 ];
+
+fn words(text: &str) -> Vec<&str> {
+    text.split_whitespace().collect()
+}
+
+fn line(case: &Case) -> Vec<&'static str> {
+    [words(case.0), words(case.1)].concat()
+}
 
 fn cli(args: &[&str], variables: &[(&str, &str)], stdin: Option<&[u8]>) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_pipedream-cli"));
@@ -66,40 +123,33 @@ fn text(bytes: Vec<u8>) -> String {
 
 #[test]
 fn every_command_and_group_prints_its_help() {
-    let groups: [&[&str]; 5] = [
-        &[],
-        &["apps"],
-        &["categories"],
-        &["components"],
-        &["actions"],
-    ];
-    let paths = groups
-        .iter()
-        .map(|group| group.to_vec())
-        .chain(COMMANDS.iter().map(|command| command[..2].to_vec()));
+    let paths = std::iter::once("")
+        .chain(GROUPS)
+        .chain(CASES.iter().map(|case| case.0));
     for path in paths {
-        let output = cli(&[&path[..], &["--help"]].concat(), &[], None);
-        assert_eq!(output.status.code(), Some(0), "{path:?}");
-        let usage = format!("Usage: pipedream-cli {}", path.join(" "));
+        let output = cli(&[words(path), vec!["--help"]].concat(), &[], None);
+        assert_eq!(output.status.code(), Some(0), "{path}");
         let stdout = text(output.stdout);
-        assert!(stdout.contains(usage.trim_end()), "{path:?}: {stdout}");
-        assert!(stdout.contains("PIPEDREAM_CLIENT_SECRET"), "{path:?}");
-        assert!(output.stderr.is_empty(), "{path:?}");
+        let usage = format!("Usage: pipedream-cli {path}");
+        assert!(stdout.contains(usage.trim_end()), "{path}: {stdout}");
+        assert!(stdout.contains("PIPEDREAM_CLIENT_SECRET"), "{path}");
+        assert!(output.stderr.is_empty(), "{path}");
     }
 }
 
 #[test]
 fn every_command_without_credentials_exits_two_with_the_missing_settings() {
-    for command in COMMANDS {
-        let output = cli(command, &[], None);
-        assert_eq!(output.status.code(), Some(2), "{command:?}");
-        assert!(output.stdout.is_empty(), "{command:?}");
+    for case in &CASES {
+        let output = cli(&line(case), &[], None);
+        assert_eq!(output.status.code(), Some(2), "{}", case.0);
+        assert!(output.stdout.is_empty(), "{}", case.0);
         assert_eq!(
             text(output.stderr),
             "error: The client ID, client secret, project ID, and environment are missing. Set \
              PIPEDREAM_CLIENT_ID, PIPEDREAM_CLIENT_SECRET, PIPEDREAM_PROJECT_ID, and \
              PIPEDREAM_ENVIRONMENT.\n",
-            "{command:?}"
+            "{}",
+            case.0
         );
     }
 }
@@ -107,54 +157,44 @@ fn every_command_without_credentials_exits_two_with_the_missing_settings() {
 #[test]
 fn every_command_with_an_unreachable_origin_exits_six() {
     let note = format!("note: The CLI sends requests to {ORIGIN}, set by PIPEDREAM_API_ORIGIN.\n");
-    for command in COMMANDS {
-        let output = cli(command, &VARIABLES, None);
-        assert_eq!(output.status.code(), Some(6), "{command:?}");
-        assert!(output.stdout.is_empty(), "{command:?}");
-        let action = if MUTATIONS.contains(&command[..2].join(" ").as_str()) {
-            "The action may have run. Check its effects before you run it again."
-        } else {
-            "Check the network and the API origin, then try again."
-        };
+    for case in &CASES {
+        let output = cli(&line(case), &VARIABLES, None);
+        assert_eq!(output.status.code(), Some(6), "{}", case.0);
+        assert!(output.stdout.is_empty(), "{}", case.0);
+        let action = case
+            .2
+            .unwrap_or("Check the network and the API origin, then try again.");
         assert_eq!(
             text(output.stderr),
             format!("{note}error: The CLI could not reach Pipedream at {ORIGIN}. {action}\n"),
-            "{command:?}"
+            "{}",
+            case.0
         );
     }
 }
 
 #[test]
 fn bad_props_json_on_standard_input_fails_before_any_request() {
-    let command = [
-        "actions",
-        "run",
-        "google_calendar-list-events",
-        "--external-user-id",
-        "user_1",
-        "--props",
-        "-",
-    ];
-    let output = cli(&command, &VARIABLES, Some(br#"{"calendarId": "#));
+    let command = words("actions run google_calendar-list-events --external-user-id user_1");
+    let output = cli(
+        &[command, vec!["--props", "-"]].concat(),
+        &VARIABLES,
+        Some(br#"{"a": "#),
+    );
     assert_eq!(output.status.code(), Some(2));
     assert!(output.stdout.is_empty());
     assert!(text(output.stderr).ends_with(
-        "error: --props is not valid JSON at line 1, column 15. Fix the JSON, then run the \
+        "error: --props is not valid JSON at line 1, column 6. Fix the JSON, then run the \
          command again.\n"
     ));
 }
 
 #[test]
 fn a_missing_props_file_fails_before_any_request() {
-    let command = [
-        "actions",
-        "run",
-        "google_calendar-list-events",
-        "--external-user-id",
-        "user_1",
-        "--props",
-        "/nonexistent/pipedream-cli/props.json",
-    ];
+    let command = words(
+        "actions run google_calendar-list-events --external-user-id user_1 --props \
+         /nonexistent/pipedream-cli/props.json",
+    );
     let output = cli(&command, &VARIABLES, None);
     assert_eq!(output.status.code(), Some(2));
     assert!(output.stdout.is_empty());
@@ -166,7 +206,7 @@ fn a_missing_props_file_fails_before_any_request() {
 #[test]
 fn an_insecure_origin_fails_before_any_request() {
     let output = cli(
-        &["--api-origin", "http://localhost", "categories", "list"],
+        &words("--api-origin http://localhost categories list"),
         &VARIABLES,
         None,
     );

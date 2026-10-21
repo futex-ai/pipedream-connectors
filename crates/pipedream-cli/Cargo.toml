@@ -11,7 +11,10 @@ publish = false
 
 [dependencies]
 async-trait.workspace = true
+base64.workspace = true
+chrono.workspace = true
 clap.workspace = true
+http.workspace = true
 internal-error.workspace = true
 pipedream-connect.workspace = true
 pipedream-connect-types.workspace = true

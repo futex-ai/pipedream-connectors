@@ -50,6 +50,12 @@ pub(crate) fn describe(error: &Error, origin: &str) -> Failure {
             column,
             problem,
         } => usage(input::invalid_json(*argument, *line, *column, *problem)),
+        Error::InvalidHeader { position, problem } => {
+            usage(input::invalid_header(*position, problem))
+        }
+        Error::InvalidTime { argument } => usage(format!(
+            "{argument} must be Unix seconds or an RFC 3339 time, such as 2026-10-01T00:00:00Z."
+        )),
         Error::InvalidCount { argument } => {
             usage(format!("{argument} must be a whole number of 1 or more."))
         }

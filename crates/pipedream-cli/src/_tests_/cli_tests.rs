@@ -18,6 +18,8 @@ fn command_tree_holds_the_implemented_commands() {
     assert_eq!(
         leaves,
         [
+            "accounts get",
+            "accounts list",
             "actions list",
             "actions run",
             "apps get",
@@ -25,6 +27,21 @@ fn command_tree_holds_the_implemented_commands() {
             "categories list",
             "components get",
             "components list",
+            "project info",
+            "proxy delete",
+            "proxy get",
+            "proxy patch",
+            "proxy post",
+            "proxy put",
+            "tokens create",
+            "triggers delete",
+            "triggers deploy",
+            "triggers events",
+            "triggers get",
+            "triggers list",
+            "usage",
+            "users list",
+            "webhook get",
         ]
     );
 }

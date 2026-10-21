@@ -44,6 +44,42 @@ impl Document {
     }
 }
 
+/// The result of a command whose response has no resource body.
+#[derive(Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct Acknowledgement {
+    status: AcknowledgedStatus,
+}
+
+/// What Pipedream acknowledged.
+#[derive(Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum AcknowledgedStatus {
+    /// Pipedream accepted a run and completes it later.
+    Accepted,
+    /// Pipedream deleted the resource.
+    Deleted,
+}
+
+impl Acknowledgement {
+    /// A run that Pipedream accepted for later completion.
+    pub(crate) fn accepted() -> Self {
+        Self {
+            status: AcknowledgedStatus::Accepted,
+        }
+    }
+
+    /// A resource that Pipedream deleted.
+    pub(crate) fn deleted() -> Self {
+        Self {
+            status: AcknowledgedStatus::Deleted,
+        }
+    }
+}
+
+impl Redact for Acknowledgement {
+    fn redact(&mut self) {}
+}
+
 /// A fact about a successful result that the caller needs to know.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum Notice {

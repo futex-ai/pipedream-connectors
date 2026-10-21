@@ -1,9 +1,9 @@
 //! Replacement of credential-class values before a result reaches standard output.
 
 use pipedream_connect_types::{
-    Account, App, AppCategory, Component, Data, DeployedComponent, Emitter, Page, ProjectWebhook,
-    RunActionResponse, SecretJson, SecretString, TriggerWebhook, TriggerWebhooks,
-    WebhookWithOptionalSigningKey, WebhookWithSigningKey,
+    Account, App, AppCategory, Component, ConnectUsageResponse, Data, DeployedComponent,
+    EmittedEvent, Emitter, ExternalUser, Page, ProjectInfo, RunActionResponse, SecretJson,
+    SecretString, TriggerWebhook, Webhook,
 };
 use serde_json::Value;
 
@@ -71,12 +71,6 @@ impl Redact for TriggerWebhook {
     }
 }
 
-impl Redact for TriggerWebhooks {
-    fn redact(&mut self) {
-        self.webhooks.redact();
-    }
-}
-
 impl Redact for DeployedComponent {
     fn redact(&mut self) {
         self.webhook_signing_key.redact();
@@ -92,24 +86,6 @@ impl Redact for Emitter {
     }
 }
 
-impl Redact for ProjectWebhook {
-    fn redact(&mut self) {
-        self.signing_key.redact();
-    }
-}
-
-impl Redact for WebhookWithOptionalSigningKey {
-    fn redact(&mut self) {
-        self.signing_key.redact();
-    }
-}
-
-impl Redact for WebhookWithSigningKey {
-    fn redact(&mut self) {
-        self.signing_key.redact();
-    }
-}
-
 /// Implements [`Redact`] for models that hold no credential-class field.
 macro_rules! no_credentials {
     ($($model:ty),+ $(,)?) => {
@@ -121,8 +97,22 @@ macro_rules! no_credentials {
     };
 }
 
-no_credentials!(App, AppCategory, Component, RunActionResponse);
+no_credentials!(
+    App,
+    AppCategory,
+    Component,
+    ConnectUsageResponse,
+    EmittedEvent,
+    ExternalUser,
+    ProjectInfo,
+    RunActionResponse,
+    Webhook,
+);
 
 #[cfg(test)]
 #[path = "_tests_/redact_tests.rs"]
 mod redact_tests;
+
+#[cfg(test)]
+#[path = "_tests_/markers_tests.rs"]
+mod markers_tests;

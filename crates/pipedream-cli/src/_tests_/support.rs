@@ -3,12 +3,20 @@
 use std::ffi::OsString;
 use std::sync::Arc;
 
-use pipedream_connect::resources::ConnectResources;
-use pipedream_connect::resources::ConnectResourcesMock;
+use pipedream_connect::resources::accounts::AccountsApi;
 use pipedream_connect::resources::actions::ActionsApi;
 use pipedream_connect::resources::app_categories::AppCategoriesApi;
 use pipedream_connect::resources::apps::AppsApi;
 use pipedream_connect::resources::components::ComponentsApi;
+use pipedream_connect::resources::deployed_triggers::DeployedTriggersApi;
+use pipedream_connect::resources::project_webhooks::ProjectWebhooksApi;
+use pipedream_connect::resources::projects::ProjectsApi;
+use pipedream_connect::resources::proxy::ProxyApi;
+use pipedream_connect::resources::tokens::TokensApi;
+use pipedream_connect::resources::triggers::TriggersApi;
+use pipedream_connect::resources::usage::UsageApi;
+use pipedream_connect::resources::users::UsersApi;
+use pipedream_connect::resources::{ConnectResources, ConnectResourcesMock};
 use serde::Serialize;
 use unimock::{Clause, MockFn, Unimock, matching};
 
@@ -122,45 +130,73 @@ pub(crate) fn connects() -> impl Clause {
     })
 }
 
-/// Serves the app handle from the same mock.
-pub(crate) fn apps_handle() -> impl Clause {
-    ConnectResourcesMock::apps
-        .next_call(matching!())
-        .answers(&|mock| {
-            let api: Arc<dyn AppsApi + Send + Sync> = Arc::new(mock.clone());
-            api
-        })
+/// Defines a clause that serves one resource handle from the same mock.
+macro_rules! handle {
+    ($(#[$doc:meta])* $name:ident, $method:ident, $api:ident) => {
+        $(#[$doc])*
+        pub(crate) fn $name() -> impl Clause {
+            ConnectResourcesMock::$method
+                .next_call(matching!())
+                .answers(&|mock| {
+                    let api: Arc<dyn $api + Send + Sync> = Arc::new(mock.clone());
+                    api
+                })
+        }
+    };
 }
 
-/// Serves the category handle from the same mock.
-pub(crate) fn categories_handle() -> impl Clause {
-    ConnectResourcesMock::app_categories
-        .next_call(matching!())
-        .answers(&|mock| {
-            let api: Arc<dyn AppCategoriesApi + Send + Sync> = Arc::new(mock.clone());
-            api
-        })
-}
-
-/// Serves the component handle from the same mock.
-pub(crate) fn components_handle() -> impl Clause {
-    ConnectResourcesMock::components
-        .next_call(matching!())
-        .answers(&|mock| {
-            let api: Arc<dyn ComponentsApi + Send + Sync> = Arc::new(mock.clone());
-            api
-        })
-}
-
-/// Serves the action handle from the same mock.
-pub(crate) fn actions_handle() -> impl Clause {
-    ConnectResourcesMock::actions
-        .next_call(matching!())
-        .answers(&|mock| {
-            let api: Arc<dyn ActionsApi + Send + Sync> = Arc::new(mock.clone());
-            api
-        })
-}
+handle!(
+    /// Serves the app handle from the same mock.
+    apps_handle, apps, AppsApi
+);
+handle!(
+    /// Serves the category handle from the same mock.
+    categories_handle, app_categories, AppCategoriesApi
+);
+handle!(
+    /// Serves the component handle from the same mock.
+    components_handle, components, ComponentsApi
+);
+handle!(
+    /// Serves the action handle from the same mock.
+    actions_handle, actions, ActionsApi
+);
+handle!(
+    /// Serves the token handle from the same mock.
+    tokens_handle, tokens, TokensApi
+);
+handle!(
+    /// Serves the account handle from the same mock.
+    accounts_handle, accounts, AccountsApi
+);
+handle!(
+    /// Serves the user handle from the same mock.
+    users_handle, users, UsersApi
+);
+handle!(
+    /// Serves the proxy handle from the same mock.
+    proxy_handle, proxy, ProxyApi
+);
+handle!(
+    /// Serves the deployed trigger handle from the same mock.
+    deployed_triggers_handle, deployed_triggers, DeployedTriggersApi
+);
+handle!(
+    /// Serves the registry trigger handle from the same mock.
+    triggers_handle, triggers, TriggersApi
+);
+handle!(
+    /// Serves the project handle from the same mock.
+    projects_handle, projects, ProjectsApi
+);
+handle!(
+    /// Serves the usage handle from the same mock.
+    usage_handle, usage, UsageApi
+);
+handle!(
+    /// Serves the project webhook handle from the same mock.
+    webhooks_handle, project_webhooks, ProjectWebhooksApi
+);
 
 /// Returns the exact standard output of a command that prints `value`.
 pub(crate) fn printed<T: Serialize>(value: &T) -> String {

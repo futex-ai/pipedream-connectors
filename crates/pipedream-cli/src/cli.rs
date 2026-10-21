@@ -5,10 +5,16 @@ use std::convert::Infallible;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use pipedream_connect_types::{Environment, SecretString};
 
+use crate::commands::accounts::AccountsCommand;
 use crate::commands::actions::ActionsCommand;
+use crate::commands::admin::{ProjectCommand, UsageArgs, WebhookCommand};
 use crate::commands::apps::AppsCommand;
 use crate::commands::categories::CategoriesCommand;
 use crate::commands::components::ComponentsCommand;
+use crate::commands::proxy::args::ProxyCommand;
+use crate::commands::tokens::TokensCommand;
+use crate::commands::triggers::args::TriggersCommand;
+use crate::commands::users::UsersCommand;
 
 /// Run Pipedream Connect commands and print each result as JSON.
 #[derive(Debug, Parser)]
@@ -103,6 +109,29 @@ pub(crate) enum Command {
     /// List and run registry actions.
     #[command(subcommand)]
     Actions(ActionsCommand),
+    /// Create Connect tokens for external users.
+    #[command(subcommand)]
+    Tokens(TokensCommand),
+    /// List and read connected accounts.
+    #[command(subcommand)]
+    Accounts(AccountsCommand),
+    /// List external users.
+    #[command(subcommand)]
+    Users(UsersCommand),
+    /// Send authenticated requests to an app API through the Connect proxy.
+    #[command(subcommand)]
+    Proxy(ProxyCommand),
+    /// Deploy and manage triggers for external users.
+    #[command(subcommand)]
+    Triggers(TriggersCommand),
+    /// Read the project environment.
+    #[command(subcommand)]
+    Project(ProjectCommand),
+    /// List Connect usage for a time window.
+    Usage(UsageArgs),
+    /// Read the project environment webhook.
+    #[command(subcommand)]
+    Webhook(WebhookCommand),
 }
 
 #[cfg(test)]

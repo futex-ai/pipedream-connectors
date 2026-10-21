@@ -21,6 +21,25 @@ pub(crate) enum JsonProblem {
     Depth,
 }
 
+/// Why a `--header` value cannot be forwarded.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum HeaderProblem {
+    /// The value does not look like `Name: value`.
+    Format,
+    /// The name has characters that HTTP does not allow.
+    Name,
+    /// The value has characters that HTTP does not allow.
+    Value {
+        /// The header name.
+        name: String,
+    },
+    /// Pipedream reserves the header name.
+    Reserved {
+        /// The header name.
+        name: String,
+    },
+}
+
 /// A failure that stops one command.
 #[derive(Debug, Error, internal_error::ErrorContract)]
 pub(crate) enum Error {
@@ -77,6 +96,20 @@ pub(crate) enum Error {
     #[error("[pipedream-cli/input] invalid {argument} count")]
     InvalidCount {
         /// The count argument.
+        argument: Argument,
+    },
+    /// A `--header` value cannot be forwarded. The value never enters the error.
+    #[error("[pipedream-cli/input] invalid header number {position}")]
+    InvalidHeader {
+        /// The position of the header among the `--header` flags, from 1.
+        position: usize,
+        /// Why the header cannot be forwarded.
+        problem: HeaderProblem,
+    },
+    /// A time flag is neither Unix seconds nor an RFC 3339 time.
+    #[error("[pipedream-cli/input] invalid {argument} time")]
+    InvalidTime {
+        /// The time argument.
         argument: Argument,
     },
     /// An input file or standard input could not be read.

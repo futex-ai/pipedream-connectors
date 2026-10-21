@@ -5,7 +5,7 @@ use std::io::ErrorKind;
 use pipedream_connect_types::IdentifierKind;
 
 use crate::argument::Argument;
-use crate::error::JsonProblem;
+use crate::error::{HeaderProblem, JsonProblem};
 use crate::inputs::MAX_DEPTH;
 use crate::settings::{Setting, Supply};
 
@@ -183,6 +183,25 @@ pub(super) fn invalid_credentials(client_id: Supply, client_secret: Supply) -> S
         client_id.name(Setting::ClientId),
         client_secret.name(Setting::ClientSecret)
     )
+}
+
+/// The text for a `--header` value that the proxy cannot forward. It never shows the value.
+pub(super) fn invalid_header(position: usize, problem: &HeaderProblem) -> String {
+    match problem {
+        HeaderProblem::Format => {
+            format!("--header number {position} must look like 'Name: value'.")
+        }
+        HeaderProblem::Name => format!(
+            "--header number {position} has a name that HTTP does not allow. \
+             Use letters, digits, and hyphens."
+        ),
+        HeaderProblem::Value { name } => format!(
+            "The {name} header has a value that HTTP does not allow. Remove its control characters."
+        ),
+        HeaderProblem::Reserved { name } => format!(
+            "Pipedream reserves the {name} header, so the proxy does not forward it. Remove it."
+        ),
+    }
 }
 
 /// The text for a JSON input that did not decode, with only its position.

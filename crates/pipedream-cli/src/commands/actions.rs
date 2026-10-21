@@ -9,15 +9,13 @@ use pipedream_connect::resources::actions::ActionsApi;
 use pipedream_connect_types::{
     ComponentKey, ExternalUserId, ListRegistryRequest, RunActionRequest, StashReference,
 };
-use serde::Serialize;
 
 use crate::argument::Argument;
 use crate::commands::pages::{self, PageArgs, Paging};
 use crate::commands::registry::RegistryArgs;
-use crate::document::{Document, Output, Secrets};
+use crate::document::{Acknowledgement, Document, Output, Secrets};
 use crate::error::{Error, Result, checked};
 use crate::inputs::{InputSource, Inputs, read_props};
-use crate::redact::Redact;
 use crate::target::Target;
 
 /// The registry action commands.
@@ -77,24 +75,6 @@ pub(crate) enum ActionsTask {
     Run(RunActionRequest),
 }
 
-/// The result of a run that Pipedream accepted for later completion.
-#[derive(Debug, Serialize)]
-struct AcceptedRun {
-    status: RunStatus,
-}
-
-/// The state of an accepted run.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "snake_case")]
-enum RunStatus {
-    /// Pipedream accepted the run and completes it later.
-    Accepted,
-}
-
-impl Redact for AcceptedRun {
-    fn redact(&mut self) {}
-}
-
 /// Validates an action command and reads its props input. Sends no request.
 pub(crate) fn prepare(command: ActionsCommand, inputs: &dyn Inputs) -> Result<ActionsTask> {
     match command {
@@ -148,10 +128,7 @@ pub(crate) async fn run(
         ActionsTask::Run(request) => match api.run(request).await {
             Ok(response) => Ok(Document::redacted(response, secrets)?.into()),
             Err(pipedream_connect::error::Error::Accepted) => {
-                let accepted = AcceptedRun {
-                    status: RunStatus::Accepted,
-                };
-                Ok(Document::redacted(accepted, secrets)?.into())
+                Ok(Document::redacted(Acknowledgement::accepted(), secrets)?.into())
             }
             Err(cause) => Err(Error::Api {
                 target: Target::ActionRun,

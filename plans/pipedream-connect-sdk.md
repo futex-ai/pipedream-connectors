@@ -592,6 +592,32 @@ no user answer. Each records the alternative and the reason.
   that nests deeper than the decoder's 127 levels gets its own message before
   decoding. Rejected: clap number parsers, because their errors do not follow
   the CLI message style.
+- **CLI trigger deployment shape (2026-10-21).** `triggers deploy` takes the
+  component key as a positional argument, like `actions run`. This replaces
+  the `--component` flag of the CLI sketch. Rejected: the sketch flag,
+  because one positional rule keeps the component commands consistent.
+  Settled by the orchestrator.
+- **CLI lists without cursors (2026-10-21).** `triggers events` maps
+  `--limit` to the API count `n` and sends the Pipedream default of 20 when
+  the flag is absent. `usage` takes `--start` and `--end`. Neither takes
+  cursor flags, the same exception as `categories list`. `usage` accepts Unix
+  seconds or RFC 3339 times. Rejected: cursor flags that the API ignores, and
+  Unix seconds only, because RFC 3339 times are easier to type.
+- **CLI proxy results (2026-10-21).** A proxy command prints the upstream
+  status, every header, and the body. Valid UTF-8 prints as text and other
+  bytes as base64, with an `encoding` field. An upstream status of 400 or
+  more exits 0, like `curl` without `--fail`. Rejected: mapping upstream
+  statuses to exit codes, because the proxy call succeeded and the client
+  cannot tell an upstream 401 from a Connect 401. Settled by the orchestrator.
+- **CLI proxy headers (2026-10-21).** The CLI parses each `--header` and
+  checks a copy of the SDK reserved-name list before any request, so an
+  error can name the header. Errors never show a header value. A test runs
+  every reserved name through the SDK proxy handle to catch drift. Rejected:
+  the SDK error alone, because it does not name the header.
+- **CLI account reads (2026-10-21).** `accounts get` uses the SDK ownership
+  check when the caller passes `--external-user-id`. The CLI no longer keeps
+  redaction for models that no command prints. Rejected: keeping those
+  implementations, because no command reaches them.
 - **CLI review fix, settings (2026-10-21).** The client secret flag parses
   into `SecretString`. The credential flags take no hyphen values, so a
   following flag is never taken as a credential. A custom API origin gets one
@@ -642,6 +668,17 @@ no user answer. Each records the alternative and the reason.
   CLI README. Effort: Large. **Recommendation:** B, because the post-push
   review checks behaviour against protocol docs. No protocol doc is added
   before the user answers.
+- **CLI redaction mechanism (2026-10-21).** Each printed model lists its
+  credential-class fields in a `Redact` implementation. A new credential
+  field in an existing model stays unredacted until someone adds it to the
+  list, and an unknown provider field prints as it is. **A.** Keep the field
+  lists. Effort: Small. **B.** Match every model field exhaustively, so a new
+  field fails the build until someone classifies it. Effort: Medium. **C.**
+  Derive redaction from the secret wrapper types in the types crate, so every
+  `SecretString`, `SecretJson`, and `ConnectToken` redacts itself. Effort:
+  Large. **Recommendation:** B, because a new model field then fails the CLI
+  build until someone classifies it, without a change to the types crate. No
+  option is applied before the user answers.
 
 ## Public API sketch
 
@@ -676,9 +713,9 @@ pipedream-cli apps list --query calendar
 pipedream-cli components list --app google_calendar --type action
 pipedream-cli tokens create --external-user-id user_1
 pipedream-cli proxy get --external-user-id user_1 --account apn_x URL
-pipedream-cli triggers deploy --external-user-id user_1 \
-  --component google_calendar-new-or-updated-event-instant \
-  --props props.json --webhook-url https://example.com/hook
+pipedream-cli triggers deploy google_calendar-new-or-updated-event-instant \
+  --external-user-id user_1 --props props.json \
+  --webhook-url https://example.com/hook
 ```
 
 The public error contract of the client crate:
@@ -1012,24 +1049,26 @@ resource traits.
 - [x] Registry and execution commands: `apps list`, `apps get`,
       `categories list`, `components list`, `components get`,
       `actions list`, and `actions run`.
-- [ ] Managed-auth and proxy commands: `tokens create`, `accounts list`,
+- [x] Managed-auth and proxy commands: `tokens create`, `accounts list`,
       `accounts get`, `users list`, and `proxy <method>`. `tokens create`
       prints the Connect Link URL for an external user.
-- [ ] Trigger commands: `triggers list`, `triggers get`, `triggers deploy`,
+- [x] Trigger commands: `triggers list`, `triggers get`, `triggers deploy`,
       `triggers delete`, and `triggers events`.
-- [ ] Administration commands: `project info`, `usage`, and `webhook get`.
-- [ ] CLI unit tests with mocked resource traits for every command:
+- [x] Administration commands: `project info`, `usage`, and `webhook get`.
+- [x] CLI unit tests with mocked resource traits for every command:
       argument parsing, request mapping, JSON output, and exit codes.
   - [x] Registry and execution commands, settings, input files, the
         redaction of every credential-bearing model, failure text, and exit
         codes.
-  - [ ] Managed-auth, proxy, trigger, and administration commands, with the
+  - [x] Managed-auth, proxy, trigger, and administration commands, with the
         redaction of each response that holds a secret.
-- [ ] The CLI README with the command reference. Add the CLI to the
+  - [x] Marker values in every credential-class field of every printed
+        model, and a drift test of the proxy header policy against the SDK.
+- [x] The CLI README with the command reference. Add the CLI to the
       workspace README, and the CLI smoke command to `AGENTS.md`.
   - [x] Write the reference with the planned commands marked, the workspace
         README CLI section, and the `AGENTS.md` smoke command.
-  - [ ] Replace the planned entries when Milestones 6 to 8 merge.
+  - [x] Replace the planned entries when Milestones 6 to 8 merge.
 - [x] Add a credential-free smoke: build the binary, print the help of every
       command, and run every command without credentials. Evidence:
       `.context/cli/smoke-phase1.txt` in the CLI worktree.
@@ -1042,8 +1081,10 @@ resource traits.
   - [x] Run the gate and commit the registry and execution commands. The
         assigned worktree branch does not push. The orchestrator merges it.
         Evidence: `.context/cli/gate-phase1.txt` in the CLI worktree.
-  - [ ] Merge Milestones 6 to 8, add the remaining commands, rerun the gate,
-        and commit.
+  - [x] Merge Milestones 6 to 8, add the remaining commands, rerun the gate,
+        and commit. Evidence: `.context/cli/gate-phase2.txt`,
+        `.context/cli/smoke-phase2.txt`, and `.context/cli/merge-audit.txt`
+        in the CLI worktree.
   - [ ] Run every command against a development project. Blocked: the
         Pipedream credential variables are absent.
 

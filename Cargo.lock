@@ -924,7 +924,10 @@ name = "pipedream-cli"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "base64",
+ "chrono",
  "clap",
+ "http",
  "internal-error",
  "pipedream-connect",
  "pipedream-connect-types",

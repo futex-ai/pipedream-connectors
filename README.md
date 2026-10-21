@@ -3,8 +3,8 @@
 Status: Typed models, webhooks, the client core, registry and execution
 resources, managed auth and proxy resources, trigger lifecycle resources,
 and administration resources are available. Category listing returns a
-bare category array. The CLI remains under construction in the Pipedream
-Connect SDK plan.
+bare category array. The `pipedream-cli` command line runs registry,
+execution, managed auth, proxy, trigger, and administration commands.
 
 This repository will provide a Rust SDK for the Pipedream Connect API. The
 SDK will manage server-side OAuth client credentials, typed Connect resources,
@@ -70,15 +70,17 @@ cargo run -p pipedream-cli -- apps list --query calendar
 cargo run -p pipedream-cli -- components list --app google_calendar --type action
 cargo run -p pipedream-cli -- actions run google_calendar-list-events \
   --external-user-id user_1 --props props.json
+cargo run -p pipedream-cli -- tokens create --external-user-id user_1
 ```
 
-The available commands are `apps list`, `apps get`, `categories list`,
-`components list`, `components get`, `actions list`, and `actions run`.
-These commands are planned and wait for their SDK resources: `tokens create`,
-`accounts list`, `accounts get`, `users list`, `proxy <method>`,
-`project info`, `triggers list`, `triggers get`, `triggers deploy`,
-`triggers delete`, `triggers events`, `usage`, and `webhook get`. The
-[CLI README](crates/pipedream-cli/README.md) is the command reference.
+The read commands are `apps list`, `apps get`, `categories list`,
+`components list`, `components get`, `actions list`, `accounts list`,
+`accounts get`, `users list`, `proxy get`, `triggers list`, `triggers get`,
+`triggers events`, `project info`, `usage`, and `webhook get`. The commands
+that change data are `actions run`, `tokens create`, `proxy post`, `put`,
+`patch`, and `delete`, `triggers deploy`, and `triggers delete`. The CLI sends
+each change once. The [CLI README](crates/pipedream-cli/README.md) is the
+command reference.
 
 ## Developer start
 

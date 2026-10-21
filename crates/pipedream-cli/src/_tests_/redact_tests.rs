@@ -1,9 +1,6 @@
 //! Tests that every credential-class field of a printed model is redacted.
 
-use pipedream_connect_types::{
-    Account, App, Data, Emitter, Page, ProjectWebhook, TriggerWebhooks,
-    WebhookWithOptionalSigningKey, WebhookWithSigningKey,
-};
+use pipedream_connect_types::{Account, App, Data, Emitter, Page};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
@@ -118,30 +115,6 @@ fn other_emitters_keep_their_fields() {
     assert_eq!(redacted::<Emitter>(http.clone()), http);
     let future = json!({"type": "FutureInterface", "id": "fi_1"});
     assert_eq!(redacted::<Emitter>(future.clone()), future);
-}
-
-#[test]
-fn trigger_webhook_signing_keys_are_redacted() {
-    let raw = json!({
-        "webhook_urls": ["https://example.com/hook"],
-        "webhooks": [webhook(Some("hook-key")), webhook(None)],
-    });
-    let output = redacted::<TriggerWebhooks>(raw);
-    assert_eq!(output["webhooks"][0]["signing_key"], json!(REDACTED));
-    assert!(output["webhooks"][1].get("signing_key").is_none());
-}
-
-#[test]
-fn project_webhook_signing_keys_are_redacted() {
-    let mut raw = webhook(Some("project-key"));
-    raw["created_at"] = json!(1_700_000_000_i64);
-    raw["updated_at"] = json!(1_700_000_000_i64);
-    let output = redacted::<ProjectWebhook>(raw.clone());
-    assert_eq!(output["signing_key"], json!(REDACTED));
-    let output = redacted::<Data<WebhookWithSigningKey>>(json!({"data": raw.clone()}));
-    assert_eq!(output["data"]["signing_key"], json!(REDACTED));
-    let output = redacted::<WebhookWithOptionalSigningKey>(raw);
-    assert_eq!(output["signing_key"], json!(REDACTED));
 }
 
 #[test]
