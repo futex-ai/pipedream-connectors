@@ -5,7 +5,8 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::error::{Error, Result};
+use crate::error::{Error, IdentifierKind, Result};
+use crate::string_enum;
 
 /// A string that serializes on the wire but never exposes itself in `Debug`.
 #[derive(Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -72,7 +73,7 @@ impl ConnectToken {
             Ok(Self(value))
         } else {
             Err(Error::InvalidIdentifier {
-                kind: crate::IdentifierKind::ConnectToken,
+                kind: IdentifierKind::ConnectToken,
             })
         }
     }
@@ -109,41 +110,16 @@ impl TryFrom<String> for ConnectToken {
     }
 }
 
-/// The Connect project environment.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Environment {
-    /// Development environment.
-    Development,
-    /// Production environment.
-    Production,
-    /// Provider value added after this SDK version.
-    Other(String),
-}
-
-impl Serialize for Environment {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let value = match self {
-            Self::Development => "development",
-            Self::Production => "production",
-            Self::Other(value) => value.as_str(),
-        };
-        serializer.serialize_str(value)
+string_enum! {
+    /// The Connect project environment.
+    pub enum Environment {
+        /// Development environment.
+        Development => "development",
+        /// Production environment.
+        Production => "production",
     }
 }
 
-impl<'de> Deserialize<'de> for Environment {
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "development" => Self::Development,
-            "production" => Self::Production,
-            _ => Self::Other(value),
-        })
-    }
-}
+#[cfg(test)]
+#[path = "_tests_/redaction_tests.rs"]
+mod redaction_tests;

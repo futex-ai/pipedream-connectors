@@ -2,27 +2,13 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{SecretString, UnknownFields};
+use crate::{SecretString, UnknownFields, string_enum};
 
-/// OAuth grant type accepted by Pipedream.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub enum GrantType {
-    /// Client credentials grant.
-    ClientCredentials,
-    /// A provider grant added after this SDK version.
-    Other(String),
-}
-
-impl<'de> Deserialize<'de> for GrantType {
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "client_credentials" => Self::ClientCredentials,
-            _ => Self::Other(value),
-        })
+string_enum! {
+    /// OAuth grant type accepted by Pipedream.
+    pub enum GrantType {
+        /// Client credentials grant.
+        ClientCredentials => "client_credentials",
     }
 }
 
@@ -43,12 +29,12 @@ pub struct CreateOauthTokenRequest {
 /// Request for a custom rate-limit token.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct RateLimitRequest {
-    /// Optional requested token name.
+    /// Size of the rate-limit window in seconds.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// Unknown request fields accepted for forward compatibility.
-    #[serde(flatten)]
-    pub extra: UnknownFields,
+    pub window_size_seconds: Option<u64>,
+    /// Number of requests allowed in the window.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub requests_per_window: Option<u64>,
 }
 
 /// Custom rate-limit token returned by Connect.

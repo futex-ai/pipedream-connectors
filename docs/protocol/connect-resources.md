@@ -69,9 +69,9 @@ The following prefixes and patterns are part of the contract.
 
 The SDK MUST enforce the documented prefix pattern for each identifier above.
 
-The SDK MUST use the common grammar for external user IDs, component keys,
-property names, webhook IDs, workflow endpoint IDs, and opaque cursors unless
-the API gives a stricter pattern.
+The SDK MUST use the common grammar for external user IDs, app slugs, app
+override IDs, component keys, property names, webhook IDs, workflow endpoint
+IDs, and opaque cursors unless this protocol specifies a stricter pattern.
 
 The OpenAPI document shows workflow endpoint IDs with a `p_` prefix, but the
 Connect docs describe endpoint URLs rather than a stable ID grammar.
@@ -97,15 +97,19 @@ A request MUST NOT include both `after` and `before`.
 
 A paged response contains `data` and `page_info`.
 
-`page_info` contains `count`, optional `total_count`, optional
-`start_cursor`, and optional `end_cursor`.
+`page_info` MAY contain `count`, `total_count`, `start_cursor`, and
+`end_cursor`.
+
+A missing `count` MUST NOT mean that the page is empty.
 
 A forward page MAY use `end_cursor` as the next `after` value.
 
 The client MUST reject a next page when its cursor equals the request's
 `after` cursor.
 
-The client MUST stop pagination when the page is empty or has no next cursor.
+The client MUST stop pagination when `count` is zero.
+
+The client MUST stop pagination when the page has no next cursor.
 
 The client MUST preserve the provider count and cursors even when a model is
 unknown.

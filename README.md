@@ -28,7 +28,7 @@ let client = PipedreamClient::builder()
     .build()?;
 
 let page = client.apps().list(ListAppsRequest::default()).await?;
-let next = page.page_info.next(&PageRequest::default())?;
+let next = PageRequest::default().next(&page.page_info)?;
 
 let token = client
     .tokens()

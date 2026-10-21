@@ -63,7 +63,7 @@ Pipedream provides it.
 Deleting a project webhook removes the default destination for that
 environment.
 
-The client MUST redact the signing key and webhook URL in diagnostics.
+The client MUST redact the signing key in diagnostics.
 
 ## File stash
 

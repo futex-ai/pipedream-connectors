@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::error::{Error, Result};
+use crate::error::{Error, Result, ValidationField};
 use crate::{Cursor, UnknownFields};
 
 /// A page request with one bounded cursor direction.
@@ -41,7 +41,7 @@ impl PageRequest {
     pub fn validate(&self) -> Result<()> {
         if !(1..=200).contains(&self.limit) {
             return Err(Error::OutOfRange {
-                field: "limit",
+                field: ValidationField::Limit,
                 minimum: 1,
                 maximum: 200,
             });
@@ -55,7 +55,7 @@ impl PageRequest {
     /// Returns the next request and rejects a provider cursor that does not advance.
     pub fn next(&self, page: &PageInfo) -> Result<Option<Self>> {
         self.validate()?;
-        if page.count == 0 {
+        if page.count == Some(0) {
             return Ok(None);
         }
         let (cursor, forward) = match (&self.after, &self.before) {
@@ -119,7 +119,7 @@ fn default_limit() -> u16 {
 pub struct PageInfo {
     /// Number of records in the response.
     #[serde(default)]
-    pub count: u64,
+    pub count: Option<u64>,
     /// Total number of matching records, when reported.
     #[serde(default)]
     pub total_count: Option<u64>,
@@ -145,3 +145,7 @@ pub struct Page<T> {
     #[serde(flatten)]
     pub extra: UnknownFields,
 }
+
+#[cfg(test)]
+#[path = "_tests_/pagination_tests.rs"]
+mod pagination_tests;

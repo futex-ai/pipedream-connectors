@@ -110,11 +110,8 @@ identifier!(
 identifier!(
     AppSlug,
     AppSlug,
-    "A lowercase provider app slug.",
-    |value: &str| common_identifier(value)
-        && value.bytes().all(|byte| {
-            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-')
-        })
+    "A provider app slug using the common path-safe grammar.",
+    common_identifier
 );
 identifier!(
     ComponentKey,
@@ -141,46 +138,19 @@ identifier!(
     common_identifier
 );
 
-/// An opaque workflow endpoint value accepted by the API.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(try_from = "String", into = "String")]
-pub struct WorkflowEndpoint(String);
+identifier!(
+    AppOverrideId,
+    AppOverride,
+    "An app override identifier using the common path-safe grammar.",
+    common_identifier
+);
+identifier!(
+    WorkflowEndpoint,
+    WorkflowEndpoint,
+    "An opaque workflow endpoint value using the common path-safe grammar.",
+    common_identifier
+);
 
-impl WorkflowEndpoint {
-    /// Validates a workflow endpoint value, including documented `p_` IDs.
-    pub fn new(value: impl Into<String>) -> Result<Self> {
-        let value = value.into();
-        if common_identifier(&value) {
-            Ok(Self(value))
-        } else {
-            Err(Error::InvalidIdentifier {
-                kind: IdentifierKind::WorkflowEndpoint,
-            })
-        }
-    }
-
-    /// Borrows the endpoint value.
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl TryFrom<String> for WorkflowEndpoint {
-    type Error = Error;
-
-    fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
-        Self::new(value)
-    }
-}
-
-impl From<WorkflowEndpoint> for String {
-    fn from(value: WorkflowEndpoint) -> Self {
-        value.0
-    }
-}
-
-impl fmt::Display for WorkflowEndpoint {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(&self.0)
-    }
-}
+#[cfg(test)]
+#[path = "_tests_/ids_tests.rs"]
+mod ids_tests;

@@ -5,6 +5,48 @@ use std::fmt;
 use internal_error::InternalError;
 use thiserror::Error;
 
+/// A bounded request field that failed validation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ValidationField {
+    /// A cursor page limit.
+    Limit,
+    /// A Connect token lifetime.
+    ExpiresIn,
+    /// A trigger event history limit.
+    TriggerEventLimit,
+}
+
+impl fmt::Display for ValidationField {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Limit => "limit",
+            Self::ExpiresIn => "expires_in",
+            Self::TriggerEventLimit => "n",
+        })
+    }
+}
+
+/// A URI field that must contain an absolute HTTPS URL.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UrlField {
+    /// The success redirect URI.
+    SuccessRedirectUri,
+    /// The error redirect URI.
+    ErrorRedirectUri,
+    /// The connection webhook URI.
+    WebhookUri,
+}
+
+impl fmt::Display for UrlField {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::SuccessRedirectUri => "success_redirect_uri",
+            Self::ErrorRedirectUri => "error_redirect_uri",
+            Self::WebhookUri => "webhook_uri",
+        })
+    }
+}
+
 /// The kind of identifier that failed validation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IdentifierKind {
@@ -20,6 +62,8 @@ pub enum IdentifierKind {
     OauthApp,
     /// An app category identifier.
     AppCategory,
+    /// An app override identifier.
+    AppOverride,
     /// An app slug.
     AppSlug,
     /// A component key.
@@ -45,6 +89,7 @@ impl fmt::Display for IdentifierKind {
             Self::DeployedTrigger => "deployed trigger",
             Self::OauthApp => "OAuth app",
             Self::AppCategory => "app category",
+            Self::AppOverride => "app override",
             Self::AppSlug => "app slug",
             Self::ComponentKey => "component key",
             Self::PropName => "property name",
@@ -70,7 +115,7 @@ pub enum Error {
     #[error("[pipedream-connect-types/validation] {field} must be between {minimum} and {maximum}")]
     OutOfRange {
         /// Field name.
-        field: &'static str,
+        field: ValidationField,
         /// Inclusive lower bound.
         minimum: u64,
         /// Inclusive upper bound.
@@ -89,13 +134,7 @@ pub enum Error {
     #[error("[pipedream-connect-types/validation] {field} must be an HTTPS URL")]
     InvalidHttpsUrl {
         /// Field containing the URL.
-        field: &'static str,
-    },
-    /// A response or request has an invalid shape.
-    #[error("[pipedream-connect-types/wire] invalid model shape: {message}")]
-    InvalidShape {
-        /// A stable, non-sensitive description of the shape problem.
-        message: &'static str,
+        field: UrlField,
     },
     /// An internal serialization or conversion failure.
     #[error("[pipedream-connect-types/internal] internal model error")]

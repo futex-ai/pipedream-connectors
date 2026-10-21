@@ -17,7 +17,18 @@ requests and responses without an HTTP client or an async runtime.
 The crate defines serde models for the Connect REST API. It has no network,
 clock, persistence, or async-runtime responsibilities. Response structs keep
 unknown fields in flattened maps, and unknown enum or property values remain
-available to callers.
+available to callers. Configured values encode in the same untagged shape that
+the API accepts. App references, SQL values, timer values, and property options
+keep unknown object fields. Numeric values keep integer precision through the
+JSON integer range.
+
+Every paged response uses `Page<T>`. A missing page count remains unknown.
+Only a zero count or a missing cursor stops `PageRequest::next`. Account
+creation and retrieval return bare `Account` values.
+
+Only credentials use redacted wrappers. Account creation mappings and nested
+webhook signing keys stay redacted. Redirect and webhook URLs remain plain
+strings.
 
 ## Quick Start
 
@@ -58,14 +69,15 @@ crates/pipedream-connect-types/tests/fixtures/refresh-openapi.sh
 - `src/pagination.rs` defines bounded `PageRequest`, `PageInfo`, and `Page<T>`.
 - `src/registry/` defines apps, components, enums, annotations, and list requests.
 - `src/props/` defines lossless configurable props and configured values.
-- `src/accounts.rs` defines accounts, external users, and Connect token requests.
+- `src/accounts/` defines accounts, external users, and Connect token requests.
 - `src/execution/` defines configuration, dynamic props, observations, and
   action results.
 - `src/triggers/` defines emitters, deployed triggers, webhooks, workflows,
   and events.
 - `src/admin/` defines projects, OAuth apps, overrides, webhooks, usage, and tokens.
-- `src/wire.rs` defines generic data, page, and error envelopes.
-- `tests/conformance.rs` generates response samples from the vendored OpenAPI schemas.
+- `src/wire.rs` defines data and error envelopes and response aliases.
+- `tests/conformance.rs` checks nested response maps, union branches, nulls,
+  optional fields, request bodies, and query models against vendored schemas.
 
 ### Related Docs
 

@@ -2,15 +2,15 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Environment, SecretString, UnknownFields};
+use crate::{Environment, SecretString, UnknownFields, WebhookId};
 
 /// Project environment webhook metadata.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ProjectWebhook {
     /// Webhook identifier.
-    pub id: crate::WebhookId,
+    pub id: WebhookId,
     /// Destination URL.
-    pub url: SecretString,
+    pub url: String,
     /// Whether a signing key exists.
     pub signing_key_set: bool,
     /// Signing key when returned.
@@ -34,9 +34,9 @@ pub struct ProjectWebhook {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Webhook {
     /// Webhook identifier.
-    pub id: crate::WebhookId,
+    pub id: WebhookId,
     /// Destination URL.
-    pub url: SecretString,
+    pub url: String,
     /// Whether a signing key is configured.
     pub signing_key_set: bool,
     /// Creation timestamp in epoch seconds.
@@ -52,9 +52,9 @@ pub struct Webhook {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebhookWithOptionalSigningKey {
     /// Webhook identifier.
-    pub id: crate::WebhookId,
+    pub id: WebhookId,
     /// Destination URL.
-    pub url: SecretString,
+    pub url: String,
     /// Signing key when returned.
     #[serde(default)]
     pub signing_key: Option<SecretString>,
@@ -73,9 +73,9 @@ pub struct WebhookWithOptionalSigningKey {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebhookWithSigningKey {
     /// Webhook identifier.
-    pub id: crate::WebhookId,
+    pub id: WebhookId,
     /// Destination URL.
-    pub url: SecretString,
+    pub url: String,
     /// Signing key.
     pub signing_key: SecretString,
     /// Whether a signing key is configured.
@@ -87,4 +87,11 @@ pub struct WebhookWithSigningKey {
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,
+}
+
+/// Project environment webhook destination update.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct SetWebhookRequest {
+    /// Destination URL.
+    pub url: String,
 }

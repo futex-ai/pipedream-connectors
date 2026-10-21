@@ -40,6 +40,8 @@ object.
 
 Account and user list operations use the common cursor contract.
 
+Account creation and retrieval return a bare account object.
+
 ## Account creation and deletion
 
 Account creation accepts an external user, app or OAuth app, configuration

@@ -81,6 +81,13 @@ was rejected because it silently drops provider-specific headers. Caller
 
 `POST /v1/connect/rate_limits` returns a custom rate-limit token.
 
+The request body uses `window_size_seconds` for the window duration in seconds.
+
+The request body uses `requests_per_window` for the maximum request count.
+
+Pipedream documents these fields in its [custom rate-limit
+contract](https://pipedream.com/docs/connect/api-reference/rate-limits).
+
 The client MUST preserve that token as a credential-class value.
 
 The client MAY send the token in `x-pd-rate-limit` on later Connect requests.

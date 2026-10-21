@@ -26,10 +26,25 @@ pub struct Observation {
 impl Observation {
     /// Converts the raw timestamp to UTC.
     pub fn timestamp(&self) -> Result<DateTime<Utc>> {
-        if !self.ts.is_finite() || self.ts.fract() != 0.0 {
+        if !self.ts.is_finite() {
             return Err(Error::InvalidTimestamp);
         }
-        crate::Timestamp::from_millis(self.ts as i64).map(|timestamp| timestamp.0)
+        let seconds = (self.ts / 1000.0).floor();
+        if seconds < i64::MIN as f64 || seconds >= i64::MAX as f64 {
+            return Err(Error::InvalidTimestamp);
+        }
+        let nanos = ((self.ts - seconds * 1000.0) * 1_000_000.0).round() as u32;
+        let (seconds, nanos) = if nanos == 1_000_000_000 {
+            (
+                (seconds as i64)
+                    .checked_add(1)
+                    .ok_or(Error::InvalidTimestamp)?,
+                0,
+            )
+        } else {
+            (seconds as i64, nanos)
+        };
+        DateTime::from_timestamp(seconds, nanos).ok_or(Error::InvalidTimestamp)
     }
 }
 
@@ -49,3 +64,7 @@ pub struct ObservationError {
     #[serde(flatten)]
     pub extra: UnknownFields,
 }
+
+#[cfg(test)]
+#[path = "_tests_/observations_tests.rs"]
+mod observations_tests;

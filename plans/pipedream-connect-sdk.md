@@ -313,6 +313,31 @@ no user answer. Each records the alternative and the reason.
   invented body-limit default, or floating-point JSON, because hosts own
   ingress admission and the protocol requires lossless payloads.
 
+- **Review fix round, model ownership (2026-10-21).** Model modules use named
+  files and explicit exports. One crate-private string-enum macro encodes
+  known and unknown values as raw strings. `Page<T>` owns every paged
+  response. Rejected: duplicated enum serializers, broad exports, and a
+  second page envelope. Reason: one implementation prevents wire drift.
+- **Review fix round, lossless values (2026-10-21).** Configured numbers use
+  `serde_json::Number`. App, SQL, timer, and option variants retain extra
+  object fields. SQL decoding uses named schema fields. Unknown prop kinds
+  parse shared fields on a best-effort basis and retain failed fields.
+  Rejected: floating-point integers and strict parsing of future prop
+  definitions. Reason: both choices lose valid provider data.
+- **Review fix round, optional fields (2026-10-21).** Absent response
+  quantities, flags, lists, and maps use `Option` instead of fabricated defaults.
+  Null prop fields remain in the extra map when no typed value exists.
+  `ProjectInfoApp.name_slug` is optional, and option page numbers use
+  `serde_json::Number` as their schemas specify. App override updates retain
+  explicit null OAuth selections. Rejected: empty or false defaults and
+  treating null updates as omitted updates. Reason: those values can change
+  the meaning of a response or update.
+- **Review fix round, request selectors (2026-10-21).** File Stash selectors
+  distinguish IDs, `NEW`, and boolean values. Both boolean values remain
+  accepted because the schema permits them. Query models carry the
+  operation-specific filters, versions, and external user values. Rejected:
+  string-only selectors and untyped query maps. Reason: typed requests must
+  cover every documented wire shape without new rejections.
 - **Review fix round, webhook JSON (2026-10-21).** Exact `RawJson` text with
   typed accessors replaces arbitrary-precision `serde_json` handling.
   Session IDs, app events, and unknown webhook fields keep their original
@@ -323,6 +348,12 @@ no user answer. Each records the alternative and the reason.
   initializes the private trigger identity. Rejected: an empty identity
   outside the bounded decoder. Reason: every decoded delivery needs a stable
   identity.
+- **Review fix round, conformance (2026-10-21).** Schema tests cover all
+  union branches, populated maps, nulls, and omitted optional fields.
+  Assertions inspect nested extra maps and compare encoded request bodies
+  and queries. Known prop-kind details remain in their lossless extra maps.
+  Rejected: one sample per union and sample-value patches that mask model
+  restrictions. Reason: all documented branches need direct checks.
 
 ## Open decisions
 
@@ -349,7 +380,7 @@ let client = PipedreamClient::builder()
     .client_credentials(ClientCredentials::new(client_id, client_secret)?)
     .build()?;
 let page = client.apps().list(ListAppsRequest::default()).await?;
-let next = page.page_info.next(&PageRequest::default())?;
+let next = PageRequest::default().next(&page.page_info)?;
 let token = client
     .tokens()
     .create(CreateConnectTokenRequest::new(external_user_id))
@@ -507,6 +538,11 @@ Summary: the `pipedream-connect-types` crate, pure data with serde.
       redacted `Debug`, and pagination. Write the crate README.
 - [x] Run the gate, commit, and push.
       Evidence: `.context/pipedream-connect-sdk/typed-models-gate-final.txt`.
+
+- [x] Review fix round for Milestones 3 and 9: resolve review items 1 to 36,
+      update the docs, run the gate, commit, and push.
+      Evidence: `.context/pipedream-connect-sdk/review-targeted-tests.txt` and
+      `.context/pipedream-connect-sdk/review-gate.txt`.
 
 ## Milestone 4: Client core
 

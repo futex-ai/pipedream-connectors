@@ -5,7 +5,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
 use crate::{
-    ComponentKey, ConfigurableProp, ConfiguredProps, DeployedTriggerId, SecretString, UnknownFields,
+    ComponentKey, ConfigurableProp, ConfiguredProps, DeployedTriggerId, SecretString,
+    TriggerWebhook, UnknownFields, epoch_millis, string_enum,
 };
 
 /// A deployed component emitter.
@@ -28,14 +29,14 @@ pub struct DeployedComponent {
     pub active: bool,
     /// Deployment timestamp in epoch milliseconds.
     #[serde(
-        deserialize_with = "crate::epoch_millis::deserialize",
-        serialize_with = "crate::epoch_millis::serialize"
+        deserialize_with = "epoch_millis::deserialize",
+        serialize_with = "epoch_millis::serialize"
     )]
     pub created_at: DateTime<Utc>,
     /// Last update timestamp in epoch milliseconds.
     #[serde(
-        deserialize_with = "crate::epoch_millis::deserialize",
-        serialize_with = "crate::epoch_millis::serialize"
+        deserialize_with = "epoch_millis::deserialize",
+        serialize_with = "epoch_millis::serialize"
     )]
     pub updated_at: DateTime<Utc>,
     /// Display name.
@@ -46,13 +47,20 @@ pub struct DeployedComponent {
     #[serde(default)]
     pub callback_observations: Option<Value>,
     /// Whether deploy hooks may emit.
-    pub emit_on_deploy: bool,
+    #[serde(default)]
+    pub emit_on_deploy: Option<bool>,
     /// Discriminator.
     #[serde(rename = "type")]
     pub type_name: String,
     /// Signing key returned for an authenticated deployment.
     #[serde(default)]
     pub webhook_signing_key: Option<SecretString>,
+    /// Effective webhook destination URLs when returned.
+    #[serde(default)]
+    pub webhook_urls: Option<Vec<String>>,
+    /// Webhook destinations and redacted signing keys when returned.
+    #[serde(default)]
+    pub webhooks: Option<Vec<TriggerWebhook>>,
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,
@@ -71,14 +79,14 @@ pub struct HttpInterface {
     pub custom_response: bool,
     /// Creation timestamp in epoch milliseconds.
     #[serde(
-        deserialize_with = "crate::epoch_millis::deserialize",
-        serialize_with = "crate::epoch_millis::serialize"
+        deserialize_with = "epoch_millis::deserialize",
+        serialize_with = "epoch_millis::serialize"
     )]
     pub created_at: DateTime<Utc>,
     /// Last update timestamp in epoch milliseconds.
     #[serde(
-        deserialize_with = "crate::epoch_millis::deserialize",
-        serialize_with = "crate::epoch_millis::serialize"
+        deserialize_with = "epoch_millis::deserialize",
+        serialize_with = "epoch_millis::serialize"
     )]
     pub updated_at: DateTime<Utc>,
     /// Discriminator.
@@ -104,20 +112,20 @@ pub struct TimerInterface {
     pub timezone: String,
     /// Schedule-change timestamp in epoch milliseconds.
     #[serde(
-        deserialize_with = "crate::epoch_millis::deserialize",
-        serialize_with = "crate::epoch_millis::serialize"
+        deserialize_with = "epoch_millis::deserialize",
+        serialize_with = "epoch_millis::serialize"
     )]
     pub schedule_changed_at: DateTime<Utc>,
     /// Creation timestamp in epoch milliseconds.
     #[serde(
-        deserialize_with = "crate::epoch_millis::deserialize",
-        serialize_with = "crate::epoch_millis::serialize"
+        deserialize_with = "epoch_millis::deserialize",
+        serialize_with = "epoch_millis::serialize"
     )]
     pub created_at: DateTime<Utc>,
     /// Last update timestamp in epoch milliseconds.
     #[serde(
-        deserialize_with = "crate::epoch_millis::deserialize",
-        serialize_with = "crate::epoch_millis::serialize"
+        deserialize_with = "epoch_millis::deserialize",
+        serialize_with = "epoch_millis::serialize"
     )]
     pub updated_at: DateTime<Utc>,
     /// Discriminator.
@@ -183,49 +191,16 @@ where
     }
 }
 
-/// Emitter family filter for deployed trigger lists.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum EmitterType {
-    /// Email source.
-    Email,
-    /// HTTP source.
-    Http,
-    /// Event source.
-    Source,
-    /// Timer source.
-    Timer,
-    /// Provider-defined emitter type.
-    Other(String),
-}
-
-impl Serialize for EmitterType {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let value = match self {
-            Self::Email => "email",
-            Self::Http => "http",
-            Self::Source => "source",
-            Self::Timer => "timer",
-            Self::Other(value) => value.as_str(),
-        };
-        serializer.serialize_str(value)
-    }
-}
-
-impl<'de> Deserialize<'de> for EmitterType {
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "email" => Self::Email,
-            "http" => Self::Http,
-            "source" => Self::Source,
-            "timer" => Self::Timer,
-            _ => Self::Other(value),
-        })
+string_enum! {
+    /// Emitter family filter for deployed trigger lists.
+    pub enum EmitterType {
+        /// Email source.
+        Email => "email",
+        /// HTTP source.
+        Http => "http",
+        /// Event source.
+        Source => "source",
+        /// Timer source.
+        Timer => "timer",
     }
 }

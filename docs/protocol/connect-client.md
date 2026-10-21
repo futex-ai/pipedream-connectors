@@ -98,6 +98,8 @@ A 2xx response is successful when its body matches the operation contract.
 A non-2xx JSON response uses the `{ "error", "code", "details" }` envelope
 when Pipedream supplies that envelope.
 
+The `error` value MAY contain text or structured JSON.
+
 A 202 response from configure, props, or run is `Accepted` when the operation
 was requested without blocking.
 

@@ -1,40 +1,6 @@
 //! Registry enum values with lossless unknown variants.
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-macro_rules! string_enum {
-    ($(#[$meta:meta])* pub enum $name:ident { $($(#[$variant_meta:meta])* $variant:ident => $wire:literal),+ $(,)? }) => {
-        $(#[$meta])*
-        #[derive(Clone, Debug, Eq, PartialEq)]
-        pub enum $name {
-            $($(#[$variant_meta])* $variant,)+
-            /// A value added by the provider after this SDK version.
-            Other(String),
-        }
-
-        impl Serialize for $name {
-            fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-            where S: Serializer {
-                let value = match self {
-                    $(Self::$variant => $wire,)+
-                    Self::Other(value) => value.as_str(),
-                };
-                serializer.serialize_str(value)
-            }
-        }
-
-        impl<'de> Deserialize<'de> for $name {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-            where D: Deserializer<'de> {
-                let value = String::deserialize(deserializer)?;
-                Ok(match value.as_str() {
-                    $($wire => Self::$variant,)+
-                    _ => Self::Other(value),
-                })
-            }
-        }
-    };
-}
+use crate::string_enum;
 
 string_enum! {
     /// Authentication mode advertised by an app.
@@ -113,3 +79,7 @@ string_enum! {
         Admin => "admin",
     }
 }
+
+#[cfg(test)]
+#[path = "_tests_/enums_tests.rs"]
+mod enums_tests;

@@ -47,6 +47,8 @@ request enables missing-resource tolerance.
 Every lifecycle operation MUST include both the project and deployed trigger
 identity.
 
+Every deployed-trigger operation MUST send the `external_user_id` query value.
+
 ## Event history and workflows
 
 Event history returns recent events for one deployed trigger.

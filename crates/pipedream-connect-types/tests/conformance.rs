@@ -1,50 +1,42 @@
-//! Schema-generated conformance samples for response models.
+//! Schema-generated response and request conformance checks.
 
 use std::fs;
 
-use pipedream_connect_types::{
-    App, AppCategory, AppOverride, Component, ConnectTokenResponse, Data, ErrorResponse,
-    GetTriggerEventsResponse, GetTriggerResponse, GetTriggerWebhooksResponse,
-    GetTriggerWorkflowsResponse, GetTriggersResponse, ListAccountsResponse,
-    ListAppCategoriesResponse, ListAppOverridesResponse, ListAppsResponse, ListOauthAppsResponse,
-    ListProjectsResponse, OAuthTokenResponse, OauthApp, PageEnvelope, Project, ProjectInfo,
-    ReloadPropsResponse, RunActionResponse, SetWebhookResponse, ValidateTokenResponse,
-};
-use serde::de::DeserializeOwned;
-use serde_json::{Map, Value};
+use pipedream_connect_types::*;
+use serde::{Serialize, de::DeserializeOwned};
+use serde_json::Value;
+
+#[path = "_support/conformance_extra.rs"]
+mod conformance_extra;
+#[path = "_support/query_schemas.rs"]
+mod query_schemas;
+#[path = "_support/request_schemas.rs"]
+mod request_schemas;
+#[path = "_support/samples.rs"]
+mod samples;
+
+use conformance_extra::HasExtra;
+use samples::{Mode, assert_preserved};
 
 const FIXTURE: &str = "tests/fixtures/pipedream_openapi_swagger.json";
+type Decode = fn(&str, Value);
 
-#[test]
-fn response_schema_samples_decode_without_unknown_documented_fields() {
-    let document: Value = serde_json::from_str(&fs::read_to_string(FIXTURE).unwrap()).unwrap();
-    let schemas = document["components"]["schemas"].as_object().unwrap();
-    let covered = [
-        (
-            "Account",
-            decode::<pipedream_connect_types::Account> as Decode,
-        ),
+fn covered() -> Vec<(&'static str, Decode)> {
+    vec![
+        ("Account", decode::<Account>),
         ("App", decode::<App>),
         ("AppOverride", decode::<AppOverride>),
-        (
-            "ConfigurePropResponse",
-            decode::<pipedream_connect_types::ConfigurePropResponse>,
-        ),
-        (
-            "ConnectUsageResponse",
-            decode::<pipedream_connect_types::ConnectUsageResponse>,
-        ),
+        ("ConfigurePropResponse", decode::<ConfigurePropResponse>),
+        ("ConnectUsageResponse", decode::<ConnectUsageResponse>),
         ("CreateOAuthTokenResponse", decode::<OAuthTokenResponse>),
         ("CreateTokenResponse", decode::<ConnectTokenResponse>),
-        (
-            "DeployTriggerResponse",
-            decode::<pipedream_connect_types::DeployTriggerResponse>,
-        ),
+        ("DeployTriggerResponse", decode::<DeployTriggerResponse>),
         ("ErrorResponse", decode::<ErrorResponse>),
         ("GetAppCategoryResponse", decode::<AppCategory>),
         ("GetAppResponse", decode::<Data<App>>),
+        ("GetAccountsResponse", decode::<GetAccountsResponse>),
         ("GetComponentResponse", decode::<Data<Component>>),
-        ("GetComponentsResponse", decode::<PageEnvelope<Component>>),
+        ("GetComponentsResponse", decode::<Page<Component>>),
         (
             "GetTriggerEventsResponse",
             decode::<GetTriggerEventsResponse>,
@@ -59,17 +51,11 @@ fn response_schema_samples_decode_without_unknown_documented_fields() {
             decode::<GetTriggerWorkflowsResponse>,
         ),
         ("GetTriggersResponse", decode::<GetTriggersResponse>),
-        (
-            "GetUsersResponse",
-            decode::<pipedream_connect_types::GetUsersResponse>,
-        ),
-        (
-            "GetWebhookResponse",
-            decode::<pipedream_connect_types::GetWebhookResponse>,
-        ),
+        ("GetUsersResponse", decode::<GetUsersResponse>),
+        ("GetWebhookResponse", decode::<GetWebhookResponse>),
         (
             "GetWebhookWithSigningKeyResponse",
-            decode::<pipedream_connect_types::GetWebhookWithSigningKeyResponse>,
+            decode::<GetWebhookWithSigningKeyResponse>,
         ),
         ("ListAccountsResponse", decode::<ListAccountsResponse>),
         (
@@ -90,32 +76,28 @@ fn response_schema_samples_decode_without_unknown_documented_fields() {
         ("RunActionResponse", decode::<RunActionResponse>),
         ("SetWebhookResponse", decode::<SetWebhookResponse>),
         ("ValidateTokenResponse", decode::<ValidateTokenResponse>),
-    ];
-    for &(name, decoder) in &covered {
-        let schema = schemas
-            .get(name)
-            .unwrap_or_else(|| panic!("missing schema {name}"));
-        let mut sample = sample_schema(schema, schemas);
-        if name == "GetAppCategoryResponse" {
-            sample["id"] = Value::String("appcat_sample".to_owned());
+    ]
+}
+
+#[test]
+fn every_response_union_map_null_and_optional_shape_decodes() {
+    let document: Value = serde_json::from_str(&fs::read_to_string(FIXTURE).unwrap()).unwrap();
+    let schemas = document["components"]["schemas"].as_object().unwrap();
+    for (name, decode) in covered() {
+        let schema = &schemas[name];
+        for mode in [Mode::Full, Mode::Minimal, Mode::Nullable] {
+            for sample in samples::samples(schema, schemas, mode, true) {
+                decode(name, sample);
+            }
         }
-        if name == "ListAppCategoriesResponse" {
-            sample[0]["id"] = Value::String("appcat_sample".to_owned());
-        }
-        if name == "ValidateTokenResponse" {
-            sample["project_id"] = Value::String("proj_sample".to_owned());
-            sample["oauth_app_id"] = Value::String("oa_sample".to_owned());
-        }
-        if name == "ProjectInfoResponse" {
-            sample["apps"][0]["id"] = Value::String("oa_sample".to_owned());
-        }
-        decoder(name, sample);
     }
+}
+
+#[test]
+fn documented_response_examples_decode_directly() {
+    let document: Value = serde_json::from_str(&fs::read_to_string(FIXTURE).unwrap()).unwrap();
     for (path, operations) in document["paths"].as_object().unwrap() {
-        let Some(operations) = operations.as_object() else {
-            continue;
-        };
-        for (method, operation) in operations {
+        for (method, operation) in operations.as_object().unwrap() {
             let Some(responses) = operation["responses"].as_object() else {
                 continue;
             };
@@ -123,28 +105,23 @@ fn response_schema_samples_decode_without_unknown_documented_fields() {
                 let Some(content) = response["content"].as_object() else {
                     continue;
                 };
-                for (media, body) in content {
+                for body in content.values() {
                     for value in response_examples(body) {
-                        let Some(schema) = body.get("schema") else {
-                            continue;
-                        };
-                        if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
-                            let name = reference.rsplit('/').next().unwrap();
-                            if let Some((_, decoder)) =
-                                covered.iter().find(|(covered, _)| *covered == name)
-                            {
-                                decoder(name, value);
-                            }
+                        let name = body["schema"]["$ref"]
+                            .as_str()
+                            .and_then(|reference| reference.rsplit('/').next());
+                        if let Some((name, decode)) = covered()
+                            .into_iter()
+                            .find(|(covered, _)| Some(*covered) == name)
+                        {
+                            decode(name, value);
                         } else {
                             let decoded: Value = serde_json::from_value(value.clone())
                                 .unwrap_or_else(|error| {
-                                    panic!(
-                                        "{path} {method} {status} {media} example did not decode: {error}"
-                                    )
+                                    panic!("{path} {method} {status}: {error}")
                                 });
-                            assert_eq!(serde_json::to_value(decoded).unwrap(), value);
+                            assert_eq!(decoded, value);
                         }
-                        let _ = (path, method, status, media);
                     }
                 }
             }
@@ -152,22 +129,12 @@ fn response_schema_samples_decode_without_unknown_documented_fields() {
     }
 }
 
-#[path = "_support/conformance_extra.rs"]
-mod conformance_extra;
-use conformance_extra::HasExtra;
-type Decode = fn(&str, Value);
-
-fn decode<T: DeserializeOwned + serde::Serialize + HasExtra>(name: &str, sample: Value) {
+fn decode<T: DeserializeOwned + Serialize + HasExtra>(name: &str, sample: Value) {
     let decoded: T = serde_json::from_value(sample.clone())
-        .unwrap_or_else(|error| panic!("{name} sample did not decode: {error}\n{sample}"));
-    if let Some(extra) = decoded.extra() {
-        assert!(
-            extra.is_empty(),
-            "{name} placed documented fields in extra: {extra:?}"
-        );
-    }
+        .unwrap_or_else(|error| panic!("{name}: {error}\n{sample}"));
+    decoded.check_extra();
     let encoded = serde_json::to_value(decoded).unwrap();
-    assert_eq!(sample, encoded, "{name} did not round-trip losslessly");
+    assert_preserved(&sample, &encoded, name);
 }
 
 fn response_examples(body: &Value) -> Vec<Value> {
@@ -175,7 +142,7 @@ fn response_examples(body: &Value) -> Vec<Value> {
     if let Some(example) = body.get("example") {
         values.push(example.clone());
     }
-    if let Some(examples) = body.get("examples").and_then(Value::as_object) {
+    if let Some(examples) = body["examples"].as_object() {
         values.extend(
             examples
                 .values()
@@ -183,72 +150,4 @@ fn response_examples(body: &Value) -> Vec<Value> {
         );
     }
     values
-}
-
-fn sample_schema(schema: &Value, schemas: &serde_json::Map<String, Value>) -> Value {
-    if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
-        return sample_schema(&schemas[reference.rsplit('/').next().unwrap()], schemas);
-    }
-    if let Some(example) = schema.get("example") {
-        return example.clone();
-    }
-    if let Some(one_of) = schema.get("oneOf").and_then(Value::as_array) {
-        return sample_schema(&one_of[0], schemas);
-    }
-    if let Some(any_of) = schema.get("anyOf").and_then(Value::as_array) {
-        return sample_schema(&any_of[0], schemas);
-    }
-    if let Some(all_of) = schema.get("allOf").and_then(Value::as_array) {
-        let mut object = Map::new();
-        for part in all_of {
-            if let Value::Object(fields) = sample_schema(part, schemas) {
-                object.extend(fields);
-            }
-        }
-        return Value::Object(object);
-    }
-    if let Some(values) = schema.get("enum").and_then(Value::as_array) {
-        return values[0].clone();
-    }
-    match schema.get("type").and_then(Value::as_str) {
-        Some("object") | None => {
-            let mut object = Map::new();
-            if let Some(properties) = schema.get("properties").and_then(Value::as_object) {
-                for (name, property) in properties {
-                    object.insert(name.clone(), sample_schema(property, schemas));
-                }
-            }
-            Value::Object(object)
-        }
-        Some("array") => Value::Array(vec![sample_schema(&schema["items"], schemas)]),
-        Some("integer") => Value::from(1),
-        Some("number") => Value::from(1.0),
-        Some("boolean") => Value::from(false),
-        Some("string") => Value::String(sample_string(schema)),
-        _ => Value::Null,
-    }
-}
-
-fn sample_string(schema: &Value) -> String {
-    if let Some(pattern) = schema.get("pattern").and_then(Value::as_str) {
-        for (needle, value) in [
-            ("proj_", "proj_sample"),
-            ("apn_", "apn_sample"),
-            ("dc_", "dc_sample"),
-            ("oa_", "oa_sample"),
-            ("appcat_", "appcat_sample"),
-            ("ctok_", "ctok_0123456789abcdef0123456789abcdef"),
-            ("p_", "p_sample"),
-        ] {
-            if pattern.contains(needle) {
-                return value.to_owned();
-            }
-        }
-    }
-    match schema.get("format").and_then(Value::as_str) {
-        Some("date-time") => "2026-01-01T00:00:00Z".to_owned(),
-        Some("uri") | Some("uri-reference") => "https://example.com/hook".to_owned(),
-        Some("email") => "user@example.com".to_owned(),
-        _ => "sample".to_owned(),
-    }
 }

@@ -1,18 +1,64 @@
 //! Shared JSON and timestamp helpers used by response models.
 
+use std::collections::BTreeMap;
+
 use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
-use std::collections::BTreeMap;
 
 use crate::error::{Error, Result};
+
+macro_rules! string_enum {
+    ($(#[$meta:meta])* pub enum $name:ident {
+        $($(#[$variant_meta:meta])* $variant:ident => $wire:literal),+ $(,)?
+    }) => {
+        $(#[$meta])*
+        #[derive(Clone, Debug, Eq, PartialEq)]
+        pub enum $name {
+            $($(#[$variant_meta])* $variant,)+
+            /// A value added by the provider after this SDK version.
+            Other(String),
+        }
+
+        impl serde::Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+            where
+                S: serde::Serializer,
+            {
+                let value = match self {
+                    $(Self::$variant => $wire,)+
+                    Self::Other(value) => value.as_str(),
+                };
+                serializer.serialize_str(value)
+            }
+        }
+
+        impl<'de> serde::Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+                Ok(match value.as_str() {
+                    $($wire => Self::$variant,)+
+                    _ => Self::Other(value),
+                })
+            }
+        }
+    };
+}
+
+pub(crate) use string_enum;
 
 /// Unknown response fields preserved during decoding and re-encoding.
 pub type UnknownFields = BTreeMap<String, Value>;
 
 /// An ISO 8601 or epoch-millisecond timestamp decoded to UTC.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Timestamp(pub DateTime<Utc>);
+pub struct Timestamp(
+    /// The decoded UTC instant.
+    pub DateTime<Utc>,
+);
 
 impl Timestamp {
     /// Returns the UTC instant.
@@ -60,69 +106,6 @@ impl<'de> Deserialize<'de> for Timestamp {
     }
 }
 
-/// Serde adapter for fields encoded as epoch milliseconds.
-pub mod epoch_millis {
-    use chrono::{DateTime, TimeZone, Utc};
-    use serde::{Deserialize, Deserializer, Serializer};
-
-    use crate::error::Error;
-
-    /// Serializes a UTC date as epoch milliseconds.
-    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_i64(date.timestamp_millis())
-    }
-
-    /// Deserializes an epoch-millisecond integer as a UTC date.
-    pub fn deserialize<'de, D>(deserializer: D) -> std::result::Result<DateTime<Utc>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let millis = i64::deserialize(deserializer)?;
-        Utc.timestamp_millis_opt(millis)
-            .single()
-            .ok_or_else(|| serde::de::Error::custom(Error::InvalidTimestamp))
-    }
-}
-
-/// Serializes an optional epoch-millisecond UTC date.
-pub mod option_epoch_millis {
-    use chrono::TimeZone;
-    use chrono::{DateTime, Utc};
-    use serde::{Deserialize, Deserializer, Serializer};
-
-    use super::epoch_millis;
-
-    /// Serializes an optional UTC date as an optional integer.
-    pub fn serialize<S>(
-        date: &Option<DateTime<Utc>>,
-        serializer: S,
-    ) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match date {
-            Some(date) => epoch_millis::serialize(date, serializer),
-            None => serializer.serialize_none(),
-        }
-    }
-
-    /// Deserializes an optional epoch-millisecond integer.
-    pub fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> std::result::Result<Option<DateTime<Utc>>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Option::<i64>::deserialize(deserializer)?
-            .map(|millis| {
-                chrono::Utc
-                    .timestamp_millis_opt(millis)
-                    .single()
-                    .ok_or_else(|| serde::de::Error::custom("invalid timestamp"))
-            })
-            .transpose()
-    }
-}
+#[cfg(test)]
+#[path = "_tests_/shared_tests.rs"]
+mod shared_tests;
