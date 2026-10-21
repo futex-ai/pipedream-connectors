@@ -354,6 +354,27 @@ no user answer. Each records the alternative and the reason.
   and queries. Known prop-kind details remain in their lossless extra maps.
   Rejected: one sample per union and sample-value patches that mask model
   restrictions. Reason: all documented branches need direct checks.
+- **Dispatch composition (2026-10-21).** `RequestDispatcher` owns the shared
+  authenticated request flow. `PipedreamClient` constructs it from shared
+  transport, clock, sleeper, and token-provider traits. Pure operation
+  descriptions build URLs in one place. The shared response JSON decoder
+  retains only line and column on failure. Rejected: resource-specific HTTP
+  stacks, because they could diverge on headers, limits, or authentication.
+- **Explicit retry inputs (2026-10-21).** `RetryPolicy` requires total
+  attempts, maximum delay, and a fallback delay from the caller. It has no
+  `Default`. `Retry-After` replaces the fallback within the maximum.
+  Rejected: invented retry or backoff defaults, because the user has not
+  settled the default retry budget.
+- **Error payload storage (2026-10-21).** `ExecutionFailed` stores a boxed
+  typed `ExecutionError`. Provider text stays available in fields, while
+  error diagnostics hide it. Model validation errors also hide nested
+  internal text. Rejected: an inline execution payload or raw source
+  diagnostics, because they enlarge every result or can expose credentials.
+- **Pagination stop data (2026-10-21).** The bounded paginator returns
+  records, page count, stop reason, and a resumption request at the page
+  limit. A stuck cursor stops traversal with a warning. Rejected: silently
+  truncating records without resumption state or repeatedly fetching a stuck
+  cursor, because the host needs a bounded, recoverable traversal.
 
 ## Open decisions
 
@@ -370,6 +391,16 @@ no user answer. Each records the alternative and the reason.
   default, with a configurable limit. Effort: Small. **Recommendation:** A,
   because webhook ingress should have a smaller independent bound. The
   protocol leaves this default open.
+
+- **Literal dot path parameters (2026-10-21).** The URL library skips `.`
+  and `..` when appending path segments. Some generic identifiers currently
+  accept those values. **A.** Reject literal dot identifiers before a token
+  call and align the types grammar. Effort: Medium. **B.** Preserve literal
+  dot parameters through an HTTP URL representation that does not normalize
+  them. Effort: Large. **Recommendation:** A, because it prevents a route
+  change with one identifier rule. No new rejection is applied before the
+  user answers. This choice blocks final handling of these identifiers in
+  resource paths.
 
 ## Public API sketch
 
@@ -416,7 +447,7 @@ The public error contract of the client crate:
 - `RateLimited { retry_after, limit, remaining, reset }`: a 429 with the
   parsed headers.
 - `Rejected { status, code, message }`: any other 4xx.
-- `ExecutionFailed(ExecutionError)`: structured attribution from an action
+- `ExecutionFailed(Box<ExecutionError>)`: structured attribution from an action
   or proxy run.
 - `Accepted`: a 202 from configure, props, or run when `blocking` is false.
 - `Unavailable { status }`: a 408, a 5xx, a timeout, or a transport
@@ -549,36 +580,41 @@ Summary: the `pipedream-connect-types` crate, pure data with serde.
 Summary: the `pipedream-connect` crate can authenticate and dispatch, with
 no resource yet.
 
-- [ ] `ClientConfig` and the builder:
-  - [ ] HTTPS origin validation, project, and environment.
-  - [ ] Credentials or a static bearer, scope, and the rate-limit token.
-  - [ ] Timeouts, the response cap, and the retry policy.
-- [ ] `Clock` trait with `SystemClock`, and `HttpTransport` with redacted
+- [x] `ClientConfig` and the builder:
+  - [x] HTTPS origin validation, project, and environment.
+  - [x] Credentials or a static bearer, scope, and the rate-limit token.
+  - [x] Timeouts, the response cap, and the retry policy.
+- [x] `Clock` trait with `SystemClock`, and `HttpTransport` with redacted
       `HttpRequest` and `HttpResponse` types.
-- [ ] `ReqwestTransport` behind the `reqwest` feature: rustls, no redirects,
+- [x] `ReqwestTransport` behind the `reqwest` feature: rustls, no redirects,
       no client retries, configured timeouts, and a streamed body that stops
       at the cap.
-- [ ] `AccessTokenProvider` trait with the client-credentials provider and
+- [x] `AccessTokenProvider` trait with the client-credentials provider and
       the static provider, including early refresh, single flight, and
       invalidation on 401.
-- [ ] Shared dispatch:
-  - [ ] URL building under `/v1/connect/{project_id}` and the headers.
-  - [ ] Status mapping to the error contract, `Retry-After` and
+- [x] Shared dispatch:
+  - [x] URL building under `/v1/connect/{project_id}` and the headers.
+  - [x] Status mapping to the error contract, `Retry-After` and
         `X-RateLimit-*` parsing, and the execution envelope.
-  - [ ] Bounded JSON decoding.
-- [ ] Opt-in `RetryPolicy` for GET requests with an injected `Sleeper`,
+  - [x] Bounded JSON decoding.
+- [x] Opt-in `RetryPolicy` for GET requests with an injected `Sleeper`,
       honouring `Retry-After` and a maximum delay.
-- [ ] A bounded `paginate` helper that drives `PageRequest::next` up to a
+- [x] A bounded `paginate` helper that drives `PageRequest::next` up to a
       page limit.
-- [ ] Unit tests with a scripted unimock transport and clock:
-  - [ ] Concurrent refresh, early refresh, and 401 invalidation without
+- [x] Unit tests with a scripted unimock transport and clock:
+  - [x] Concurrent refresh, early refresh, and 401 invalidation without
         replay.
-  - [ ] Every status mapping and the rate-limit header parsing.
-  - [ ] Cap enforcement and retry counts checked by recorded requests.
-- [ ] A local-socket integration test for the reqwest transport: exact
+  - [x] Every status mapping and the rate-limit header parsing.
+  - [x] Cap enforcement and retry counts checked by recorded requests.
+- [x] A local-socket integration test for the reqwest transport: exact
       headers, announced and streamed oversize bodies, and a redirect that
       is not followed. Write the crate README.
-- [ ] Run the gate, commit, and push.
+- [ ] Resolve literal dot path parameters after the user decides.
+- [x] Run the gate, commit, and hand off to the orchestrator. The assigned
+      worktree branch must not push. The orchestrator merges and pushes it.
+
+Evidence: `.context/client-core/` contains the targeted test results, smoke
+results, regression evidence, Markdown checks, and the complete gate.
 
 ## Milestone 5: Registry and execution resources
 
