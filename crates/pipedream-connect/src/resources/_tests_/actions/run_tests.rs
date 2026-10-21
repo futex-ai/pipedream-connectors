@@ -1,5 +1,6 @@
 //! Action bodies, stash union branches, nonblocking acceptance, and failures.
 
+use http::HeaderValue;
 use std::num::NonZeroU32;
 use std::time::Duration;
 
@@ -75,6 +76,35 @@ async fn structured_execution_failures_keep_attribution_and_provider_text_as_dat
         assert_eq!(error.attribution.unwrap().origin, ErrorOrigin::UpstreamApi);
         assert_eq!(error.name.as_deref(), Some("ProviderError"));
         assert_eq!(error.message.as_deref(), Some("provider message"));
+        harness.assert_requests(2);
+    }
+}
+
+#[tokio::test]
+async fn non_execution_error_objects_keep_http_status_categories() {
+    for status in [401, 404, 429] {
+        let mut reply = response(status, json!({"error":{"message":"provider message"}}));
+        if status == 429 {
+            reply
+                .headers
+                .insert("retry-after", HeaderValue::from_static("7"));
+        }
+        let harness = Harness::new(vec![reply]);
+        let (request, _) = run(json!(false));
+        let error = harness.client.actions().run(request).await.unwrap_err();
+        match (status, error) {
+            (401, Error::Unauthorized { .. }) | (404, Error::NotFound { .. }) => {}
+            (
+                429,
+                Error::RateLimited {
+                    retry_after: Some(delay),
+                    ..
+                },
+            ) => {
+                assert_eq!(delay, Duration::from_secs(7));
+            }
+            (status, error) => panic!("wrong status mapping for {status}: {error:?}"),
+        }
         harness.assert_requests(2);
     }
 }

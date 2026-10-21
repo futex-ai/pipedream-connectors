@@ -141,7 +141,8 @@ Run the read-only registry smoke test with all three credentials and the
 explicit opt-in:
 
 ```sh
-PIPEDREAM_LIVE_TESTS=1 cargo test -p pipedream-connect --test live_pipedream -- --nocapture
+PIPEDREAM_LIVE_TESTS=1 cargo test -p pipedream-connect \
+  --test live_pipedream -- --nocapture
 ```
 
 It reads Google Calendar and lists its actions and triggers in development.
@@ -162,7 +163,9 @@ use std::sync::Arc;
 use pipedream_connect::pagination::{BoundedPaginator, FilteredPageSource, Paginator};
 use pipedream_connect_types::{Component, ListRegistryRequest, PageRequest};
 
-# async fn pages(client: pipedream_connect::PipedreamClient) -> Result<(), Box<dyn std::error::Error>> {
+# async fn pages(
+#     client: pipedream_connect::PipedreamClient,
+# ) -> Result<(), Box<dyn std::error::Error>> {
 let filters = ListRegistryRequest::default();
 let source = FilteredPageSource::new(filters, move |request| {
     let actions = client.actions();
@@ -183,7 +186,8 @@ let _pages = paginator.paginate(PageRequest::default(), std::num::NonZeroUsize::
 - `src/request.rs` defines operations and the shared URL builder.
 - `src/validation.rs` requires each JSON request model to own its validation.
 - `src/resources/` defines the resource traits, handles, and client accessors.
-- `src/resources/operation.rs` builds, dispatches, decodes, and checks resource operations.
+- `src/resources/operation.rs` builds, dispatches, decodes, and checks
+  resource operations.
 - `src/token.rs` defines static and single-flight OAuth token providers.
 - `src/transport.rs` defines the redacted HTTP boundary and safe JSON access.
 - `src/reqwest_transport.rs` streams bounded HTTP responses.

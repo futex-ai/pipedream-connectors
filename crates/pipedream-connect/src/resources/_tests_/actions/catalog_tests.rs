@@ -5,6 +5,7 @@ use pipedream_connect_types::{
     RegistryKind,
 };
 use serde_json::json;
+use std::error::Error as StdError;
 
 use crate::error::Error;
 use crate::resources::test_support::{assert_get, component, page};
@@ -75,17 +76,19 @@ async fn get_checks_action_keys_and_preserves_the_version_and_response_envelope(
         "https://api.pipedream.com/v1/connect/proj_Test123/actions/google_calendar-list-events?version=1.2.3%2Baction",
     );
     assert_eq!(result.extra["future_envelope"], true);
-    assert!(matches!(
-        harness
-            .client
-            .actions()
-            .get(
-                ComponentKey::new("other").unwrap(),
-                GetComponentRequest::default()
-            )
-            .await,
-        Err(Error::Internal(_))
-    ));
+    let error = harness
+        .client
+        .actions()
+        .get(
+            ComponentKey::new("other").unwrap(),
+            GetComponentRequest::default(),
+        )
+        .await
+        .unwrap_err();
+    let Error::Internal(source) = error else {
+        panic!("expected identity failure")
+    };
+    assert!(source.source().is_some());
     harness.assert_requests(3);
 }
 
