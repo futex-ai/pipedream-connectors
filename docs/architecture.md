@@ -73,9 +73,11 @@ A resource operation validates identifiers, URLs, limits, and proxy headers.
 The client obtains a bearer, builds the documented Connect path, and sends the
 request through the transport.
 
-The response reader enforces the byte cap before the resource operation
-parses a success body or maps an error envelope.
+The response reader enforces the byte cap before status mapping and success
+decoding.
 
+The dispatcher maps HTTP statuses and structured execution errors before
+success decoding. Shared JSON decoding retains only safe error locations.
 The resource operation returns a typed lossless model, a byte-preserving proxy
 response, an accepted asynchronous result, or a public client error.
 

@@ -9,3 +9,25 @@ description = "An async Rust client for the Pipedream Connect API."
 readme = "README.md"
 
 [dependencies]
+async-trait.workspace = true
+http.workspace = true
+httpdate.workspace = true
+internal-error.workspace = true
+pipedream-connect-types.workspace = true
+reqwest = { workspace = true, optional = true }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+unimock = { workspace = true, optional = true }
+url.workspace = true
+
+[features]
+default = ["reqwest"]
+reqwest = ["dep:reqwest"]
+unimock = ["dep:unimock"]
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "io-util"] }
+unimock.workspace = true

@@ -1,13 +1,13 @@
 # pipedream-connectors
 
-Status: The typed model and webhook crates are available. The client crate is
-still under construction under the Pipedream Connect SDK plan.
+Status: The typed model, webhook, and client core crates are available.
+Resource handles remain under construction in the Pipedream Connect SDK plan.
 
 This repository will provide a Rust SDK for the Pipedream Connect API. The
 SDK will manage server-side OAuth client credentials, typed Connect resources,
 cursor pages, authenticated proxy calls, and webhook verification.
 
-The SDK will use three library crates:
+The SDK uses three library crates:
 
 - `crates/pipedream-connect-types` for pure models and lossless data.
 - `crates/pipedream-connect` for the asynchronous client and resources.
@@ -17,34 +17,28 @@ Milestone 10 will add the unpublished `crates/pipedream-cli` command.
 
 ## Quick start
 
-The public API is planned. The following sketch shows the intended client
-flow after the crates are bootstrapped:
+The client core can authenticate and dispatch requests. Construct it with an
+explicit project and environment:
 
-```rust
+```rust,no_run
+use pipedream_connect::PipedreamClient;
+use pipedream_connect::config::ClientCredentials;
+use pipedream_connect_types::{Environment, ProjectId};
+
 let client = PipedreamClient::builder()
-    .project_id(ProjectId::new("proj_abc123")?)
+    .project_id(ProjectId::new("proj_Example123")?)
     .environment(Environment::Development)
-    .client_credentials(ClientCredentials::new(client_id, client_secret)?)
+    .client_credentials(ClientCredentials::new("client-id", "client-secret")?)
     .build()?;
-
-let page = client.apps().list(ListAppsRequest::default()).await?;
-let next = page.page_info.next(&PageRequest::default())?;
-
-let token = client
-    .tokens()
-    .create(CreateConnectTokenRequest::new(external_user_id))
-    .await?;
-
-let response = client
-    .proxy()
-    .send(ProxyRequest::get(
-        account,
-        "https://slack.com/api/conversations.list",
-    ))
-    .await?;
+# Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-The client will use `https://api.pipedream.com` by default. Set
+The [client crate README](crates/pipedream-connect/README.md) shows the shared
+request dispatcher and its injectable runtime boundaries. Resource handles
+for apps, tokens, proxy calls, and other operations follow in later
+milestones.
+
+The client uses `https://api.pipedream.com` by default. Set
 `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, and
 `PIPEDREAM_PROJECT_ID` for development smoke commands. The live checks skip
 when these variables are absent.
@@ -75,8 +69,8 @@ The planned CLI commands are:
 
 ## Developer start
 
-The workspace and `xtask` gate are available. The typed model and webhook
-crates are under active development. To work on the repository:
+The workspace and `xtask` gate are available. The library crates are under
+active development. To work on the repository:
 
 1. Install the pinned Rust toolchain.
 2. Copy the required Pipedream variables into the shell environment.
