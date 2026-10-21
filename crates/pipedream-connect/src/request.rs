@@ -10,9 +10,11 @@ use url::Url;
 use crate::config::ClientConfig;
 use crate::error::{Error, Result, WireFailure, validate};
 use crate::json::encode;
+use crate::validation::Validate;
 
 /// The documented route root for an API operation.
 #[derive(Clone)]
+#[non_exhaustive]
 pub enum ApiPath {
     /// `/v1/connect/{project_id}` followed by individual path segments.
     Project(Vec<String>),
@@ -42,6 +44,7 @@ impl fmt::Debug for ApiPath {
 
 /// Operation-specific treatment of successful responses.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum ResponseMode {
     /// JSON operation with normal status mapping.
     #[default]
@@ -55,6 +58,10 @@ pub enum ResponseMode {
     Bytes,
     /// Return a 3xx response to the caller without following it.
     Redirect,
+    /// Preserve every status, header, and byte after execution-error checks.
+    ///
+    /// Never retries. A 401 still invalidates its bearer without replay.
+    PassThrough,
 }
 
 /// A validated operation ready for authenticated dispatch.
@@ -107,13 +114,16 @@ impl ApiRequest {
 
     /// Validates a request model before serializing its JSON body.
     ///
-    /// Pass the model's `validate()` result. Construction sends no request.
-    pub fn with_json<T: Serialize>(
-        mut self,
-        model: &T,
-        validation: pipedream_connect_types::Result<()>,
-    ) -> Result<Self> {
-        validate(validation)?;
+    /// ```compile_fail
+    /// use http::Method;
+    /// use pipedream_connect::request::{ApiPath, ApiRequest};
+    ///
+    /// let unvalidated = serde_json::json!({"expires_in": 0});
+    /// ApiRequest::new(Method::POST, ApiPath::project(&["tokens"]))
+    ///     .with_json(&unvalidated);
+    /// ```
+    pub fn with_json<T: Serialize + Validate>(mut self, model: &T) -> Result<Self> {
+        model.validate()?;
         self.body = Some(encode(model)?);
         self.json_body = true;
         Ok(self)

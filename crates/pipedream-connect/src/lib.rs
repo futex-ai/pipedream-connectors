@@ -7,6 +7,7 @@ pub mod builder;
 pub mod client;
 pub mod config;
 pub mod error;
+mod error_debug;
 mod failure;
 mod headers;
 mod json;
@@ -17,7 +18,9 @@ pub mod reqwest_transport;
 pub mod retry;
 pub mod runtime;
 pub mod token;
+mod token_failure;
 pub mod transport;
+pub mod validation;
 
 pub use client::PipedreamClient;
 

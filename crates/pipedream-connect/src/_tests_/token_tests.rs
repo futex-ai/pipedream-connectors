@@ -76,13 +76,14 @@ async fn invalidating_an_old_bearer_does_not_clear_a_newer_bearer() {
     )));
     let time = Arc::new(std::sync::atomic::AtomicU64::new(1000));
     let clock_time = time.clone();
-    let clock = Arc::new(Unimock::new(
-        ClockMock::now
+    let clock = Arc::new(Unimock::new((
+        ClockMock::now.each_call(matching!()).returns(UNIX_EPOCH),
+        ClockMock::monotonic
             .each_call(matching!())
             .answers_arc(Arc::new(move |_| {
-                UNIX_EPOCH + Duration::from_secs(clock_time.load(Ordering::SeqCst))
+                Duration::from_secs(clock_time.load(Ordering::SeqCst))
             })),
-    ));
+    )));
     let provider: Arc<dyn AccessTokenProvider + Send + Sync> =
         Arc::new(ClientCredentialsProvider::new(config(), transport, clock).unwrap());
     let old = provider.access_token().await.unwrap();
@@ -138,15 +139,15 @@ async fn failed_refresh_is_not_cached_and_invalid_responses_never_expose_values(
 #[tokio::test]
 async fn a_token_that_expires_during_acquisition_is_never_dispatched() {
     let clock = Arc::new(Unimock::new((
-        ClockMock::now
+        ClockMock::monotonic
             .next_call(matching!())
-            .returns(UNIX_EPOCH + Duration::from_secs(1000)),
-        ClockMock::now
-            .next_call(matching!())
-            .returns(UNIX_EPOCH + Duration::from_secs(1091)),
+            .returns(Duration::from_secs(1000)),
         ClockMock::now
             .next_call(matching!())
             .returns(UNIX_EPOCH + Duration::from_secs(1091)),
+        ClockMock::monotonic
+            .next_call(matching!())
+            .returns(Duration::from_secs(1091)),
     )));
     let transport = Arc::new(Unimock::new(
         HttpTransportMock::send

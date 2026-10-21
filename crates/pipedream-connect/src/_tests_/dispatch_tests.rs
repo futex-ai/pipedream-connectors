@@ -29,7 +29,7 @@ async fn oauth_and_connect_headers_bodies_and_scope_are_exact() {
     );
     let model = CreateConnectTokenRequest::new(ExternalUserId::new("user_1").unwrap());
     let request = ApiRequest::new(Method::POST, ApiPath::project(&["tokens"]))
-        .with_json(&model, model.validate())
+        .with_json(&model)
         .unwrap();
     harness.client.dispatcher().dispatch(request).await.unwrap();
     let oauth = harness.request(0);
@@ -191,7 +191,7 @@ async fn response_mode_does_not_change_request_content_type() {
     );
     let model = CreateConnectTokenRequest::new(ExternalUserId::new("user_1").unwrap());
     let request = ApiRequest::new(Method::POST, ApiPath::project(&["tokens"]))
-        .with_json(&model, model.validate())
+        .with_json(&model)
         .unwrap()
         .with_response_mode(ResponseMode::Bytes);
     harness.client.dispatcher().dispatch(request).await.unwrap();

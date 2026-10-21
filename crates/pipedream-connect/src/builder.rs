@@ -8,10 +8,10 @@ use pipedream_connect_types::{Environment, ProjectId, SecretString};
 
 use crate::client::PipedreamClient;
 use crate::config::{Authentication, ClientConfig, ClientCredentials, HttpOptions};
-use crate::error::{Error, InvalidRequest, Result};
+use crate::error::{ConfigurationField, Error, InvalidRequest, Result};
 use crate::reqwest_transport::ReqwestTransport;
 use crate::retry::RetryPolicy;
-use crate::runtime::SystemClock;
+use crate::runtime::{SystemClock, TokioSleeper};
 
 /// A builder with no implicit project, environment, or authentication.
 #[derive(Default)]
@@ -103,10 +103,12 @@ impl ClientBuilder {
     /// Validates configuration and constructs the client without network calls.
     pub fn build(self) -> Result<PipedreamClient> {
         let mut config = ClientConfig::new(
-            self.project.ok_or_else(|| missing("project_id"))?,
-            self.environment.ok_or_else(|| missing("environment"))?,
+            self.project
+                .ok_or_else(|| missing(ConfigurationField::ProjectId))?,
+            self.environment
+                .ok_or_else(|| missing(ConfigurationField::Environment))?,
             self.authentication
-                .ok_or_else(|| missing("authentication"))?,
+                .ok_or_else(|| missing(ConfigurationField::Authentication))?,
         )?
         .with_http_options(self.http);
         if let Some(origin) = self.origin {
@@ -122,11 +124,16 @@ impl ClientBuilder {
             config = config.with_retry_policy(policy);
         }
         let transport = Arc::new(ReqwestTransport::new(config.http_options())?);
-        PipedreamClient::new(config, transport, Arc::new(SystemClock))
+        PipedreamClient::new(
+            config,
+            transport,
+            Arc::new(SystemClock::default()),
+            Arc::new(TokioSleeper),
+        )
     }
 }
 
-fn missing(field: &'static str) -> Error {
+fn missing(field: ConfigurationField) -> Error {
     Error::InvalidRequest(InvalidRequest::MissingConfiguration { field })
 }
 

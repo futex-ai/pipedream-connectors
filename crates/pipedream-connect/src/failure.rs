@@ -20,13 +20,36 @@ pub(crate) fn ensure_status(
     mode: ResponseMode,
     now: SystemTime,
 ) -> Result<()> {
+    classify(response, mode, now, |body| {
+        serde_json::from_slice::<ErrorResponse>(body).ok()
+    })
+}
+
+fn classify(
+    response: &HttpResponse,
+    mode: ResponseMode,
+    now: SystemTime,
+    decode_error: impl FnOnce(&[u8]) -> Option<ErrorResponse>,
+) -> Result<()> {
     let status = response.status.as_u16();
-    let envelope = serde_json::from_slice::<ErrorResponse>(&response.body).ok();
-    let message = envelope.as_ref().and_then(provider_message);
+    if matches!(
+        mode,
+        ResponseMode::Execution { .. } | ResponseMode::PassThrough
+    ) {
+        if let Ok(envelope) = serde_json::from_slice::<ExecutionEnvelope>(&response.body) {
+            return Err(Error::ExecutionFailed(Box::new(envelope.error)));
+        }
+        if status == 202 && mode == (ResponseMode::Execution { nonblocking: true }) {
+            return Err(Error::Accepted);
+        }
+    }
+    if mode == ResponseMode::PassThrough
+        || response.status.is_success()
+        || mode == ResponseMode::Redirect && response.status.is_redirection()
+    {
+        return Ok(());
+    }
     match status {
-        401 => return Err(Error::Unauthorized { message }),
-        403 => return Err(Error::Forbidden { message }),
-        404 => return Err(Error::NotFound { message }),
         429 => {
             return Err(Error::RateLimited {
                 retry_after: retry_after(&response.headers, now),
@@ -42,25 +65,23 @@ pub(crate) fn ensure_status(
         }
         _ => {}
     }
-    if let ResponseMode::Execution { nonblocking } = mode {
-        if let Ok(envelope) = serde_json::from_slice::<ExecutionEnvelope>(&response.body) {
-            return Err(Error::ExecutionFailed(Box::new(envelope.error)));
-        }
-        if status == 202 && nonblocking {
-            return Err(Error::Accepted);
-        }
-    }
-    if response.status.is_success()
-        || mode == ResponseMode::Redirect && response.status.is_redirection()
-    {
-        return Ok(());
-    }
-    Err(Error::Rejected {
-        status,
-        code: envelope.and_then(|value| value.code),
-        message,
+    let envelope = decode_error(&response.body);
+    let message = envelope.as_ref().and_then(provider_message);
+    Err(match status {
+        401 => Error::Unauthorized { message },
+        403 => Error::Forbidden { message },
+        404 => Error::NotFound { message },
+        _ => Error::Rejected {
+            status,
+            code: envelope.and_then(|value| value.code),
+            message,
+        },
     })
 }
+
+#[cfg(test)]
+#[path = "_tests_/status_decode_tests.rs"]
+mod status_decode_tests;
 
 /// Isolates the error text representation while model review changes it.
 fn provider_message(envelope: &ErrorResponse) -> Option<String> {

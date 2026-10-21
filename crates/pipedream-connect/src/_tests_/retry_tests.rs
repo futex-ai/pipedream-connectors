@@ -24,7 +24,6 @@ fn policy(attempts: u32) -> RetryPolicy {
 async fn retry_after_dates_seconds_and_fallback_delays_obey_the_cap() {
     for (header, delay) in [
         (Some("4".to_owned()), 4),
-        (Some("60".to_owned()), 30),
         (
             Some(httpdate::fmt_http_date(
                 UNIX_EPOCH + Duration::from_secs(1012),
@@ -51,6 +50,34 @@ async fn retry_after_dates_seconds_and_fallback_delays_obey_the_cap() {
             *harness.sleeps.lock().unwrap(),
             [Duration::from_secs(delay)]
         );
+    }
+}
+
+#[tokio::test]
+async fn retry_after_above_the_cap_returns_the_original_error_without_retry() {
+    for status in [429, 503] {
+        for header in [
+            "60".to_owned(),
+            httpdate::fmt_http_date(UNIX_EPOCH + Duration::from_secs(1060)),
+        ] {
+            let mut reply = response(status, json!({}));
+            reply
+                .headers
+                .insert("retry-after", HeaderValue::from_str(&header).unwrap());
+            let harness = Harness::script(
+                static_config().with_retry_policy(policy(3)),
+                vec![Ok(reply)],
+            );
+            let error = harness.get().await.unwrap_err();
+            match status {
+                429 => assert!(
+                    matches!(error, Error::RateLimited { retry_after: Some(delay), .. } if delay == Duration::from_secs(60))
+                ),
+                _ => assert!(matches!(error, Error::Unavailable { status: Some(503) })),
+            }
+            harness.assert_requests(1);
+            assert!(harness.sleeps.lock().unwrap().is_empty());
+        }
     }
 }
 

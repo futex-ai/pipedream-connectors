@@ -20,7 +20,9 @@ redirects and performs no transport retries. Its default connection timeout
 is 10 seconds. Its default total request timeout is 60 seconds. Its default
 response limit is 10 MiB. The builder can change each limit.
 
-`PipedreamClient::new(config, transport, clock)` accepts shared trait objects.
+`PipedreamClient::new(config, transport, clock, sleeper)` accepts shared trait
+objects. It has no implicit Tokio sleeper. The builder supplies a Tokio
+sleeper and a system clock with a monotonic origin.
 The `HttpTransport`, `Clock`, `Sleeper`, and `AccessTokenProvider` traits each
 have a mock under the `unimock` feature. Disable default features to use a
 host transport without reqwest. Inject a custom sleeper or token provider
@@ -38,13 +40,16 @@ only the line and column.
 
 GET retries are disabled until a caller supplies `RetryPolicy`. The policy
 requires total attempts, a maximum delay, and a fallback delay. It honors a
-valid `Retry-After` value. Every delay stays within the maximum. No method
+valid `Retry-After` value. A value above the maximum stops retries and returns
+the mapped error. Fallback delays stay within the maximum. No method
 other than GET retries. Transport failures do not trigger a retry.
 
 `BoundedPaginator` uses an injected `PageSource` through `Paginator`. Its
 `paginate` method returns records, page count, a stop reason, and a resumption
-request when the page limit stops traversal. A repeated cursor stops
-traversal without sending another request.
+request when the page limit stops traversal. A page failure returns
+`PaginationError::Interrupted` with the prior records, completed page count,
+failed request, and original error. The host can resume from that request.
+A repeated cursor stops traversal without sending another request.
 
 ## Quick Start
 
@@ -83,14 +88,18 @@ let page: Page<App> = response.json()?;
 
 Use `ApiPath::project` for routes under `/v1/connect/{project_id}`. Pass each
 path parameter as a separate segment. Query pairs preserve repeated keys.
-For a JSON body, call `with_json(&model, model.validate())`. This checks the
-model before the token call. `with_bytes` sends an exact byte body with
-caller-supplied content headers.
+For a JSON body, call `with_json(&model)`. The model must implement `Validate`.
+This checks the model before the token call. `with_bytes` sends an exact byte
+body with caller-supplied content headers.
 
 `ResponseMode::Execution` enables execution errors and nonblocking 202
 results. `ResponseMode::Redirect` returns a redirect response without
 following its location. Select these modes only for operations whose
 contracts define them.
+
+`ResponseMode::PassThrough` checks structured execution errors, then returns
+every status, header, and body byte. It never retries. A 401 still invalidates
+the bearer. The client cannot distinguish an upstream 401 from a Connect 401.
 
 The URL library skips literal `.` and `..` segments. Their identifier policy
 is still an open plan decision. Slash, percent, question mark, and hash
@@ -116,6 +125,7 @@ No unit test uses a real network or clock.
 - `src/config.rs` defines validated configuration and HTTP bounds.
 - `src/builder.rs` constructs the default transport and clock.
 - `src/request.rs` defines operations and the shared URL builder.
+- `src/validation.rs` requires each JSON request model to own its validation.
 - `src/token.rs` defines static and single-flight OAuth token providers.
 - `src/transport.rs` defines the redacted HTTP boundary and safe JSON access.
 - `src/reqwest_transport.rs` streams bounded HTTP responses.

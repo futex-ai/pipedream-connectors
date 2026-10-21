@@ -14,6 +14,7 @@ use crate::request::{ApiPath, ApiRequest};
 use crate::runtime::ClockMock;
 use crate::token::AccessTokenProviderMock;
 use crate::transport::HttpTransportMock;
+use crate::validation::Validate;
 
 use super::support::{response, static_config};
 
@@ -33,9 +34,14 @@ async fn a_401_invalidates_the_exact_injected_bearer_without_replay() {
     let clock = Arc::new(Unimock::new(
         ClockMock::now.next_call(matching!()).returns(UNIX_EPOCH),
     ));
-    let client = PipedreamClient::new(static_config(), transport, clock)
-        .unwrap()
-        .with_token_provider(tokens);
+    let client = PipedreamClient::new(
+        static_config(),
+        transport,
+        clock,
+        Arc::new(Unimock::new(())),
+    )
+    .unwrap()
+    .with_token_provider(tokens);
     let request = ApiRequest::new(Method::POST, ApiPath::project(&["actions", "run"]));
     assert!(matches!(
         client.dispatcher().dispatch(request).await,
@@ -54,8 +60,14 @@ impl Serialize for SensitiveSerialization {
 #[test]
 fn serialization_failures_retain_no_serializer_error_text() {
     let request = ApiRequest::new(Method::POST, ApiPath::project(&["tokens"]))
-        .with_json(&SensitiveSerialization, Ok(()));
+        .with_json(&SensitiveSerialization);
     let error = request.unwrap_err();
     assert!(matches!(error, Error::Internal(_)));
     assert!(!format!("{error:?} {error}").contains("sensitive-secret"));
+}
+
+impl Validate for SensitiveSerialization {
+    fn validate(&self) -> crate::error::Result<()> {
+        Ok(())
+    }
 }

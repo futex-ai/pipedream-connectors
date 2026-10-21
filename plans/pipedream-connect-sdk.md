@@ -376,6 +376,40 @@ no user answer. Each records the alternative and the reason.
   truncating records without resumption state or repeatedly fetching a stuck
   cursor, because the host needs a bounded, recoverable traversal.
 
+- **Review fix round, failed refresh sharing (2026-10-21).** A generation
+  identifies each completed refresh. Queued callers share its typed failure.
+  Internal failures retain the shared original source. A later call can
+  refresh immediately. Rejected: one request per failed waiter or a default
+  hold-off interval. Reason: a burst must not multiply token requests, and
+  the plan defines no hold-off default.
+- **Review fix round, retry limits (2026-10-21).** A valid `Retry-After`
+  above the policy maximum stops retries and returns the mapped error.
+  Fallback delays remain capped. Rejected: shortening the server delay,
+  because that sends a request before the server permits it.
+- **Review fix round, proxy dispatch (2026-10-21).** Pass-through mode checks
+  the structured execution envelope, then preserves every status, header,
+  and body byte without retries. It invalidates the bearer on any 401.
+  `ResponseMode` and `ApiPath` are non-exhaustive. Rejected: normal status
+  mapping or keeping a bearer after an upstream 401. Reason: proxy results
+  must remain lossless, and Connect and upstream 401s cannot be distinguished.
+  The milestone assignment explicitly authorizes this boundary choice.
+- **Review fix round, failed page recovery (2026-10-21).** Pagination errors
+  carry prior records, completed page count, failed request, and the original
+  typed error. Normal `?` propagation still fails the traversal. Rejected:
+  dropping prior records or returning a partial success, because the host
+  needs both failure propagation and explicit recovery.
+- **Review fix round, runtime composition (2026-10-21).** The injected
+  constructor requires a sleeper. Only the builder constructs `TokioSleeper`.
+  The clock supplies monotonic time for token deadlines and wall time for
+  HTTP dates. Rejected: an implicit Tokio sleeper or wall-clock expiry.
+  Reason: injected clients must work without Tokio, and wall-clock steps
+  must not alter a token lifetime. The milestone assignment authorizes the
+  constructor change.
+- **Review fix round, request validation (2026-10-21).** JSON construction
+  requires the client crate's `Validate` trait and calls the model's method.
+  Each request model implements the trait. Rejected: a separate validation
+  result, because a resource could supply `Ok(())` without checking its model.
+
 ## Open decisions
 
 - **GET retry defaults (2026-10-21).** Decision 4 requires an opt-in GET
@@ -422,9 +456,11 @@ let response = client
     .await?;
 ```
 
-`PipedreamClient::new(config, transport, clock)` takes
-`Arc<dyn HttpTransport>` and `Arc<dyn Clock>` for composition roots and
-tests. The builder constructs the reqwest transport and the system clock.
+`PipedreamClient::new(config, transport, clock, sleeper)` takes shared
+`HttpTransport`, `Clock`, and `Sleeper` trait objects for composition roots
+and tests. The builder constructs the reqwest transport, the system clock,
+and `TokioSleeper`. The runtime-composition decision on 2026-10-21 records
+this constructor change.
 
 The CLI sketch, with credentials from the `PIPEDREAM_*` variables:
 
@@ -615,6 +651,10 @@ no resource yet.
 
 Evidence: `.context/client-core/` contains the targeted test results, smoke
 results, regression evidence, Markdown checks, and the complete gate.
+
+- [ ] Resolve Milestone 4 review items 1 to 14 with regression tests,
+      aligned docs, the complete gate, separate fix and test commits,
+      and a push. Evidence: `.context/client-review-fixes/`.
 
 ## Milestone 5: Registry and execution resources
 

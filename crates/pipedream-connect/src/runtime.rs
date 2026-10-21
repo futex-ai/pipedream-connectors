@@ -1,23 +1,39 @@
 //! Injectable time and sleep boundaries.
 
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
 use async_trait::async_trait;
 
-/// Supplies wall time for token expiry and HTTP dates.
+/// Supplies monotonic time for token expiry and wall time for HTTP dates.
 #[cfg_attr(any(test, feature = "unimock"), unimock::unimock(api = ClockMock))]
 pub trait Clock: Send + Sync {
     /// Returns the current wall time.
     fn now(&self) -> SystemTime;
+    /// Returns monotonic time since an origin owned by this clock.
+    fn monotonic(&self) -> Duration;
 }
 
-/// System wall clock for a composition root.
+/// System clock with its own monotonic origin for a composition root.
 #[derive(Debug)]
-pub struct SystemClock;
+pub struct SystemClock {
+    origin: Instant,
+}
+
+impl Default for SystemClock {
+    fn default() -> Self {
+        Self {
+            origin: Instant::now(),
+        }
+    }
+}
 
 impl Clock for SystemClock {
     fn now(&self) -> SystemTime {
         SystemTime::now()
+    }
+
+    fn monotonic(&self) -> Duration {
+        self.origin.elapsed()
     }
 }
 

@@ -14,7 +14,7 @@ pub struct RetryPolicy {
 impl RetryPolicy {
     /// Selects total attempts, maximum delay, and delay without Retry-After.
     ///
-    /// All values are explicit. Each delay is clamped to `max_delay`.
+    /// All values are explicit. Fallback delays are clamped to `max_delay`.
     pub fn new(max_attempts: NonZeroU32, max_delay: Duration, fallback_delay: Duration) -> Self {
         Self {
             max_attempts,
@@ -23,11 +23,13 @@ impl RetryPolicy {
         }
     }
 
-    /// Returns the delay for the next attempt, within the configured cap.
-    pub fn delay(&self, retry_after: Option<Duration>) -> Duration {
-        retry_after
-            .unwrap_or(self.fallback_delay)
-            .min(self.max_delay)
+    /// Returns no delay when Retry-After exceeds the cap, which stops retries.
+    pub fn delay(&self, retry_after: Option<Duration>) -> Option<Duration> {
+        match retry_after {
+            Some(delay) if delay > self.max_delay => None,
+            Some(delay) => Some(delay),
+            None => Some(self.fallback_delay.min(self.max_delay)),
+        }
     }
 
     pub(crate) fn retries(&self, status: u16, attempts: u32) -> bool {

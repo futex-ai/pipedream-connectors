@@ -7,6 +7,27 @@ use internal_error::InternalError;
 use pipedream_connect_types::ExecutionError;
 use thiserror::Error;
 
+/// A required client-builder setting.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ConfigurationField {
+    /// Project identifier.
+    ProjectId,
+    /// Explicit environment.
+    Environment,
+    /// Client credentials or static bearer.
+    Authentication,
+}
+
+impl fmt::Display for ConfigurationField {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::ProjectId => "project_id",
+            Self::Environment => "environment",
+            Self::Authentication => "authentication",
+        })
+    }
+}
+
 /// A local input error. No HTTP request has been sent.
 #[derive(Error)]
 pub enum InvalidRequest {
@@ -29,7 +50,7 @@ pub enum InvalidRequest {
     #[error("[pipedream-connect/config] missing {field}")]
     MissingConfiguration {
         /// Name of the required setting.
-        field: &'static str,
+        field: ConfigurationField,
     },
     /// A typed request failed its model validation.
     #[error("[pipedream-connect/request] invalid request model")]
@@ -46,8 +67,8 @@ impl fmt::Debug for InvalidRequest {
 #[derive(Error, internal_error::ErrorContract)]
 pub enum Error {
     /// Local input validation failed before authentication.
-    #[error("[pipedream-connect/request] invalid request")]
-    InvalidRequest(InvalidRequest),
+    #[error("[pipedream-connect/request] invalid request: {0}")]
+    InvalidRequest(#[source] InvalidRequest),
     /// The API rejected the bearer.
     #[error("[pipedream-connect/http] unauthorized")]
     Unauthorized {
@@ -111,24 +132,11 @@ pub enum Error {
     Internal(#[from] InternalError),
 }
 
-impl fmt::Debug for Error {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Internal(source) => formatter.debug_tuple("Internal").field(source).finish(),
-            Self::InvalidRequest(reason) => formatter
-                .debug_tuple("InvalidRequest")
-                .field(reason)
-                .finish(),
-            _ => fmt::Display::fmt(self, formatter),
-        }
-    }
-}
-
 /// Result type at every client runtime boundary.
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Converts model validation without retaining request values.
-pub fn validate<T>(result: pipedream_connect_types::Result<T>) -> Result<T> {
+pub(crate) fn validate<T>(result: pipedream_connect_types::Result<T>) -> Result<T> {
     match result {
         Ok(value) => Ok(value),
         Err(error) => Err(Error::InvalidRequest(InvalidRequest::Model(error))),
@@ -144,6 +152,9 @@ pub(crate) enum WireFailure {
     #[error("[pipedream-connect/http] client construction failed")]
     #[cfg(feature = "reqwest")]
     ClientConstruction,
+    #[error("[pipedream-connect/http] request construction failed")]
+    #[cfg(feature = "reqwest")]
+    RequestConstruction,
     #[error("[pipedream-connect/token] invalid access token or lifetime")]
     Token,
     #[error("[pipedream-connect/request] URL construction failed")]

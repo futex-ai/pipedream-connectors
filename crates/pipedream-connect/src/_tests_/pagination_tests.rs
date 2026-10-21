@@ -8,7 +8,9 @@ use serde_json::json;
 use unimock::{MockFn, Unimock, matching};
 
 use crate::error::Error;
-use crate::pagination::{BoundedPaginator, PageSourceMock, PaginationEnd, Paginator};
+use crate::pagination::{
+    BoundedPaginator, PageSourceMock, PaginationEnd, PaginationError, Paginator,
+};
 
 fn page(data: &[u32], start: Option<&str>, end: Option<&str>) -> Page<u32> {
     serde_json::from_value(
@@ -123,7 +125,10 @@ async fn invalid_initial_pages_send_no_request_and_source_errors_propagate() {
                 NonZeroUsize::new(1).unwrap()
             )
             .await,
-        Err(Error::InvalidRequest(_))
+        Err(PaginationError::Interrupted {
+            source: Error::InvalidRequest(_),
+            ..
+        })
     ));
     let source = Arc::new(Unimock::new(
         PageSourceMock::fetch
@@ -136,6 +141,9 @@ async fn invalid_initial_pages_send_no_request_and_source_errors_propagate() {
         paginator
             .paginate(PageRequest::default(), NonZeroUsize::new(1).unwrap())
             .await,
-        Err(Error::Unavailable { status: Some(503) })
+        Err(PaginationError::Interrupted {
+            source: Error::Unavailable { status: Some(503) },
+            ..
+        })
     ));
 }

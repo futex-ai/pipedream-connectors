@@ -44,7 +44,7 @@ impl HttpTransport for ReqwestTransport {
         }
         let mut response = match builder.send().await {
             Ok(response) => response,
-            Err(_) => return Err(Error::Unavailable { status: None }),
+            Err(error) => return Err(transport_error(error)),
         };
         if response
             .content_length()
@@ -70,8 +70,21 @@ impl HttpTransport for ReqwestTransport {
                         body,
                     });
                 }
-                Err(_) => return Err(Error::Unavailable { status: None }),
+                Err(error) => return Err(transport_error(error)),
             }
         }
     }
+}
+
+fn transport_error(error: reqwest::Error) -> Error {
+    if error.is_builder() {
+        return Error::internal(WireFailure::RequestConstruction);
+    }
+    tracing::debug!(
+        timeout = error.is_timeout(),
+        connect = error.is_connect(),
+        error = %error.without_url(),
+        "Pipedream transport failure"
+    );
+    Error::Unavailable { status: None }
 }

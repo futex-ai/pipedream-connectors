@@ -12,7 +12,7 @@ use crate::error::Result;
 use crate::failure::{check_limit, ensure_status, retry_after};
 use crate::headers::authenticated;
 use crate::request::{ApiRequest, ResponseMode, build_url};
-use crate::runtime::{Clock, Sleeper, TokioSleeper};
+use crate::runtime::{Clock, Sleeper};
 use crate::token::{AccessTokenProvider, ClientCredentialsProvider, StaticTokenProvider};
 use crate::transport::{HttpRequest, HttpResponse, HttpTransport};
 
@@ -35,11 +35,12 @@ pub struct PipedreamClient {
 }
 
 impl PipedreamClient {
-    /// Injects transport and clock. Construction sends no request.
+    /// Injects transport, clock, and sleeper. Construction sends no request.
     pub fn new(
         config: ClientConfig,
         transport: Arc<dyn HttpTransport + Send + Sync>,
         clock: Arc<dyn Clock + Send + Sync>,
+        sleeper: Arc<dyn Sleeper + Send + Sync>,
     ) -> Result<Self> {
         let tokens: Arc<dyn AccessTokenProvider + Send + Sync> = match &config.authentication {
             Authentication::ClientCredentials(_) => Arc::new(ClientCredentialsProvider::new(
@@ -55,7 +56,7 @@ impl PipedreamClient {
             config,
             transport,
             clock,
-            sleeper: Arc::new(TokioSleeper),
+            sleeper,
             tokens,
         })
     }
@@ -120,10 +121,11 @@ impl RequestDispatcher for PipedreamClient {
             }
             check_limit(&response, self.config.http.response_limit)?;
             if request.method == Method::GET
+                && request.mode != ResponseMode::PassThrough
                 && let Some(policy) = &self.config.retry
                 && policy.retries(response.status.as_u16(), attempts)
+                && let Some(delay) = policy.delay(retry_after(&response.headers, self.clock.now()))
             {
-                let delay = policy.delay(retry_after(&response.headers, self.clock.now()));
                 tracing::debug!(
                     attempts,
                     status = response.status.as_u16(),

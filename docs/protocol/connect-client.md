@@ -51,6 +51,12 @@ The client MUST refresh a cached bearer before expiry by the smaller of
 
 The client MUST allow only one refresh operation at a time.
 
+Callers queued behind a failed refresh MUST receive that refresh failure.
+
+A later caller MAY start another refresh without a hold-off interval.
+
+Token expiry MUST use monotonic time and MUST ignore wall-clock changes.
+
 A request that receives 401 MUST invalidate the bearer used for that request.
 
 The client MUST return the 401 error without replaying the rejected request.
@@ -117,6 +123,15 @@ A `RateLimited` error includes parsed `Retry-After`, `X-RateLimit-Limit`,
 An execution response containing `{ "error": { "attribution", "name",
 "message" } }` is `ExecutionFailed` with the structured attribution.
 
+Proxy pass-through responses MUST preserve every status after the structured
+execution-error check.
+
+Proxy pass-through requests MUST never retry.
+
+**Decision.** A proxy 401 invalidates its bearer and remains a proxy result.
+Keeping the bearer was rejected because an upstream 401 and a Connect 401
+cannot be distinguished reliably.
+
 A 408 response is `Unavailable`.
 
 A 5xx response is `Unavailable`.
@@ -168,6 +183,9 @@ The GET retry policy MUST cap the total attempts.
 The GET retry policy MUST honor a valid `Retry-After` value.
 
 The GET retry policy MUST cap every delay at its configured maximum.
+
+When a valid `Retry-After` exceeds that maximum, the client MUST stop retries
+and return the mapped error with the parsed delay.
 
 The GET retry policy MUST use an injected sleeper.
 

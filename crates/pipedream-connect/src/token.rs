@@ -2,7 +2,8 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 use async_trait::async_trait;
 use http::Method;
@@ -17,6 +18,7 @@ use crate::headers::json_headers;
 use crate::json::encode;
 use crate::request::{ApiPath, ResponseMode, build_url};
 use crate::runtime::Clock;
+use crate::token_failure::repeat_failure;
 use crate::transport::{HttpRequest, HttpTransport};
 
 /// Supplies a bearer and invalidates only the bearer rejected by a request.
@@ -58,12 +60,20 @@ pub struct ClientCredentialsProvider {
     credentials: ClientCredentials,
     transport: Arc<dyn HttpTransport + Send + Sync>,
     clock: Arc<dyn Clock + Send + Sync>,
-    cached: Mutex<Option<CachedToken>>,
+    state: Mutex<RefreshState>,
+    generation: AtomicU64,
 }
 
 struct CachedToken {
     token: SecretString,
-    refresh_at: SystemTime,
+    refresh_at: Duration,
+}
+
+#[derive(Default)]
+struct RefreshState {
+    cached: Option<CachedToken>,
+    generation: u64,
+    failure: Option<Arc<Error>>,
 }
 
 #[derive(Serialize)]
@@ -93,21 +103,13 @@ impl ClientCredentialsProvider {
             credentials,
             transport,
             clock,
-            cached: Mutex::new(None),
+            state: Mutex::new(RefreshState::default()),
+            generation: AtomicU64::new(0),
         })
     }
-}
 
-#[async_trait]
-impl AccessTokenProvider for ClientCredentialsProvider {
-    async fn access_token(&self) -> Result<SecretString> {
-        let mut cached = self.cached.lock().await;
-        let now = self.clock.now();
-        if let Some(value) = cached.as_ref()
-            && now < value.refresh_at
-        {
-            return Ok(value.token.clone());
-        }
+    async fn refresh(&self) -> Result<CachedToken> {
+        let now = self.clock.monotonic();
         tracing::debug!("refreshing Pipedream OAuth bearer");
         let body = encode(&TokenRequest {
             grant_type: "client_credentials",
@@ -147,24 +149,58 @@ impl AccessTokenProvider for ClientCredentialsProvider {
         let refresh_at = now
             .checked_add(lifetime - skew)
             .ok_or_else(|| Error::internal(WireFailure::Token))?;
-        if refresh_at <= self.clock.now() {
+        if refresh_at <= self.clock.monotonic() {
             return Err(Error::Unavailable { status: None });
         }
-        let token = value.access_token;
-        *cached = Some(CachedToken {
-            token: token.clone(),
+        Ok(CachedToken {
+            token: value.access_token,
             refresh_at,
-        });
-        Ok(token)
+        })
+    }
+}
+
+#[async_trait]
+impl AccessTokenProvider for ClientCredentialsProvider {
+    async fn access_token(&self) -> Result<SecretString> {
+        let observed = self.generation.load(Ordering::Acquire);
+        let mut state = self.state.lock().await;
+        if let Some(value) = state.cached.as_ref()
+            && self.clock.monotonic() < value.refresh_at
+        {
+            return Ok(value.token.clone());
+        }
+        if observed != state.generation
+            && let Some(failure) = &state.failure
+        {
+            return Err(repeat_failure(failure));
+        }
+        let result = self.refresh().await;
+        state.generation = state.generation.wrapping_add(1);
+        self.generation.store(state.generation, Ordering::Release);
+        match result {
+            Ok(value) => {
+                let token = value.token.clone();
+                state.cached = Some(value);
+                state.failure = None;
+                Ok(token)
+            }
+            Err(error) => {
+                let failure = Arc::new(error);
+                let error = repeat_failure(&failure);
+                state.failure = Some(failure);
+                Err(error)
+            }
+        }
     }
 
     async fn invalidate(&self, rejected: &SecretString) {
-        let mut cached = self.cached.lock().await;
-        if cached
+        let mut state = self.state.lock().await;
+        if state
+            .cached
             .as_ref()
             .is_some_and(|value| &value.token == rejected)
         {
-            *cached = None;
+            state.cached = None;
         }
     }
 }

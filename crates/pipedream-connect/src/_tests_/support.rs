@@ -22,6 +22,7 @@ pub(super) struct Harness {
     pub(super) client: PipedreamClient,
     pub(super) requests: Arc<Mutex<Vec<HttpRequest>>>,
     pub(super) now_millis: Arc<AtomicU64>,
+    pub(super) wall_millis: Arc<AtomicU64>,
     pub(super) sleeps: Arc<Mutex<Vec<Duration>>>,
     replies: Arc<Mutex<VecDeque<Result<HttpResponse>>>>,
 }
@@ -51,32 +52,42 @@ impl Harness {
                 })),
         ));
         let now_millis = Arc::new(AtomicU64::new(1_000_000));
-        let time = now_millis.clone();
+        let monotonic = now_millis.clone();
+        let wall_millis = Arc::new(AtomicU64::new(1_000_000));
+        let time = wall_millis.clone();
         let clock_needed = matches!(config.authentication, Authentication::ClientCredentials(_))
             || replies.lock().unwrap().iter().any(|reply| {
                 reply.as_ref().is_ok_and(|reply| {
                     check_limit(reply, config.http_options().response_limit).is_ok()
                 })
             });
-        let clock = if clock_needed {
-            Arc::new(Unimock::new(
-                ClockMock::now
+        let wall = ClockMock::now
+            .each_call(matching!())
+            .answers_arc(Arc::new(move |_| {
+                UNIX_EPOCH + Duration::from_millis(time.load(Ordering::SeqCst))
+            }));
+        let clock = if matches!(config.authentication, Authentication::ClientCredentials(_)) {
+            Arc::new(Unimock::new((
+                wall,
+                ClockMock::monotonic
                     .each_call(matching!())
                     .answers_arc(Arc::new(move |_| {
-                        UNIX_EPOCH + Duration::from_millis(time.load(Ordering::SeqCst))
+                        Duration::from_millis(monotonic.load(Ordering::SeqCst))
                     })),
-            ))
+            )))
+        } else if clock_needed {
+            Arc::new(Unimock::new(wall))
         } else {
             Arc::new(Unimock::new(()))
         };
         let sleeps = Arc::new(Mutex::new(Vec::new()));
-        let client = PipedreamClient::new(config, transport, clock)
-            .unwrap()
-            .with_sleeper(Arc::new(Unimock::new(())));
+        let client =
+            PipedreamClient::new(config, transport, clock, Arc::new(Unimock::new(()))).unwrap();
         Self {
             client,
             requests,
             now_millis,
+            wall_millis,
             sleeps,
             replies,
         }

@@ -102,6 +102,7 @@ async fn public_model_fields_are_validated_before_any_token_call() {
         config(),
         Arc::new(Unimock::new(())),
         Arc::new(Unimock::new(())),
+        Arc::new(Unimock::new(())),
     )
     .unwrap();
     let request =
@@ -112,8 +113,7 @@ async fn public_model_fields_are_validated_before_any_token_call() {
     assert!(matches!(request, Err(Error::InvalidRequest(_))));
     let mut model = CreateConnectTokenRequest::new(ExternalUserId::new("user").unwrap());
     model.expires_in = 0;
-    let request = ApiRequest::new(Method::POST, ApiPath::project(&["tokens"]))
-        .with_json(&model, model.validate());
+    let request = ApiRequest::new(Method::POST, ApiPath::project(&["tokens"])).with_json(&model);
     assert!(matches!(request, Err(Error::InvalidRequest(_))));
     assert!(!format!("{client:?}").contains("client-secret"));
 }

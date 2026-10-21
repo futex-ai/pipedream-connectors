@@ -55,6 +55,7 @@ pub struct HttpResponse {
 
 impl HttpResponse {
     /// Decodes JSON without retaining data-bearing decoder error messages.
+    #[track_caller]
     pub fn json<T: DeserializeOwned>(&self) -> Result<T> {
         decode(&self.body)
     }

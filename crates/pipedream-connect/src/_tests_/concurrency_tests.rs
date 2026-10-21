@@ -11,6 +11,7 @@ use crate::runtime::ClockMock;
 use crate::token::{AccessTokenProvider, ClientCredentialsProvider};
 use crate::transport::HttpTransportMock;
 
+use super::hang_guard::guard;
 use super::support::{config, token};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -28,21 +29,28 @@ async fn concurrent_callers_wait_for_one_in_flight_refresh() {
                 assert!(request.url.expose_secret().ends_with("/v1/oauth/token"));
                 if recorded.fetch_add(1, Ordering::SeqCst) == 0 {
                     started.lock().unwrap().take().unwrap().send(()).unwrap();
-                    release.lock().unwrap().recv().unwrap();
+                    release
+                        .lock()
+                        .unwrap()
+                        .recv_timeout(Duration::from_secs(10))
+                        .unwrap();
                 }
                 Ok(token("shared", 3600))
             })),
     ));
-    let clock = Arc::new(Unimock::new(
+    let clock = Arc::new(Unimock::new((
+        ClockMock::monotonic
+            .each_call(matching!())
+            .returns(Duration::from_secs(1000)),
         ClockMock::now
             .each_call(matching!())
             .returns(UNIX_EPOCH + Duration::from_secs(1000)),
-    ));
+    )));
     let provider: Arc<dyn AccessTokenProvider + Send + Sync> =
         Arc::new(ClientCredentialsProvider::new(config(), transport, clock).unwrap());
     let first_provider = provider.clone();
     let first = tokio::spawn(async move { first_provider.access_token().await.unwrap() });
-    started_receiver.await.unwrap();
+    guard(started_receiver).await.unwrap();
     let arrivals = Arc::new(AtomicUsize::new(0));
     let arrived = Arc::new(Notify::new());
     let mut others = Vec::new();
@@ -57,14 +65,14 @@ async fn concurrent_callers_wait_for_one_in_flight_refresh() {
         }));
     }
     while arrivals.load(Ordering::SeqCst) < 31 {
-        arrived.notified().await;
+        guard(arrived.notified()).await;
     }
     let requests_while_pending = calls.load(Ordering::SeqCst);
     let completed_while_pending = others.iter().filter(|task| task.is_finished()).count();
     release_sender.send(()).unwrap();
-    assert_eq!(first.await.unwrap().expose_secret(), "shared");
+    assert_eq!(guard(first).await.unwrap().expose_secret(), "shared");
     for task in others {
-        assert_eq!(task.await.unwrap().expose_secret(), "shared");
+        assert_eq!(guard(task).await.unwrap().expose_secret(), "shared");
     }
     assert_eq!(requests_while_pending, 1);
     assert_eq!(completed_while_pending, 0);
