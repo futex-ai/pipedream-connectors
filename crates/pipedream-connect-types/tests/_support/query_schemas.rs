@@ -76,9 +76,6 @@ fn operation_query_samples_match_encoded_models() {
                     .as_object_mut()
                     .unwrap()
                     .remove(direction);
-                if let Some(categories) = direction_schema["properties"].get_mut("category_ids") {
-                    categories["items"]["pattern"] = json!("^appcat_[a-zA-Z0-9]+$");
-                }
                 for sample in samples::samples(&direction_schema, schemas, Mode::Full, false) {
                     let encoded = encoder(sample.clone());
                     assert_preserved(&sample, &encoded, name);

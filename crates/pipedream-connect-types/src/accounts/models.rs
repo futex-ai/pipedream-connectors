@@ -17,31 +17,31 @@ pub struct Account {
     #[serde(default)]
     pub name: Option<String>,
     /// External user partition.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_id: Option<ExternalUserId>,
     /// Whether credentials are healthy.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub healthy: Option<bool>,
     /// Whether the account is inactive.
     #[serde(default)]
     pub dead: Option<bool>,
     /// App metadata.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub app: Option<App>,
     /// Creation time.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<DateTime<Utc>>,
     /// Last update time.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<DateTime<Utc>>,
     /// OAuth scopes.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authorized_scopes: Option<Vec<String>>,
     /// Credential object, redacted in diagnostics.
     #[serde(default)]
     pub credentials: Option<SecretJson>,
     /// Credential expiry.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<DateTime<Utc>>,
     /// Provider health error.
     #[serde(default)]
@@ -102,10 +102,10 @@ pub struct ExternalUser {
     /// Host-provided external user identifier.
     pub external_id: ExternalUserId,
     /// Creation time.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<DateTime<Utc>>,
     /// Last update time.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<DateTime<Utc>>,
     /// Unknown provider fields.
     #[serde(flatten)]

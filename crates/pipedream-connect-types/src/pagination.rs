@@ -118,10 +118,10 @@ fn default_limit() -> u16 {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PageInfo {
     /// Number of records in the response.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub count: Option<u64>,
     /// Total number of matching records, when reported.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total_count: Option<u64>,
     /// Cursor for the first record.
     #[serde(default)]

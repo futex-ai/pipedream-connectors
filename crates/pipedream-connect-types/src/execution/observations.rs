@@ -9,12 +9,12 @@ use crate::{Error, Result, UnknownFields};
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Observation {
     /// Observation error details.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub err: Option<ObservationError>,
     /// Observation source.
     pub k: String,
     /// Log message.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub msg: Option<String>,
     /// Raw epoch-millisecond timestamp.
     pub ts: f64,
@@ -52,13 +52,13 @@ impl Observation {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ObservationError {
     /// Error name.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// Error message.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
     /// Provider stack trace.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stack: Option<String>,
     /// Unknown provider fields.
     #[serde(flatten)]

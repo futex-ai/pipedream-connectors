@@ -31,10 +31,14 @@ pub struct ReloadPropsRequest {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct DynamicProps {
     /// Dynamic property context ID.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// Updated property definitions.
-    #[serde(rename = "configurableProps", default)]
+    #[serde(
+        rename = "configurableProps",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub configurable_props: Option<Vec<ConfigurableProp>>,
     /// Unknown provider fields.
     #[serde(flatten)]
@@ -45,13 +49,17 @@ pub struct DynamicProps {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct ReloadPropsResponse {
     /// Execution observations.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub observations: Option<Vec<Observation>>,
     /// Provider errors.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub errors: Option<Vec<String>>,
     /// Updated dynamic properties.
-    #[serde(rename = "dynamicProps", default)]
+    #[serde(
+        rename = "dynamicProps",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub dynamic_props: Option<DynamicProps>,
     /// Unknown provider fields.
     #[serde(flatten)]

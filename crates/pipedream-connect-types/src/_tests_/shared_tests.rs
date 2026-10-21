@@ -4,14 +4,12 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{Timestamp, epoch_millis, option_epoch_millis};
+use crate::{Timestamp, epoch_millis};
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 struct Millis {
     #[serde(with = "epoch_millis")]
     at: DateTime<Utc>,
-    #[serde(with = "option_epoch_millis")]
-    optional: Option<DateTime<Utc>>,
 }
 
 #[test]
@@ -49,17 +47,11 @@ fn invalid_dates_and_out_of_range_milliseconds_fail() {
 }
 
 #[test]
-fn both_adapters_round_trip_and_reject_out_of_range_values() {
-    for optional in [json!(null), json!(1700000000000i64)] {
-        let sample = json!({"at":1700000000000i64,"optional":optional});
-        let decoded: Millis = serde_json::from_value(sample.clone()).unwrap();
-        assert_eq!(serde_json::to_value(decoded).unwrap(), sample);
-    }
-    for field in ["at", "optional"] {
-        for invalid in [json!(i64::MAX), json!("bad"), json!(0.5)] {
-            let mut sample = json!({"at":0,"optional":null});
-            sample[field] = invalid;
-            assert!(serde_json::from_value::<Millis>(sample).is_err());
-        }
+fn epoch_adapter_round_trips_and_rejects_out_of_range_values() {
+    let sample = json!({"at":1700000000000i64});
+    let decoded: Millis = serde_json::from_value(sample.clone()).unwrap();
+    assert_eq!(serde_json::to_value(decoded).unwrap(), sample);
+    for invalid in [json!(i64::MAX), json!("bad"), json!(0.5)] {
+        assert!(serde_json::from_value::<Millis>(json!({"at":invalid})).is_err());
     }
 }

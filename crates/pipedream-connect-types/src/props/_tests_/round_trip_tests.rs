@@ -76,9 +76,9 @@ fn custom_serde_variants_round_trip_with_unknown_object_keys() {
         ),
     ];
     cases.push(("Emitter",round_trip::<Emitter>,vec![
-        json!({"type":"DeployedComponent","id":"dc_sample","owner_id":"sample","component_id":"sample","component_key":null,"configurable_props":[],"configured_props":{},"active":true,"created_at":0,"updated_at":0,"name":"Sample","name_slug":"sample","callback_observations":null,"emit_on_deploy":null,"webhook_signing_key":null,"webhook_urls":null,"webhooks":null,"future":1}),
+        json!({"type":"DeployedComponent","id":"dc_sample","owner_id":"sample","component_id":"sample","component_key":null,"configurable_props":[],"configured_props":{},"active":true,"created_at":0,"updated_at":0,"name":"Sample","name_slug":"sample","callback_observations":null,"emit_on_deploy":false,"webhook_signing_key":null,"webhook_urls":[],"webhooks":[],"future":1}),
         json!({"type":"HttpInterface","id":"hi_sample","key":"sample","endpoint_url":"https://example.com","custom_response":false,"created_at":0,"updated_at":0,"future":1}),
-        json!({"type":"TimerInterface","id":"ti_sample","interval_seconds":60.0,"cron":null,"timezone":"UTC","schedule_changed_at":0,"created_at":0,"updated_at":0,"future":1}),
+        json!({"type":"TimerInterface","id":"ti_sample","interval_seconds":60.0,"timezone":"UTC","schedule_changed_at":0,"created_at":0,"updated_at":0,"future":1}),
         json!({"type":"FutureEmitter","future":1}),
     ]));
     for (name, check, samples) in cases {
@@ -129,4 +129,20 @@ fn unknown_props_keep_failed_fields_and_use_best_effort_typed_fields() {
         assert_eq!(prop.extra.get(key), sample.get(key));
     }
     assert_eq!(serde_json::to_value(prop).unwrap(), sample);
+}
+
+#[test]
+fn timer_interface_keeps_integer_and_fractional_intervals() {
+    for interval in [json!(60), json!(9007199254740993u64), json!(60.25)] {
+        let sample = json!({
+            "type":"TimerInterface", "id":"ti_sample", "interval_seconds":interval,
+            "timezone":"UTC", "schedule_changed_at":0,
+            "created_at":0, "updated_at":0
+        });
+        let emitter: Emitter = serde_json::from_value(sample).unwrap();
+        assert_eq!(
+            serde_json::to_value(emitter).unwrap()["interval_seconds"],
+            interval
+        );
+    }
 }

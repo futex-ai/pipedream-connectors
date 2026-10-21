@@ -227,3 +227,13 @@ fn trigger_event_limits_use_typed_errors_and_external_user_scope() {
         assert_eq!(value.is_ok(), (1..=100).contains(&limit));
     }
 }
+
+#[test]
+fn trigger_event_limit_is_checked_during_deserialization() {
+    for limit in [0, 1, 100, 101] {
+        let decoded = serde_json::from_value::<ListTriggerEventsRequest>(json!({
+            "external_user_id": "user_1", "n": limit
+        }));
+        assert_eq!(decoded.is_ok(), (1..=100).contains(&limit));
+    }
+}

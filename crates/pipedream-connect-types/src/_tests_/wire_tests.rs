@@ -22,9 +22,11 @@ fn account_operations_use_the_documented_bare_or_paged_shapes() {
 fn response_absence_does_not_fabricate_false_or_empty_values() {
     let account: Account = serde_json::from_value(json!({"id":"apn_sample"})).unwrap();
     assert_eq!(account.healthy, None);
-    assert_eq!(
-        serde_json::to_value(account).unwrap()["healthy"],
-        json!(null)
+    assert!(
+        serde_json::to_value(account)
+            .unwrap()
+            .get("healthy")
+            .is_none()
     );
     let project: Project =
         serde_json::from_value(json!({"id":"proj_sample","name":"Example"})).unwrap();
@@ -70,11 +72,11 @@ fn omitted_catalog_defaults_remain_unknown_instead_of_fabricated() {
     let encoded = serde_json::to_value(app).unwrap();
     for field in ["categories", "featured_weight", "scope_profiles"] {
         assert!(
-            encoded[field].is_null(),
+            encoded.get(field).is_none(),
             "fabricated {field}: {}",
             encoded[field]
         );
     }
     let model:AppOverride=serde_json::from_value(json!({"id":"ao_sample","name":"Example","app":{"name_slug":"github","name":"GitHub","img_src":"https://example.com/logo.png"},"owner_id":"sample"})).unwrap();
-    assert!(serde_json::to_value(model).unwrap()["cfmap"].is_null());
+    assert!(serde_json::to_value(model).unwrap().get("cfmap").is_none());
 }

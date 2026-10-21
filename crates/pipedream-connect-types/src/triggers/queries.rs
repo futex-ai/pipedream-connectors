@@ -1,11 +1,11 @@
 //! Trigger deployment models and requests.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{Error, ExternalUserId, Result, ValidationField};
 
 /// Trigger event history query.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ListTriggerEventsRequest {
     /// External user that owns the deployed trigger.
     pub external_user_id: ExternalUserId,
@@ -28,6 +28,25 @@ impl ListTriggerEventsRequest {
             external_user_id,
             limit,
         })
+    }
+}
+
+impl<'de> Deserialize<'de> for ListTriggerEventsRequest {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Wire {
+            external_user_id: ExternalUserId,
+            n: u16,
+        }
+
+        let wire = Wire::deserialize(deserializer)?;
+        match Self::new(wire.external_user_id, wire.n) {
+            Ok(request) => Ok(request),
+            Err(error) => Err(serde::de::Error::custom(error)),
+        }
     }
 }
 

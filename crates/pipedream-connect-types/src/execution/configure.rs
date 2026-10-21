@@ -55,7 +55,7 @@ pub struct ConfigurePropResponse {
     #[serde(default)]
     pub context: Option<Value>,
     /// Provider errors.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub errors: Option<Vec<String>>,
     /// Unknown provider fields.
     #[serde(flatten)]

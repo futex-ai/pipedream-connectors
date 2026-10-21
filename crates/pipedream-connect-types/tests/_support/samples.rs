@@ -189,7 +189,7 @@ pub fn assert_preserved(sample: &Value, encoded: &Value, path: &str) {
             }
             for (key, value) in encoded {
                 assert!(
-                    fields.contains_key(key) || value.is_null(),
+                    fields.contains_key(key),
                     "{path}.{key}: fabricated value {value}"
                 );
             }
@@ -205,5 +205,41 @@ pub fn assert_preserved(sample: &Value, encoded: &Value, path: &str) {
             assert_eq!(number.as_f64(), encoded.as_f64(), "{path}")
         }
         _ => assert_eq!(sample, encoded, "{path}"),
+    }
+}
+
+/// Builds the explicit null defaults permitted by each response schema.
+pub fn expected_response(sample: &Value, schema: &Value, schemas: &Map<String, Value>) -> Value {
+    if schema["$ref"] == "#/components/schemas/ConfigurableProp" {
+        return sample.clone();
+    }
+    let schema = resolve(schema, schemas);
+    if let Some(field) = schema["discriminator"]["propertyName"].as_str()
+        && let Some(kind) = sample[field].as_str()
+        && let Some(reference) = schema["discriminator"]["mapping"][kind].as_str()
+    {
+        return expected_response(sample, &json!({"$ref":reference}), schemas);
+    }
+    match sample {
+        Value::Object(fields) => {
+            let mut expected = fields.clone();
+            if let Some(properties) = schema["properties"].as_object() {
+                for (key, property) in properties {
+                    if let Some(value) = fields.get(key) {
+                        expected.insert(key.clone(), expected_response(value, property, schemas));
+                    } else if resolve(property, schemas)["nullable"] == true {
+                        expected.insert(key.clone(), Value::Null);
+                    }
+                }
+            }
+            Value::Object(expected)
+        }
+        Value::Array(values) => Value::Array(
+            values
+                .iter()
+                .map(|value| expected_response(value, &schema["items"], schemas))
+                .collect(),
+        ),
+        _ => sample.clone(),
     }
 }

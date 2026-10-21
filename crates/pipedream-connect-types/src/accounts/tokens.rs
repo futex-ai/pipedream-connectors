@@ -1,7 +1,7 @@
 //! Connect token creation and response models.
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use url::Url;
 
 use crate::{
@@ -27,7 +27,10 @@ pub struct CreateConnectTokenRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_redirect_uri: Option<String>,
     /// Token lifetime in seconds.
-    #[serde(default = "default_expires_in")]
+    #[serde(
+        default = "default_expires_in",
+        deserialize_with = "deserialize_expires_in"
+    )]
     pub expires_in: u32,
     /// Requested Connect scope.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -62,13 +65,7 @@ impl CreateConnectTokenRequest {
 
     /// Sets a validated lifetime in seconds.
     pub fn with_expires_in(mut self, expires_in: u32) -> Result<Self> {
-        if !(1..=14_400).contains(&expires_in) {
-            return Err(Error::OutOfRange {
-                field: ValidationField::ExpiresIn,
-                minimum: 1,
-                maximum: 14_400,
-            });
-        }
+        validate_expires_in(expires_in)?;
         self.expires_in = expires_in;
         Ok(self)
     }
@@ -102,13 +99,7 @@ impl CreateConnectTokenRequest {
 
     /// Validates token lifetime and all configured URI fields.
     pub fn validate(&self) -> Result<()> {
-        if !(1..=14_400).contains(&self.expires_in) {
-            return Err(Error::OutOfRange {
-                field: ValidationField::ExpiresIn,
-                minimum: 1,
-                maximum: 14_400,
-            });
-        }
+        validate_expires_in(self.expires_in)?;
         for (field, value) in [
             (UrlField::SuccessRedirectUri, &self.success_redirect_uri),
             (UrlField::ErrorRedirectUri, &self.error_redirect_uri),
@@ -125,6 +116,28 @@ impl CreateConnectTokenRequest {
             }
         }
         Ok(())
+    }
+}
+
+fn validate_expires_in(expires_in: u32) -> Result<()> {
+    if !(1..=14_400).contains(&expires_in) {
+        return Err(Error::OutOfRange {
+            field: ValidationField::ExpiresIn,
+            minimum: 1,
+            maximum: 14_400,
+        });
+    }
+    Ok(())
+}
+
+fn deserialize_expires_in<'de, D>(deserializer: D) -> std::result::Result<u32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let expires_in = u32::deserialize(deserializer)?;
+    match validate_expires_in(expires_in) {
+        Ok(()) => Ok(expires_in),
+        Err(error) => Err(serde::de::Error::custom(error)),
     }
 }
 

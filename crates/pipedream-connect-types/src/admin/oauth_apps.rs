@@ -13,7 +13,7 @@ pub struct OauthApp {
     /// Upstream OAuth client identifier.
     pub client_id: String,
     /// Human-readable app name inherited from the app metadata.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// App authentication mode.
     #[serde(default)]
@@ -22,39 +22,39 @@ pub struct OauthApp {
     #[serde(default)]
     pub description: Option<String>,
     /// App logo URL.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub img_src: Option<String>,
     /// JSON-encoded custom field metadata.
     #[serde(default)]
     pub custom_fields_json: Option<String>,
     /// App categories.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub categories: Option<Vec<String>>,
     /// App popularity weight.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub featured_weight: Option<f64>,
     /// Named OAuth scope profiles.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scope_profiles: Option<Vec<ScopeProfile>>,
     /// Provider app slug when present in the merged app metadata.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name_slug: Option<AppSlug>,
     /// Requested OAuth scopes.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scopes: Option<Vec<String>>,
     /// Additional user-granted scopes.
     #[serde(default)]
     pub additional_scopes: Option<Vec<String>>,
     /// Upstream redirect URI.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub redirect_uri: Option<String>,
     /// Resource owner identifier.
     pub owner_id: String,
     /// Creation time.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<DateTime<Utc>>,
     /// Last update time.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<DateTime<Utc>>,
     /// Unknown provider fields.
     #[serde(flatten)]
