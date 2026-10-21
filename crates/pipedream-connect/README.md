@@ -169,7 +169,7 @@ use pipedream_connect_types::{Component, ListRegistryRequest, PageRequest};
 let filters = ListRegistryRequest::default();
 let source = FilteredPageSource::new(filters, move |request| {
     let actions = client.actions();
-    Box::pin(async move { actions.list(request).await })
+    async move { actions.list(request).await }
 });
 let paginator = BoundedPaginator::new(Arc::new(source));
 let _pages = paginator.paginate(PageRequest::default(), std::num::NonZeroUsize::new(4).unwrap()).await?;
