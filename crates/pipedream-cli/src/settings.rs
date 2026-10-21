@@ -11,6 +11,9 @@ use crate::cli::{EnvironmentArg, GlobalArgs};
 use crate::error::{Error, Result};
 use crate::variables::Variables;
 
+/// The API origin that the SDK uses when the caller selects none.
+pub(crate) const DEFAULT_ORIGIN: &str = "https://api.pipedream.com";
+
 /// A connection setting that a flag or an environment variable supplies.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Setting {
@@ -84,6 +87,15 @@ impl Supply {
     }
 }
 
+/// An API origin and the way the caller supplied it.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ApiOrigin {
+    /// The origin URL.
+    pub(crate) url: String,
+    /// The flag or variable that supplied it.
+    pub(crate) supply: Supply,
+}
+
 /// Validated connection settings for one command.
 #[derive(Clone, Debug)]
 pub(crate) struct Settings {
@@ -96,10 +108,25 @@ pub(crate) struct Settings {
     /// The OAuth client secret.
     pub(crate) client_secret: SecretString,
     /// The API origin, when the caller selected one.
-    pub(crate) api_origin: Option<String>,
+    pub(crate) api_origin: Option<ApiOrigin>,
 }
 
 impl Settings {
+    /// Returns the API origin that requests use.
+    pub(crate) fn origin(&self) -> &str {
+        match &self.api_origin {
+            Some(origin) => &origin.url,
+            None => DEFAULT_ORIGIN,
+        }
+    }
+
+    /// Returns the origin when the caller selected one other than the default.
+    pub(crate) fn custom_origin(&self) -> Option<&ApiOrigin> {
+        self.api_origin
+            .as_ref()
+            .filter(|origin| origin.url != DEFAULT_ORIGIN)
+    }
+
     /// Builds the SDK client configuration. Sends no request.
     pub(crate) fn client_config(&self) -> pipedream_connect::error::Result<ClientConfig> {
         let credentials = ClientCredentials::new(
@@ -112,7 +139,7 @@ impl Settings {
             Authentication::ClientCredentials(credentials),
         )?;
         match &self.api_origin {
-            Some(origin) => config.with_origin(origin),
+            Some(origin) => config.with_origin(&origin.url),
             None => Ok(config),
         }
     }
@@ -127,7 +154,11 @@ struct Supplied {
 /// Resolves each setting from its flag, then from its variable, and validates the result.
 pub(crate) fn resolve(args: &GlobalArgs, variables: &dyn Variables) -> Result<Settings> {
     let client_id = lookup(Setting::ClientId, args.client_id.clone(), variables)?;
-    let client_secret = lookup(Setting::ClientSecret, args.client_secret.clone(), variables)?;
+    let secret_flag = args
+        .client_secret
+        .as_ref()
+        .map(|secret| secret.expose_secret().to_owned());
+    let client_secret = lookup(Setting::ClientSecret, secret_flag, variables)?;
     let project = lookup(Setting::ProjectId, args.project_id.clone(), variables)?;
     let environment = environment(args.environment, variables)?;
     let origin = lookup(Setting::ApiOrigin, args.api_origin.clone(), variables)?;
@@ -155,7 +186,10 @@ pub(crate) fn resolve(args: &GlobalArgs, variables: &dyn Variables) -> Result<Se
         environment,
         client_id: SecretString::new(client_id.value),
         client_secret: SecretString::new(client_secret.value),
-        api_origin: origin.map(|origin| origin.value),
+        api_origin: origin.map(|origin| ApiOrigin {
+            url: origin.value,
+            supply: origin.supply,
+        }),
     };
     let cause = match settings.client_config() {
         Ok(_) => return Ok(settings),

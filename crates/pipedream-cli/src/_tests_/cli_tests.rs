@@ -74,19 +74,49 @@ fn global_flags_parse_after_the_subcommand() {
 }
 
 #[test]
-fn credential_flags_accept_a_leading_hyphen() {
+fn credentials_that_start_with_a_hyphen_use_the_equals_form() {
     let cli = Cli::try_parse_from([
         "pipedream-cli",
-        "--client-id",
-        "-id",
-        "--client-secret",
-        "-secret",
+        "--client-id=-id",
+        "--client-secret=-secret",
         "categories",
         "list",
     ])
     .unwrap();
     assert_eq!(cli.global.client_id.as_deref(), Some("-id"));
-    assert_eq!(cli.global.client_secret.as_deref(), Some("-secret"));
+    assert_eq!(
+        cli.global
+            .client_secret
+            .as_ref()
+            .map(|secret| secret.expose_secret()),
+        Some("-secret")
+    );
+}
+
+#[test]
+fn a_flag_after_the_secret_flag_is_never_taken_as_the_secret() {
+    let error = Cli::try_parse_from([
+        "pipedream-cli",
+        "categories",
+        "list",
+        "--client-secret",
+        "--show-secrets",
+    ])
+    .unwrap_err();
+    assert_eq!(error.kind(), ErrorKind::InvalidValue);
+}
+
+#[test]
+fn the_parsed_secret_never_reaches_debug_output() {
+    let cli = Cli::try_parse_from([
+        "pipedream-cli",
+        "--client-secret",
+        "debug-hidden-secret",
+        "categories",
+        "list",
+    ])
+    .unwrap();
+    assert!(!format!("{cli:?}").contains("debug-hidden-secret"));
 }
 
 #[test]
@@ -129,6 +159,7 @@ fn help_names_each_variable_and_prefers_the_secret_variable() {
         assert!(help.contains(variable), "help names {variable}");
     }
     assert!(help.contains("Prefer the variable"));
+    assert!(help.contains("--client-secret=VALUE"));
     assert!(help.contains("--show-secrets"));
 }
 

@@ -1,56 +1,50 @@
-//! Tests for the exit status and the text of each SDK failure.
+//! Tests for failures whose HTTP status decides the exit code.
 
 use std::io;
 use std::time::Duration;
 
 use pipedream_connect::error::{Error, InvalidRequest};
-use pipedream_connect_types::ExecutionError;
 use serde_json::json;
 
-use crate::report::api::{client, describe};
+use crate::report::api::client;
 use crate::report::exit::Exit;
 use crate::report::failure::Failure;
 use crate::target::Target;
 
-const PROVIDER_TEXT: &str = "provider text with token xoxb-hidden";
-
-fn execution(error: serde_json::Value) -> Error {
-    let error: ExecutionError = serde_json::from_value(error).unwrap();
-    Error::ExecutionFailed {
-        status: 400,
-        error: Box::new(error),
-    }
-}
+use super::{PROVIDER_TEXT, execution, text};
 
 #[test]
 fn authentication_failures_exit_three_without_provider_text() {
-    let unauthorized = describe(
-        Target::Apps,
-        &Error::Unauthorized {
-            message: Some(PROVIDER_TEXT.to_owned()),
-        },
-    );
+    let message = Some(PROVIDER_TEXT.to_owned());
     assert_eq!(
-        unauthorized,
+        text(Target::Apps, &Error::Unauthorized { message }),
         Failure::new(
             Exit::Authentication,
             "Pipedream rejected the client credentials. Check the client ID and the client \
              secret."
         )
     );
-    let forbidden = describe(
-        Target::Apps,
-        &Error::Forbidden {
-            message: Some(PROVIDER_TEXT.to_owned()),
-        },
-    );
+    let message = Some(PROVIDER_TEXT.to_owned());
+    let forbidden = text(Target::Apps, &Error::Forbidden { message });
     assert_eq!(forbidden.exit, Exit::Authentication);
     assert!(!forbidden.message.contains(PROVIDER_TEXT));
 }
 
 #[test]
-fn not_found_names_the_identifier_to_check() {
+fn not_found_names_what_to_check_for_each_target() {
     let cases = [
+        (
+            Target::Apps,
+            "Pipedream did not find the apps. Check the API origin and the filters.",
+        ),
+        (
+            Target::Categories,
+            "Pipedream did not find the app categories. Check the API origin.",
+        ),
+        (
+            Target::Components,
+            "Pipedream did not find the listed resource. Check the project ID and the filters.",
+        ),
         (
             Target::App,
             "Pipedream did not find the app. Check the app slug or ID.",
@@ -63,19 +57,16 @@ fn not_found_names_the_identifier_to_check() {
             Target::ActionRun,
             "Pipedream did not find the action. Check the action key and the version.",
         ),
-        (
-            Target::Components,
-            "Pipedream did not find the listed resource. Check the project ID and the filters.",
-        ),
     ];
     for (target, message) in cases {
-        let failure = describe(
-            target,
-            &Error::NotFound {
-                message: Some(PROVIDER_TEXT.to_owned()),
-            },
+        let error = Error::NotFound {
+            message: Some(PROVIDER_TEXT.to_owned()),
+        };
+        assert_eq!(
+            text(target, &error),
+            Failure::new(Exit::NotFound, message),
+            "{target:?}"
         );
-        assert_eq!(failure, Failure::new(Exit::NotFound, message));
     }
 }
 
@@ -88,49 +79,24 @@ fn rate_limits_exit_five_with_the_wait_time() {
         reset: None,
     };
     let cases = [
-        (
-            Some(Duration::from_secs(30)),
-            "Pipedream rate limited the request. Wait 30 seconds, then run the command again.",
-        ),
-        (
-            Some(Duration::from_millis(500)),
-            "Pipedream rate limited the request. Wait 1 second, then run the command again.",
-        ),
-        (
-            None,
-            "Pipedream rate limited the request. Wait a moment, then run the command again.",
-        ),
+        (Some(Duration::from_secs(30)), "Wait 30 seconds"),
+        (Some(Duration::from_millis(500)), "Wait 1 second"),
+        (None, "Wait a moment"),
     ];
-    for (retry_after, message) in cases {
+    for (retry_after, wait) in cases {
         assert_eq!(
-            describe(Target::Categories, &limited(retry_after)),
-            Failure::new(Exit::RateLimited, message)
+            text(Target::Categories, &limited(retry_after)),
+            Failure::new(
+                Exit::RateLimited,
+                format!("Pipedream rate limited the request. {wait}, then run the command again.")
+            )
         );
     }
 }
 
 #[test]
-fn unavailability_warns_when_a_mutation_may_have_run() {
-    assert_eq!(
-        describe(Target::Apps, &Error::Unavailable { status: Some(503) }),
-        Failure::new(
-            Exit::Unavailable,
-            "Pipedream is unavailable with status 503. Try again later."
-        )
-    );
-    assert_eq!(
-        describe(Target::ActionRun, &Error::Unavailable { status: None }),
-        Failure::new(
-            Exit::Unavailable,
-            "Pipedream did not respond. The action may have run. Check its effects before you \
-             run it again."
-        )
-    );
-}
-
-#[test]
-fn other_api_failures_exit_seven_without_provider_text() {
-    let rejected = describe(
+fn rejected_requests_exit_seven_without_provider_text() {
+    let rejected = text(
         Target::Actions,
         &Error::Rejected {
             status: 422,
@@ -145,22 +111,11 @@ fn other_api_failures_exit_seven_without_provider_text() {
             "Pipedream rejected the request with status 422. Check the command arguments."
         )
     );
-    assert_eq!(describe(Target::App, &Error::Accepted).exit, Exit::Rejected);
-    assert_eq!(
-        describe(Target::Apps, &Error::ResponseTooLarge { limit: 10 << 20 }),
-        Failure::new(
-            Exit::Rejected,
-            "The Pipedream response is larger than 10 MiB. Request fewer records with --limit."
-        )
-    );
-    assert_eq!(
-        describe(Target::App, &Error::ResponseTooLarge { limit: 1000 }).message,
-        "The Pipedream response is larger than the 1000 bytes limit of the CLI."
-    );
+    assert_eq!(text(Target::App, &Error::Accepted).exit, Exit::Rejected);
 }
 
 #[test]
-fn execution_failures_name_the_failure_origin() {
+fn execution_failures_name_the_origin_and_fit_the_command() {
     let cases = [
         (
             json!({"attribution": {"origin": "upstream_api", "last_call": {"status": 401}}}),
@@ -190,19 +145,23 @@ fn execution_failures_name_the_failure_origin() {
     ];
     for (mut error, summary) in cases {
         error["message"] = json!(PROVIDER_TEXT);
-        let failure = describe(Target::ActionRun, &execution(error));
         assert_eq!(
-            failure,
+            text(Target::ActionRun, &execution(error)),
             Failure::new(
                 Exit::Rejected,
                 format!("{summary} Check the configured props, then run the command again.")
             )
         );
     }
+    let read = text(Target::Components, &execution(json!({"name": "Error"})));
+    assert_eq!(
+        read.message,
+        "The request failed. Check the command arguments, then run the command again."
+    );
 }
 
 #[test]
-fn invalid_requests_exit_two_and_internal_failures_exit_one() {
+fn invalid_requests_exit_two() {
     let cases = [
         (
             InvalidRequest::Header,
@@ -231,17 +190,10 @@ fn invalid_requests_exit_two_and_internal_failures_exit_one() {
     ];
     for (reason, message) in cases {
         assert_eq!(
-            describe(Target::Apps, &Error::InvalidRequest(reason)),
+            text(Target::Apps, &Error::InvalidRequest(reason)),
             Failure::new(Exit::Usage, message)
         );
     }
-    let internal = describe(Target::App, &Error::internal(io::Error::other("decode")));
-    assert_eq!(internal.exit, Exit::Internal);
-    assert!(
-        internal
-            .message
-            .starts_with("Pipedream returned a response")
-    );
 }
 
 #[test]

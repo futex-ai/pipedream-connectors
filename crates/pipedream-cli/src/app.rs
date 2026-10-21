@@ -6,7 +6,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use clap::Parser;
 
-use crate::cli::Cli;
+use crate::cli::{Cli, Command};
 use crate::commands::task;
 use crate::connector::Connector;
 use crate::document::{Output, Secrets};
@@ -14,7 +14,7 @@ use crate::error::{Error, Result};
 use crate::inputs::Inputs;
 use crate::report::exit::Exit;
 use crate::report::outcome;
-use crate::settings;
+use crate::settings::{self, DEFAULT_ORIGIN, Settings};
 use crate::terminal::Terminal;
 use crate::variables::Variables;
 
@@ -46,16 +46,15 @@ impl App {
         }
     }
 
-    /// Validates settings and input, then builds the client once and runs the command.
-    async fn execute(&self, cli: Cli) -> Result<Output> {
-        let secrets = if cli.global.show_secrets {
-            Secrets::Show
-        } else {
-            Secrets::Redact
-        };
-        let settings = settings::resolve(&cli.global, self.variables.as_ref())?;
-        let task = task::prepare(cli.command, self.inputs.as_ref())?;
-        let resources = match self.connector.connect(&settings) {
+    /// Validates the command and its input, then builds the client once and runs it.
+    async fn execute(
+        &self,
+        settings: &Settings,
+        command: Command,
+        secrets: Secrets,
+    ) -> Result<Output> {
+        let task = task::prepare(command, self.inputs.as_ref())?;
+        let resources = match self.connector.connect(settings) {
             Ok(resources) => resources,
             Err(cause) => return Err(Error::Client(cause)),
         };
@@ -70,7 +69,20 @@ impl Application for App {
             Ok(cli) => cli,
             Err(error) => return outcome::usage(&error, terminal),
         };
-        outcome::finish(self.execute(cli).await, terminal)
+        let secrets = if cli.global.show_secrets {
+            Secrets::Show
+        } else {
+            Secrets::Redact
+        };
+        let settings = match settings::resolve(&cli.global, self.variables.as_ref()) {
+            Ok(settings) => settings,
+            Err(error) => return outcome::finish(Err(error), DEFAULT_ORIGIN, terminal),
+        };
+        if let Some(origin) = settings.custom_origin() {
+            outcome::origin_note(origin, terminal);
+        }
+        let result = self.execute(&settings, cli.command, secrets).await;
+        outcome::finish(result, settings.origin(), terminal)
     }
 }
 

@@ -170,8 +170,8 @@ async fn unavailable_runs_warn_that_the_action_may_have_run() {
     assert_eq!(ran.exit, Exit::Unavailable);
     assert_eq!(
         ran.stderr,
-        "error: Pipedream did not respond. The action may have run. Check its effects before \
-         you run it again.\n"
+        "error: The CLI could not reach Pipedream at https://api.pipedream.com. The action \
+         may have run. Check its effects before you run it again.\n"
     );
 }
 

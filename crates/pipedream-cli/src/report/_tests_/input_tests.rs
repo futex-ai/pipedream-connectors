@@ -8,6 +8,7 @@ use crate::argument::Argument;
 use crate::error::{Error, JsonProblem};
 use crate::report::exit::Exit;
 use crate::report::failure::{Failure, describe};
+use crate::settings::DEFAULT_ORIGIN;
 use crate::settings::{Setting, Supply};
 
 fn usage(message: &str) -> Failure {
@@ -15,7 +16,7 @@ fn usage(message: &str) -> Failure {
 }
 
 fn argument(argument: Argument, cause: pipedream_connect_types::Error) -> Failure {
-    describe(&Error::InvalidArgument { argument, cause })
+    describe(&Error::InvalidArgument { argument, cause }, DEFAULT_ORIGIN)
 }
 
 #[test]
@@ -47,7 +48,7 @@ fn missing_settings_name_the_variable_and_the_flag() {
         let error = Error::MissingSettings {
             settings: vec![setting],
         };
-        assert_eq!(describe(&error), usage(message));
+        assert_eq!(describe(&error, DEFAULT_ORIGIN), usage(message));
     }
 }
 
@@ -60,25 +61,28 @@ fn several_missing_settings_share_one_message() {
         Setting::Environment,
     ];
     assert_eq!(
-        describe(&Error::MissingSettings { settings }),
+        describe(&Error::MissingSettings { settings }, DEFAULT_ORIGIN),
         usage(
             "The client ID, client secret, project ID, and environment are missing. Set \
              PIPEDREAM_CLIENT_ID, PIPEDREAM_CLIENT_SECRET, PIPEDREAM_PROJECT_ID, and \
-             PIPEDREAM_ENVIRONMENT, or pass their flags."
+             PIPEDREAM_ENVIRONMENT."
         )
     );
     let settings = vec![Setting::ClientSecret, Setting::Environment];
     assert_eq!(
-        describe(&Error::MissingSettings { settings }),
+        describe(&Error::MissingSettings { settings }, DEFAULT_ORIGIN),
         usage(
             "The client secret and environment are missing. Set PIPEDREAM_CLIENT_SECRET and \
-             PIPEDREAM_ENVIRONMENT, or pass their flags."
+             PIPEDREAM_ENVIRONMENT."
         )
     );
     assert_eq!(
-        describe(&Error::MissingSettings {
-            settings: Vec::new()
-        })
+        describe(
+            &Error::MissingSettings {
+                settings: Vec::new()
+            },
+            DEFAULT_ORIGIN
+        )
         .exit,
         Exit::Usage
     );
@@ -113,7 +117,7 @@ fn invalid_settings_name_their_source() {
     ];
     for (setting, supply, message) in cases {
         assert_eq!(
-            describe(&Error::InvalidSetting { setting, supply }),
+            describe(&Error::InvalidSetting { setting, supply }, DEFAULT_ORIGIN),
             usage(message)
         );
     }
@@ -122,19 +126,25 @@ fn invalid_settings_name_their_source() {
 #[test]
 fn credential_and_variable_failures_name_their_sources() {
     assert_eq!(
-        describe(&Error::InvalidCredentials {
-            client_id: Supply::Variable,
-            client_secret: Supply::Flag,
-        }),
+        describe(
+            &Error::InvalidCredentials {
+                client_id: Supply::Variable,
+                client_secret: Supply::Flag,
+            },
+            DEFAULT_ORIGIN
+        ),
         usage(
             "The client credentials from PIPEDREAM_CLIENT_ID and --client-secret are not \
              valid. Copy both values again from your Pipedream OAuth client."
         )
     );
     assert_eq!(
-        describe(&Error::UnreadableVariable {
-            setting: Setting::ClientSecret
-        }),
+        describe(
+            &Error::UnreadableVariable {
+                setting: Setting::ClientSecret
+            },
+            DEFAULT_ORIGIN
+        ),
         usage("PIPEDREAM_CLIENT_SECRET holds characters that the CLI cannot read. Set it again.")
     );
 }
@@ -204,12 +214,15 @@ fn invalid_arguments_name_the_argument_and_its_rule() {
 #[test]
 fn json_failures_give_the_position_and_the_expected_shape() {
     let failure = |problem| {
-        describe(&Error::InvalidJson {
-            argument: Argument::Props,
-            line: 3,
-            column: 7,
-            problem,
-        })
+        describe(
+            &Error::InvalidJson {
+                argument: Argument::Props,
+                line: 3,
+                column: 7,
+                problem,
+            },
+            DEFAULT_ORIGIN,
+        )
     };
     assert_eq!(
         failure(JsonProblem::Syntax),
@@ -225,15 +238,38 @@ fn json_failures_give_the_position_and_the_expected_shape() {
              column 7."
         )
     );
+    assert_eq!(
+        failure(JsonProblem::Depth),
+        usage(
+            "--props nests JSON too deeply at line 3, column 7. Use at most 127 levels of \
+             arrays and objects."
+        )
+    );
+}
+
+#[test]
+fn counts_that_are_not_positive_name_their_flag() {
+    assert_eq!(
+        describe(
+            &Error::InvalidCount {
+                argument: Argument::MaxPages
+            },
+            DEFAULT_ORIGIN
+        ),
+        usage("--max-pages must be a whole number of 1 or more.")
+    );
 }
 
 #[test]
 fn unreadable_inputs_give_a_recovery_for_the_failure_kind() {
     let failure = |kind| {
-        describe(&Error::UnreadableInput {
-            argument: Argument::Props,
-            cause: io::Error::from(kind),
-        })
+        describe(
+            &Error::UnreadableInput {
+                argument: Argument::Props,
+                cause: io::Error::from(kind),
+            },
+            DEFAULT_ORIGIN,
+        )
     };
     let cases = [
         (

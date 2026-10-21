@@ -574,6 +574,29 @@ no user answer. Each records the alternative and the reason.
   `components get <COMPONENT>`, and `actions run <ACTION>`. Rejected: an
   `--action` flag, because one positional rule keeps these commands
   consistent.
+- **CLI review fix, uncertain mutations (2026-10-21).** For a command that
+  changes data, an unavailable, oversized, or unreadable response replaces
+  the recovery action with a warning that the change may have happened.
+  Oversized responses exit 1, like other unreadable responses. Rejected: a
+  warning only for unavailable responses, because the request also left in
+  the other two cases.
+- **CLI review fix, failure text (2026-10-21).** A network failure without
+  an HTTP status names the API origin. A 408 or 5xx names the origin and its
+  status, because the CLI did reach it. An interrupted listing gives one
+  action: the resume command for a retryable failure, else its own action.
+  Resume hints quote the cursor for a POSIX shell. Rejected: two recovery
+  actions in one message.
+- **CLI review fix, inputs (2026-10-21).** Page sizes and budgets are text in
+  clap. A bounded number that does not parse becomes zero, so the SDK rule
+  reports its documented range. `--max-pages` has no upper limit. Props JSON
+  that nests deeper than the decoder's 127 levels gets its own message before
+  decoding. Rejected: clap number parsers, because their errors do not follow
+  the CLI message style.
+- **CLI review fix, settings (2026-10-21).** The client secret flag parses
+  into `SecretString`. The credential flags take no hyphen values, so a
+  following flag is never taken as a credential. A custom API origin gets one
+  note before any request. Rejected: hyphen values for credentials, because
+  `--client-secret --show-secrets` silently used the flag name as the secret.
 
 ## Open decisions
 
@@ -1010,6 +1033,10 @@ resource traits.
 - [x] Add a credential-free smoke: build the binary, print the help of every
       command, and run every command without credentials. Evidence:
       `.context/cli/smoke-phase1.txt` in the CLI worktree.
+- [x] Apply the phase 1 review fixes 1 to 9 with tests that fail first.
+      Evidence: `.context/cli/review-fixes-red.txt`,
+      `.context/cli/secret-debug-red.txt`, and
+      `.context/cli/review-fixes-green.txt` in the CLI worktree.
 - [ ] Run the gate, run every command against a development project,
       commit, and push.
   - [x] Run the gate and commit the registry and execution commands. The

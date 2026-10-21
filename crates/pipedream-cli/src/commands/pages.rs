@@ -11,6 +11,7 @@ use pipedream_connect_types::{Cursor, PageRequest};
 use serde::Serialize;
 
 use crate::argument::Argument;
+use crate::commands::numbers::{bounded, positive};
 use crate::document::{Document, Notice, Output, Secrets};
 use crate::error::{Error, Interruption, Result, called, checked};
 use crate::redact::Redact;
@@ -20,8 +21,13 @@ use crate::target::Target;
 #[derive(Debug, Args)]
 pub(crate) struct PageArgs {
     /// Records for each page, from 1 to 200. The default is 100.
-    #[arg(long, value_name = "COUNT", help_heading = "Pages")]
-    limit: Option<u16>,
+    #[arg(
+        long,
+        value_name = "COUNT",
+        allow_negative_numbers = true,
+        help_heading = "Pages"
+    )]
+    limit: Option<String>,
     /// Read the records after this cursor.
     #[arg(
         long,
@@ -42,9 +48,10 @@ pub(crate) struct PageArgs {
         value_name = "COUNT",
         default_value = "10",
         requires = "all",
+        allow_negative_numbers = true,
         help_heading = "Pages"
     )]
-    max_pages: NonZeroUsize,
+    max_pages: String,
 }
 
 /// A validated first page and the page budget of `--all`.
@@ -60,7 +67,7 @@ impl PageArgs {
     /// Validates the cursor flags. Sends no request.
     pub(crate) fn paging(self) -> Result<Paging> {
         let mut page = match self.limit {
-            Some(limit) => checked(PageRequest::with_limit(limit), Argument::Limit)?,
+            Some(limit) => checked(PageRequest::with_limit(bounded(&limit)), Argument::Limit)?,
             None => PageRequest::new(),
         };
         page.after = self
@@ -71,10 +78,11 @@ impl PageArgs {
             .before
             .map(|cursor| checked(Cursor::new(cursor), Argument::Before))
             .transpose()?;
-        Ok(Paging {
-            page,
-            budget: self.all.then_some(self.max_pages),
-        })
+        let budget = match self.all {
+            true => Some(positive(&self.max_pages, Argument::MaxPages)?),
+            false => None,
+        };
+        Ok(Paging { page, budget })
     }
 }
 

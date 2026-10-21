@@ -41,7 +41,7 @@ async fn usage_errors_exit_two_without_reading_settings() {
         &["actions", "run", "google_calendar-list-events"],
         &["components", "list", "--after", "a", "--before", "b"],
         &["apps", "list", "--max-pages", "3"],
-        &["apps", "list", "--all", "--max-pages", "0"],
+        &["apps", "list", "--client-secret", "--show-secrets"],
         &[],
     ] {
         let ran = run(args, ()).await;
@@ -60,7 +60,7 @@ async fn missing_settings_exit_two_before_any_connection() {
         ran.stderr,
         "error: The client ID, client secret, project ID, and environment are missing. Set \
          PIPEDREAM_CLIENT_ID, PIPEDREAM_CLIENT_SECRET, PIPEDREAM_PROJECT_ID, and \
-         PIPEDREAM_ENVIRONMENT, or pass their flags.\n"
+         PIPEDREAM_ENVIRONMENT.\n"
     );
 }
 
@@ -98,7 +98,7 @@ async fn the_connector_receives_the_resolved_settings() {
         ConnectMock
             .next_call(
                 matching!((settings) if settings.project_id.as_str() == "proj_Flag1"
-                && settings.api_origin.as_deref() == Some("https://api.example.com")),
+                && settings.origin() == "https://api.example.com"),
             )
             .answers(&|_, _| Err(Error::internal(io::Error::other("tls backend")))),
     );
@@ -117,8 +117,45 @@ async fn the_connector_receives_the_resolved_settings() {
     assert_eq!(ran.exit, Exit::Internal);
     assert_eq!(
         ran.stderr,
-        "error: The CLI could not start its HTTP client. Run the command again.\n"
+        "note: The CLI sends requests to https://api.example.com, set by --api-origin.\n\
+         error: The CLI could not start its HTTP client. Run the command again.\n"
     );
+}
+
+#[tokio::test]
+async fn a_custom_origin_from_a_variable_gets_one_note_before_any_request() {
+    let env = Env {
+        api_origin: Some("https://staging.example.com"),
+        ..Env::CONFIGURED
+    };
+    let clauses = (
+        env.clauses(),
+        ConnectMock
+            .next_call(matching!(_))
+            .answers(&|_, _| Err(Error::internal(io::Error::other("tls backend")))),
+    );
+    let ran = run(&["categories", "list"], clauses).await;
+    assert!(ran.stderr.starts_with(
+        "note: The CLI sends requests to https://staging.example.com, set by \
+         PIPEDREAM_API_ORIGIN.\n"
+    ));
+    assert_eq!(ran.stderr.matches("note:").count(), 1);
+}
+
+#[tokio::test]
+async fn the_default_origin_gets_no_note() {
+    let env = Env {
+        api_origin: Some("https://api.pipedream.com"),
+        ..Env::CONFIGURED
+    };
+    let clauses = (
+        env.clauses(),
+        ConnectMock
+            .next_call(matching!(_))
+            .answers(&|_, _| Err(Error::internal(io::Error::other("tls backend")))),
+    );
+    let ran = run(&["categories", "list"], clauses).await;
+    assert!(!ran.stderr.contains("note:"));
 }
 
 #[tokio::test]

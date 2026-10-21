@@ -65,17 +65,54 @@ fn invalid_cursors_name_their_flag() {
 }
 
 #[test]
-fn budget_flags_need_all_and_a_positive_count() {
+fn the_budget_needs_all_and_cursors_take_one_direction() {
     for args in [
         &["--max-pages", "2"][..],
-        &["--all", "--max-pages", "0"],
         &["--after", "a", "--before", "b"],
-        &["--limit", "70000"],
     ] {
         let mut argv = vec!["flags"];
         argv.extend_from_slice(args);
         assert!(Flags::try_parse_from(argv).is_err(), "{args:?}");
     }
+}
+
+#[test]
+fn page_sizes_outside_the_sdk_range_name_the_range() {
+    for limit in ["0", "201", "70000", "-1", "ten"] {
+        let error = paging(&["--limit", limit]).unwrap_err();
+        assert!(
+            matches!(
+                error,
+                Error::InvalidArgument {
+                    argument: Argument::Limit,
+                    cause: pipedream_connect_types::Error::OutOfRange {
+                        minimum: 1,
+                        maximum: 200,
+                        ..
+                    },
+                }
+            ),
+            "{limit}: {error:?}"
+        );
+    }
+}
+
+#[test]
+fn budgets_must_be_positive_whole_numbers_without_an_upper_limit() {
+    for budget in ["0", "-1", "many"] {
+        let error = paging(&["--all", "--max-pages", budget]).unwrap_err();
+        assert!(
+            matches!(
+                error,
+                Error::InvalidCount {
+                    argument: Argument::MaxPages
+                }
+            ),
+            "{budget}: {error:?}"
+        );
+    }
+    let paging = paging(&["--all", "--max-pages", "1000000"]).unwrap();
+    assert_eq!(paging.budget, budget(1_000_000));
 }
 
 fn pagination(end: PaginationEnd, next: Option<PageRequest>) -> Pagination<u8> {

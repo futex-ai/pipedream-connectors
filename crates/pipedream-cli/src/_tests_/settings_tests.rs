@@ -4,12 +4,12 @@ use std::ffi::OsString;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStringExt;
 
-use pipedream_connect_types::Environment;
+use pipedream_connect_types::{Environment, SecretString};
 use unimock::{MockFn, Unimock, matching};
 
 use crate::cli::{EnvironmentArg, GlobalArgs};
 use crate::error::Error;
-use crate::settings::{Setting, Supply, resolve};
+use crate::settings::{ApiOrigin, Setting, Supply, resolve};
 use crate::test_support::{Env, SECRET};
 use crate::variables::GetVariableMock;
 
@@ -36,6 +36,8 @@ fn variables_supply_every_setting() {
     assert_eq!(settings.client_id.expose_secret(), "client-id-value");
     assert_eq!(settings.client_secret.expose_secret(), SECRET);
     assert_eq!(settings.api_origin, None);
+    assert_eq!(settings.origin(), "https://api.pipedream.com");
+    assert_eq!(settings.custom_origin(), None);
     let config = settings.client_config().unwrap();
     assert_eq!(config.project_id().as_str(), "proj_Example123");
     assert_eq!(config.environment(), &Environment::Development);
@@ -46,7 +48,7 @@ fn variables_supply_every_setting() {
 fn flags_take_precedence_over_variables() {
     let flags = GlobalArgs {
         client_id: Some("flag-id".to_owned()),
-        client_secret: Some("flag-secret".to_owned()),
+        client_secret: Some(SecretString::new("flag-secret")),
         project_id: Some("proj_Flag1".to_owned()),
         environment: Some(EnvironmentArg::Production),
         api_origin: Some("https://api.example.com".to_owned()),
@@ -57,9 +59,13 @@ fn flags_take_precedence_over_variables() {
     assert_eq!(settings.client_secret.expose_secret(), "flag-secret");
     assert_eq!(settings.project_id.as_str(), "proj_Flag1");
     assert_eq!(settings.environment, Environment::Production);
+    assert_eq!(settings.origin(), "https://api.example.com");
     assert_eq!(
-        settings.api_origin.as_deref(),
-        Some("https://api.example.com")
+        settings.custom_origin(),
+        Some(&ApiOrigin {
+            url: "https://api.example.com".to_owned(),
+            supply: Supply::Flag,
+        })
     );
 }
 
@@ -70,10 +76,22 @@ fn origin_variable_applies_when_the_flag_is_absent() {
         ..Env::CONFIGURED
     };
     let settings = resolve(&no_flags(), &variables(env)).unwrap();
+    assert_eq!(settings.origin(), "https://variable.example.com");
     assert_eq!(
-        settings.api_origin.as_deref(),
-        Some("https://variable.example.com")
+        settings.custom_origin().map(|origin| origin.supply),
+        Some(Supply::Variable)
     );
+}
+
+#[test]
+fn the_default_origin_is_not_custom_even_when_it_is_set() {
+    let env = Env {
+        api_origin: Some("https://api.pipedream.com"),
+        ..Env::CONFIGURED
+    };
+    let settings = resolve(&no_flags(), &variables(env)).unwrap();
+    assert_eq!(settings.origin(), "https://api.pipedream.com");
+    assert_eq!(settings.custom_origin(), None);
 }
 
 #[test]

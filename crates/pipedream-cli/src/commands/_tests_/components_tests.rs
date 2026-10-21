@@ -130,7 +130,8 @@ async fn components_get_without_a_version_asks_for_the_latest() {
     assert_eq!(ran.exit, Exit::Unavailable);
     assert_eq!(
         ran.stderr,
-        "error: Pipedream is unavailable with status 503. Try again later.\n"
+        "error: Pipedream at https://api.pipedream.com is unavailable with status 503. Try \
+         again later.\n"
     );
 }
 
@@ -148,7 +149,8 @@ async fn unreadable_responses_exit_one() {
     assert_eq!(
         ran.stderr,
         "error: Pipedream returned a response that the CLI cannot read. Report this problem \
-         with the command that you ran.\n"
+         with the command that you ran at \
+         https://github.com/futex-ai/pipedream-connectors/issues.\n"
     );
 }
 

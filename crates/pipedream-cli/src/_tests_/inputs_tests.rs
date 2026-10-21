@@ -10,6 +10,7 @@ use crate::argument::Argument;
 use crate::error::{Error, JsonProblem};
 use crate::inputs::{InputSource, ReadInputMock, read_props};
 use crate::report::failure::describe;
+use crate::settings::DEFAULT_ORIGIN;
 
 #[test]
 fn dash_selects_standard_input_and_other_values_select_files() {
@@ -81,7 +82,11 @@ fn invalid_json_keeps_only_the_failure_position() {
             problem: JsonProblem::Syntax,
         }
     ));
-    assert!(!describe(&error).message.contains("sk_live_hidden"));
+    assert!(
+        !describe(&error, DEFAULT_ORIGIN)
+            .message
+            .contains("sk_live_hidden")
+    );
     assert!(!format!("{error:?}").contains("sk_live_hidden"));
 }
 
@@ -109,6 +114,50 @@ fn props_that_are_not_an_object_of_prop_names_are_a_shape_problem() {
             ),
             "{error:?}"
         );
-        assert!(!describe(&error).message.contains("sk_live_hidden"));
+        assert!(
+            !describe(&error, DEFAULT_ORIGIN)
+                .message
+                .contains("sk_live_hidden")
+        );
     }
+}
+
+fn read(body: Vec<u8>) -> crate::error::Result<pipedream_connect_types::ConfiguredProps> {
+    let inputs = Unimock::new(ReadInputMock.next_call(matching!(_)).returns(Ok(body)));
+    read_props(&inputs, &InputSource::Stdin, Argument::Props)
+}
+
+fn nested(prefix: &str, arrays: usize) -> Vec<u8> {
+    format!("{prefix}{}{}}}", "[".repeat(arrays), "]".repeat(arrays)).into_bytes()
+}
+
+#[test]
+fn props_nested_too_deeply_get_their_own_problem_and_position() {
+    assert!(read(nested("{\"a\": ", 126)).is_ok());
+    assert!(matches!(
+        read(nested("{\"a\": ", 127)).unwrap_err(),
+        Error::InvalidJson {
+            argument: Argument::Props,
+            line: 1,
+            column: 133,
+            problem: JsonProblem::Depth,
+        }
+    ));
+    assert!(matches!(
+        read(nested("{\n  \"a\": ", 300)).unwrap_err(),
+        Error::InvalidJson {
+            line: 2,
+            column: 134,
+            problem: JsonProblem::Depth,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn brackets_inside_strings_do_not_count_as_nesting() {
+    let brackets = "[{".repeat(300);
+    let body = format!(r#"{{"a": "{brackets}\"{{", "b": ["\\", "]]"]}}"#);
+    let props = read(body.into_bytes()).unwrap();
+    assert_eq!(props.iter().count(), 2);
 }

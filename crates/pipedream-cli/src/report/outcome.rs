@@ -3,7 +3,8 @@
 use crate::document::{Notice, Output};
 use crate::error::Result;
 use crate::report::exit::Exit;
-use crate::report::failure::{count, describe, resume};
+use crate::report::failure::{count, cursor_flag, describe};
+use crate::settings::{ApiOrigin, Setting};
 use crate::terminal::Terminal;
 
 /// The message when standard output rejects a result.
@@ -26,12 +27,21 @@ pub(crate) fn usage(error: &clap::Error, terminal: &mut Terminal<'_>) -> Exit {
     }
 }
 
+/// Writes the note that names a custom API origin and the flag or variable that set it.
+pub(crate) fn origin_note(origin: &ApiOrigin, terminal: &mut Terminal<'_>) {
+    let source = origin.supply.name(Setting::ApiOrigin);
+    terminal.diagnostic(
+        "note",
+        &format!("The CLI sends requests to {}, set by {source}.", origin.url),
+    );
+}
+
 /// Writes the result or the failure of one command and returns its exit status.
-pub(crate) fn finish(outcome: Result<Output>, terminal: &mut Terminal<'_>) -> Exit {
+pub(crate) fn finish(outcome: Result<Output>, origin: &str, terminal: &mut Terminal<'_>) -> Exit {
     let output = match outcome {
         Ok(output) => output,
         Err(error) => {
-            let failure = describe(&error);
+            let failure = describe(&error, origin);
             terminal.diagnostic("error", &failure.message);
             return failure.exit;
         }
@@ -49,16 +59,17 @@ pub(crate) fn finish(outcome: Result<Output>, terminal: &mut Terminal<'_>) -> Ex
 fn notice_text(notice: &Notice) -> String {
     match notice {
         Notice::PageLimit { pages, next } => {
-            let summary = format!("The CLI read {} and more records exist.", count(*pages));
-            match resume(next) {
-                Some(resume) => format!("{summary} {resume}"),
+            let summary = format!("The CLI stopped after {}.", count(*pages));
+            match cursor_flag(next) {
+                Some((flag, cursor)) => format!(
+                    "{summary} To read the next page, run the command again with {flag} {cursor}."
+                ),
                 None => summary,
             }
         }
-        Notice::StuckCursor => {
-            "Pipedream repeated a page cursor. The result holds the records before the repeat."
-                .to_owned()
-        }
+        Notice::StuckCursor => "Pipedream repeated a page cursor, so the CLI stopped. The result \
+                                can contain repeated records."
+            .to_owned(),
     }
 }
 

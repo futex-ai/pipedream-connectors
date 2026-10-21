@@ -10,6 +10,9 @@ use serde_json::error::Category;
 use crate::argument::Argument;
 use crate::error::{Error, JsonProblem, Result};
 
+/// The deepest nesting of arrays and objects that the props decoder accepts.
+pub(crate) const MAX_DEPTH: usize = 127;
+
 /// Where a command reads one input.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum InputSource {
@@ -64,6 +67,14 @@ pub(crate) fn read_props(
         Ok(bytes) => bytes,
         Err(cause) => return Err(Error::UnreadableInput { argument, cause }),
     };
+    if let Some((line, column)) = too_deep(&bytes) {
+        return Err(Error::InvalidJson {
+            argument,
+            line,
+            column,
+            problem: JsonProblem::Depth,
+        });
+    }
     match serde_json::from_slice(&bytes) {
         Ok(props) => Ok(props),
         Err(error) => Err(Error::InvalidJson {
@@ -76,6 +87,42 @@ pub(crate) fn read_props(
             },
         }),
     }
+}
+
+/// Returns the position of the first array or object that nests deeper than [`MAX_DEPTH`].
+///
+/// Brackets inside strings do not count. Lines and columns count from 1.
+fn too_deep(bytes: &[u8]) -> Option<(usize, usize)> {
+    let (mut depth, mut line, mut column) = (0_usize, 1_usize, 0_usize);
+    let (mut in_string, mut escaped) = (false, false);
+    for &byte in bytes {
+        if byte == b'\n' {
+            (line, column) = (line + 1, 0);
+            continue;
+        }
+        column += 1;
+        if in_string {
+            match (escaped, byte) {
+                (true, _) => escaped = false,
+                (false, b'\\') => escaped = true,
+                (false, b'"') => in_string = false,
+                (false, _) => {}
+            }
+            continue;
+        }
+        match byte {
+            b'"' => in_string = true,
+            b'[' | b'{' => {
+                depth += 1;
+                if depth > MAX_DEPTH {
+                    return Some((line, column));
+                }
+            }
+            b']' | b'}' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    None
 }
 
 #[cfg(test)]

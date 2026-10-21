@@ -214,6 +214,18 @@ async fn apps_commands_reject_invalid_input_before_any_request() {
             "error: --limit must be from 1 to 200.\n",
         ),
         (
+            &["apps", "list", "--limit", "70000"],
+            "error: --limit must be from 1 to 200.\n",
+        ),
+        (
+            &["apps", "list", "--limit", "-1"],
+            "error: --limit must be from 1 to 200.\n",
+        ),
+        (
+            &["apps", "list", "--all", "--max-pages", "0"],
+            "error: --max-pages must be a whole number of 1 or more.\n",
+        ),
+        (
             &["apps", "list", "--before", "a/b"],
             "error: --before is not a valid cursor. Copy the cursor from the page_info of an \
              earlier result.\n",

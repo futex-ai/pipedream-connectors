@@ -41,9 +41,15 @@ command.
 <!-- markdownlint-enable MD013 -->
 
 Set the client secret with the variable. Shell history and process lists can
-show flag values. Help text never shows a configured value. The environment
-has no default, because development and production use separate credentials.
-The API origin defaults to `https://api.pipedream.com`.
+show flag values. Help text never shows a configured value. A flag value that
+starts with a hyphen needs the `=` form, such as `--client-secret=-abc`. The
+environment has no default, because development and production use separate
+credentials.
+
+The API origin defaults to `https://api.pipedream.com`. When a flag or a
+variable selects another origin, the CLI writes one note to standard error
+before any request. The note names the origin and the flag or variable that
+set it.
 
 The CLI reports every missing required setting in one message.
 
@@ -115,14 +121,17 @@ any other body prints as base64 with its encoding named.
 Every paged list command takes the same flags:
 
 - `--limit <COUNT>` sets the records for each page, from 1 to 200. The
-  default is 100.
+  default is 100. Any other value fails before a request.
 - `--after <CURSOR>` or `--before <CURSOR>` continues from a cursor in the
   `page_info` of an earlier result.
 - `--all` reads every page up to the `--max-pages` budget. The default budget
-  is 10 pages.
+  is 10 pages. The budget has no upper limit.
 
-Without `--all`, the command prints the Pipedream page as it is, with its
-`data` and `page_info`. With `--all`, the command prints one document:
+Without `--all`, the command prints the page as the SDK models it: `data`,
+`page_info`, and the fields that the SDK does not model. The SDK model writes
+`null` for an absent field that the API documents as nullable. With `--all`,
+the command prints one document with the records of every page. It drops the
+`page_info` of each page:
 
 ```json
 {
@@ -134,9 +143,12 @@ Without `--all`, the command prints the Pipedream page as it is, with its
 ```
 
 `end` is `exhausted`, `page_limit`, or `stuck_cursor`. At the page limit,
-`next` holds the request that continues the listing, and a note on standard
-error names the `--after` flag to use. When a page fails, the command prints
-no records. The error names the cursor that continues from the failed page.
+`next` holds the request that continues the listing in the same direction. A
+note on standard error names the `--after` or `--before` flag and the quoted
+cursor to use. When Pipedream repeats a cursor, the CLI stops, and the result
+can contain repeated records. When a page fails, the command prints no
+records. For a failure that a retry can fix, the error names the flag that
+continues from the failed page.
 `categories list` has no page flags, because Pipedream returns every category
 in one response.
 
@@ -175,10 +187,14 @@ An action run that Pipedream accepts for later completion prints
 
 Each error names what failed and gives one recovery action. Validation errors
 name the flag, the variable, or the argument. A JSON input error gives only
-the line and the column. Errors never print a secret, a bearer, a response
-body, or the provider message. A failed action names where it failed, for
-example the component code or the app API with its status. A run that gets
-no answer can still have run, and the error says so.
+the line and the column. JSON that nests more than 127 levels of arrays and
+objects gets its own message. Errors never print a secret, a bearer, a
+response body, or the provider message. A failed action names where it
+failed, for example the component code or the app API with its status. A
+network failure names the API origin. After a command that changes data, an
+unanswered or unreadable response can mean that the change happened, and the
+error says so. A failure that the user cannot fix links to the
+[issue tracker](https://github.com/futex-ai/pipedream-connectors/issues).
 
 ## Quick Start
 

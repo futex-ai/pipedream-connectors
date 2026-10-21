@@ -17,6 +17,8 @@ pub(crate) enum JsonProblem {
     Syntax,
     /// The JSON does not have the expected shape.
     Shape,
+    /// Arrays and objects nest deeper than the decoder allows.
+    Depth,
 }
 
 /// A failure that stops one command.
@@ -70,6 +72,12 @@ pub(crate) enum Error {
         column: usize,
         /// Why the input did not decode.
         problem: JsonProblem,
+    },
+    /// A count flag is not a whole number of 1 or more.
+    #[error("[pipedream-cli/input] invalid {argument} count")]
+    InvalidCount {
+        /// The count argument.
+        argument: Argument,
     },
     /// An input file or standard input could not be read.
     #[error("[pipedream-cli/input] cannot read {argument}")]

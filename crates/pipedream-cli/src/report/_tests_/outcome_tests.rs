@@ -11,7 +11,7 @@ use crate::document::{Document, Notice, Output};
 use crate::error::Error;
 use crate::report::exit::Exit;
 use crate::report::outcome::{finish, usage};
-use crate::settings::Setting;
+use crate::settings::{DEFAULT_ORIGIN, Setting};
 use crate::terminal::Terminal;
 
 /// A standard output that the reader closed.
@@ -36,7 +36,11 @@ fn output(notices: Vec<Notice>) -> Output {
 
 fn written(outcome: crate::error::Result<Output>) -> (Exit, String, String) {
     let (mut out, mut err) = (Vec::new(), Vec::new());
-    let exit = finish(outcome, &mut Terminal::new(&mut out, &mut err));
+    let exit = finish(
+        outcome,
+        DEFAULT_ORIGIN,
+        &mut Terminal::new(&mut out, &mut err),
+    );
     (
         exit,
         String::from_utf8(out).unwrap(),
@@ -56,10 +60,10 @@ fn results_go_to_stdout_and_notices_to_stderr() {
     assert_eq!(stdout, "{\n  \"data\": []\n}\n");
     assert_eq!(
         stderr,
-        "note: The CLI read 2 pages and more records exist. To continue, run the command \
-         again with --after cursor_9.\n\
-         note: Pipedream repeated a page cursor. The result holds the records before the \
-         repeat.\n"
+        "note: The CLI stopped after 2 pages. To read the next page, run the command again \
+         with --after 'cursor_9'.\n\
+         note: Pipedream repeated a page cursor, so the CLI stopped. The result can contain \
+         repeated records.\n"
     );
 }
 
@@ -82,6 +86,7 @@ fn closed_stdout_is_an_internal_failure() {
     let (mut out, mut err) = (Closed, Vec::new());
     let exit = finish(
         Ok(output(Vec::new())),
+        DEFAULT_ORIGIN,
         &mut Terminal::new(&mut out, &mut err),
     );
     assert_eq!(exit, Exit::Internal);

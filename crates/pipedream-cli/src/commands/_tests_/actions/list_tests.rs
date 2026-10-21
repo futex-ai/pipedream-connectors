@@ -111,8 +111,8 @@ async fn actions_list_all_stops_at_the_page_budget_with_a_resume_cursor() {
     );
     assert_eq!(
         ran.stderr,
-        "note: The CLI read 2 pages and more records exist. To continue, run the command again \
-         with --after cursor_2.\n"
+        "note: The CLI stopped after 2 pages. To read the next page, run the command again \
+         with --after 'cursor_2'.\n"
     );
 }
 
@@ -137,8 +137,8 @@ async fn actions_list_all_stops_on_a_repeated_cursor() {
     assert_eq!(printed["next"], Value::Null);
     assert_eq!(
         ran.stderr,
-        "note: Pipedream repeated a page cursor. The result holds the records before the \
-         repeat.\n"
+        "note: Pipedream repeated a page cursor, so the CLI stopped. The result can contain \
+         repeated records.\n"
     );
 }
 
@@ -159,8 +159,9 @@ async fn actions_list_all_names_the_resume_cursor_after_a_failure() {
     assert!(ran.stdout.is_empty());
     assert_eq!(
         ran.stderr,
-        "error: Pipedream did not respond. Try again later. The CLI read 1 page before the \
-         failure. To continue, run the command again with --after cursor_1.\n"
+        "error: The CLI could not reach Pipedream at https://api.pipedream.com. The CLI read \
+         1 page before the failure. To continue, run the command again with --after \
+         'cursor_1'.\n"
     );
 }
 

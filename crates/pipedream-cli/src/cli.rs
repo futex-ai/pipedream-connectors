@@ -1,7 +1,9 @@
 //! Command-line grammar: the global configuration flags and the command tree.
 
+use std::convert::Infallible;
+
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use pipedream_connect_types::Environment;
+use pipedream_connect_types::{Environment, SecretString};
 
 use crate::commands::actions::ActionsCommand;
 use crate::commands::apps::AppsCommand;
@@ -24,24 +26,19 @@ pub(crate) struct Cli {
 #[derive(Debug, Args)]
 pub(crate) struct GlobalArgs {
     /// Pipedream OAuth client ID. Reads PIPEDREAM_CLIENT_ID when absent.
-    #[arg(
-        long,
-        global = true,
-        value_name = "ID",
-        allow_hyphen_values = true,
-        help_heading = "Configuration"
-    )]
+    #[arg(long, global = true, value_name = "ID", help_heading = "Configuration")]
     pub(crate) client_id: Option<String>,
     /// Pipedream OAuth client secret. Reads PIPEDREAM_CLIENT_SECRET when absent.
     /// Prefer the variable, because shell history and process lists can show flag values.
+    /// Pass a secret that starts with a hyphen as --client-secret=VALUE.
     #[arg(
         long,
         global = true,
         value_name = "SECRET",
-        allow_hyphen_values = true,
+        value_parser = secret,
         help_heading = "Configuration"
     )]
-    pub(crate) client_secret: Option<String>,
+    pub(crate) client_secret: Option<SecretString>,
     /// Connect project ID, such as proj_abc123. Reads PIPEDREAM_PROJECT_ID when absent.
     #[arg(long, global = true, value_name = "ID", help_heading = "Configuration")]
     pub(crate) project_id: Option<String>,
@@ -65,6 +62,11 @@ pub(crate) struct GlobalArgs {
         help_heading = "Output"
     )]
     pub(crate) show_secrets: bool,
+}
+
+/// Wraps the client secret flag, so that `Debug` output never shows it.
+fn secret(value: &str) -> Result<SecretString, Infallible> {
+    Ok(SecretString::new(value))
 }
 
 /// A Connect project environment.

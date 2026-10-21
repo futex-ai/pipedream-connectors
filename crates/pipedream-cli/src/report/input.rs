@@ -6,6 +6,7 @@ use pipedream_connect_types::IdentifierKind;
 
 use crate::argument::Argument;
 use crate::error::JsonProblem;
+use crate::inputs::MAX_DEPTH;
 use crate::settings::{Setting, Supply};
 
 fn noun(setting: Setting) -> &'static str {
@@ -29,7 +30,7 @@ pub(super) fn missing(settings: &[Setting]) -> String {
             let nouns: Vec<&str> = settings.iter().map(|setting| noun(*setting)).collect();
             let variables: Vec<&str> = settings.iter().map(|setting| setting.variable()).collect();
             format!(
-                "The {} are missing. Set {}, or pass their flags.",
+                "The {} are missing. Set {}.",
                 join(&nouns),
                 join(&variables)
             )
@@ -199,6 +200,10 @@ pub(super) fn invalid_json(
         JsonProblem::Shape => format!(
             "{argument} must be a JSON object that maps prop names to values. \
              Check line {line}, column {column}."
+        ),
+        JsonProblem::Depth => format!(
+            "{argument} nests JSON too deeply at line {line}, column {column}. \
+             Use at most {MAX_DEPTH} levels of arrays and objects."
         ),
     }
 }

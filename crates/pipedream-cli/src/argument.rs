@@ -7,6 +7,8 @@ use std::fmt;
 pub(crate) enum Argument {
     /// The page size flag.
     Limit,
+    /// The page budget of `--all`.
+    MaxPages,
     /// The forward cursor flag.
     After,
     /// The backward cursor flag.
@@ -32,6 +34,7 @@ impl Argument {
     pub(crate) fn name(self) -> &'static str {
         match self {
             Self::Limit => "--limit",
+            Self::MaxPages => "--max-pages",
             Self::After => "--after",
             Self::Before => "--before",
             Self::Category => "--category",
