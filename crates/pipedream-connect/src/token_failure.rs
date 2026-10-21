@@ -62,6 +62,9 @@ fn repeat_invalid(reason: &InvalidRequest, original: &Arc<Error>) -> InvalidRequ
         InvalidRequest::Bearer => InvalidRequest::Bearer,
         InvalidRequest::Environment => InvalidRequest::Environment,
         InvalidRequest::Header => InvalidRequest::Header,
+        InvalidRequest::WorkflowMethod => InvalidRequest::WorkflowMethod,
+        InvalidRequest::ProxyTarget => InvalidRequest::ProxyTarget,
+        InvalidRequest::ProxyHeader => InvalidRequest::ProxyHeader,
         InvalidRequest::MissingConfiguration { field } => {
             InvalidRequest::MissingConfiguration { field: *field }
         }
@@ -96,6 +99,9 @@ fn repeat_model(
         }
         pipedream_connect_types::Error::InvalidHttpsUrl { field } => {
             pipedream_connect_types::Error::InvalidHttpsUrl { field: *field }
+        }
+        pipedream_connect_types::Error::InvalidTriggerWebhookUrl => {
+            pipedream_connect_types::Error::InvalidTriggerWebhookUrl
         }
         pipedream_connect_types::Error::Internal(_) => {
             pipedream_connect_types::Error::internal(original.clone())

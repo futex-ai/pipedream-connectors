@@ -1,9 +1,10 @@
 # pipedream-connectors
 
-Status: Typed models, webhooks, the client core, and registry and execution
-resources are available. Category listing returns a bare category array.
-Managed auth, proxy, trigger lifecycle, and administration resources remain
-under construction in the Pipedream Connect SDK plan.
+Status: Typed models, webhooks, the client core, registry and execution
+resources, managed auth and proxy resources, trigger lifecycle resources,
+and administration resources are available. Category listing returns a
+bare category array. The CLI remains under construction in the Pipedream
+Connect SDK plan.
 
 This repository will provide a Rust SDK for the Pipedream Connect API. The
 SDK will manage server-side OAuth client credentials, typed Connect resources,
@@ -39,14 +40,21 @@ let client = PipedreamClient::builder()
 The [client crate README](crates/pipedream-connect/README.md) shows the shared
 resource handles and its injectable runtime boundaries. The registry handles
 list apps, components, actions, and triggers. Component, action, and trigger
-handles also configure and reload properties. The action handle runs
-configured actions.
-Token and proxy resources follow in later milestones.
+handles also configure and reload properties. The trigger handle deploys a
+trigger. The deployed-trigger handle lists, updates, and deletes deployments,
+reads events, manages workflows and webhooks, and regenerates signing keys.
+The action handle runs configured actions. Managed-auth handles create and
+validate Connect tokens, manage accounts and users, and support authenticated
+proxy calls.
 
-The client uses `https://api.pipedream.com` by default. Set
+The client uses `https://api.pipedream.com` by default. It also manages
+projects, OAuth clients, app overrides, project webhooks, usage, rate-limit
+tokens, File Stash downloads, and workflow invocation. Set
 `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, `PIPEDREAM_PROJECT_ID`, and
-`PIPEDREAM_LIVE_TESTS=1` for live development smoke commands. The live checks
-skip when any variable is absent.
+`PIPEDREAM_LIVE_TESTS=1` for registry smoke commands. Set
+`PIPEDREAM_EXTERNAL_USER_ID` and `PIPEDREAM_CONNECTED_ACCOUNT_ID` for the
+trigger lifecycle smoke. The live checks skip when a required variable is
+absent.
 
 ## CLI
 

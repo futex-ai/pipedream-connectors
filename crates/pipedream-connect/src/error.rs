@@ -46,6 +46,15 @@ pub enum InvalidRequest {
     /// A header value cannot be sent over HTTP.
     #[error("[pipedream-connect/request] invalid header value")]
     Header,
+    /// A workflow invocation uses an unsupported HTTP method.
+    #[error("[pipedream-connect/request] unsupported workflow method")]
+    WorkflowMethod,
+    /// A proxy target is not a supported HTTPS URL or relative path.
+    #[error("[pipedream-connect/proxy] invalid proxy target")]
+    ProxyTarget,
+    /// A proxy header is reserved or cannot be forwarded.
+    #[error("[pipedream-connect/proxy] invalid proxy header")]
+    ProxyHeader,
     /// The builder is missing a required setting.
     #[error("[pipedream-connect/config] missing {field}")]
     MissingConfiguration {
@@ -168,4 +177,8 @@ pub(crate) enum WireFailure {
     QueryShape,
     #[error("[pipedream-connect/resources] response identity does not match the request")]
     IdentityMismatch,
+    #[error("[pipedream-connect/resources] response exceeded the requested event count")]
+    Pagination,
+    #[error("[pipedream-connect/resources] redirect response has no location")]
+    MissingLocation,
 }

@@ -9,6 +9,8 @@ requests and responses without an HTTP client or an async runtime.
 - Validate Connect identifiers and bounded request values.
 - Serialize and deserialize registry, account, execution, trigger, and
   administration models.
+- Validate trigger callback URLs before a client sends a deployment or webhook
+  update.
 - Preserve unknown response fields, enum values, and property definitions.
 - Redact credential-class values in diagnostics while keeping wire values
   available.
@@ -36,6 +38,9 @@ creation and retrieval return bare `Account` values.
 triggers. `ListComponentsRequest` also carries `component_type`.
 `RunActionRequest` follows the Pipedream run-action schema and does not carry
 a blocking flag. A run that returns 202 is always accepted asynchronously.
+
+Trigger callback URLs accept HTTPS and loopback HTTP. They reject credentials,
+control characters, fragments, and other schemes.
 
 Only credentials use redacted wrappers. Account creation mappings and nested
 webhook signing keys stay redacted. Redirect and webhook URLs remain plain
@@ -81,7 +86,8 @@ crates/pipedream-connect-types/tests/fixtures/refresh-openapi.sh
 - `src/registry/` defines apps, components, enums, annotations, and list
   requests.
 - `src/props/` defines lossless configurable props and configured values.
-- `src/accounts/` defines accounts, external users, and Connect token requests.
+- `src/accounts/` defines accounts, account references, external users, and
+  Connect token requests.
 - `src/execution/` defines configuration, dynamic props, observations, and
   action results.
 - `src/triggers/` defines emitters, deployed triggers, webhooks, workflows,

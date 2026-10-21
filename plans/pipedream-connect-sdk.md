@@ -384,6 +384,14 @@ no user answer. Each records the alternative and the reason.
   truncating records without resumption state or repeatedly fetching a stuck
   cursor, because the host needs a bounded, recoverable traversal.
 
+- **Trigger callback admission and cleanup (2026-10-21).** Trigger webhook
+  requests accept HTTPS and loopback HTTP URLs, and reject credentials,
+  fragments, controls, and other schemes before authentication. A delete with
+  `ignore_hook_errors=true` treats a missing deployment as success. Rejected:
+  arbitrary callback URLs and unconditional 404 success. Reason: callback
+  admission follows the proven Firna boundary, and the public request model
+  exposes no separate missing-resource flag.
+
 - **Review fix round, failed refresh sharing (2026-10-21).** A generation
   identifies each completed refresh. Queued callers share its typed failure.
   Internal failures retain the shared original source. A later call can
@@ -428,6 +436,29 @@ no user answer. Each records the alternative and the reason.
   identity. Category retrieval keeps its documented bare response. Rejected:
   returning only the inner app or component, because that drops unknown
   fields on the response envelope.
+- **Managed-auth account ownership (2026-10-21).** Account handles offer an
+  `AccountRef` path that checks the external-user partition before deletion,
+  while the OpenAPI-shaped methods remain available for project-scoped calls.
+  Rejected: deleting through an account ID without an optional ownership
+  check, because hosts need a safe tenant boundary for cleanup.
+- **Managed-auth credential defaults (2026-10-21).** Account list, account
+  retrieval, and user-account list requests send `include_credentials=false`
+  when callers omit the option. Rejected: relying on a provider default,
+  because diagnostics must keep credential retrieval explicit.
+- **Proxy resource model (2026-10-21).** The client crate owns `ProxyRequest`
+  and returns the existing bounded `HttpResponse` as `ProxyResponse`, with
+  `HeaderMap` and byte vectors at the transport boundary. Rejected: a JSON
+  proxy model or a filtered response-header map, because proxy calls are
+  lossless and may return binary data and repeated headers.
+- **Proxy target admission (2026-10-21).** Proxy targets accept absolute
+  HTTPS URLs or relative paths and reject credentials, fragments, controls,
+  and non-HTTPS absolute URLs before authentication. Rejected: accepting all
+  strings or requiring absolute URLs, because the protocol permits app-relative
+  paths and URL data must not alter the request origin.
+- **User-account list response (2026-10-21).** `UsersApi::list_accounts`
+  returns the bare account array defined by the OpenAPI operation. Rejected:
+  wrapping it in `Page<Account>`, because that operation has no cursor query
+  or page metadata. The accounts protocol records this provider exception.
 - **Action blocking field (2026-10-21).** The milestone assignment requires
   action runs with an optional blocking flag. `RunActionRequest` therefore
   carries `blocking` in the JSON body, like configure and reload requests.
@@ -488,6 +519,21 @@ no user answer. Each records the alternative and the reason.
   the request constructor. Rejected: separate range checks for serde.
   Reason: shared checks keep construction and deserialization aligned without
   adding validation beyond the assigned range checks.
+- **Administration response forms (2026-10-21).** File Stash downloads return
+  a `FileStashDownload` enum with bytes or a redirect location, and workflow
+  calls return the shared pass-through HTTP response. Rejected: decoding both
+  responses as JSON, because file contents and workflow statuses are not
+  limited to JSON.
+- **Workflow method and target validation (2026-10-21).** Workflow calls use
+  `http::Method`, accept only GET, POST, PUT, DELETE, and PATCH, and validate
+  an absolute HTTPS target before bearer acquisition. Rejected: accepting any
+  HTTP method or building a project-relative URL, because the documented
+  workflow endpoint is an HTTPS URL with a fixed method set.
+- **Runtime rate-limit token selection (2026-10-21).** The client exposes a
+  `with_rate_limit_token` method in addition to builder configuration, so a
+  token returned by `RateLimitsApi` can be applied to a cloned client. Rejected:
+  mutating a live client configuration in place, because client settings are
+  immutable after construction.
 
 - **CLI settings (2026-10-21).** Each connection flag takes precedence over
   its `PIPEDREAM_*` variable. An injected reader resolves the variables after
@@ -841,63 +887,66 @@ skip, documentation validation, and contract notes.
 
 Summary: tokens, accounts, users, and the proxy work against the real API.
 
-- [ ] `TokensApi`: create with URL validation of the redirect and webhook
+- [x] `TokensApi`: create with URL validation of the redirect and webhook
       URIs, and validate.
-- [ ] `AccountsApi`: list with filters, get with and without credentials,
+- [x] `AccountsApi`: list with filters, get with and without credentials,
       create from a Connect token, and delete. Delete all accounts of an app
       for the project.
-- [ ] `UsersApi`: list, delete, and list the accounts of one external user.
-- [ ] `ProxyApi`: GET, POST, PUT, PATCH, and DELETE with the header policy,
+- [x] `UsersApi`: list, delete, and list the accounts of one external user.
+- [x] `ProxyApi`: GET, POST, PUT, PATCH, and DELETE with the header policy,
       the base64 target, byte bodies, and the lossless response.
-- [ ] `ProjectsApi::info` for the apps enabled in the project environment.
-- [ ] Unit tests: ownership checks, `include_credentials` handling with
+- [x] `ProjectsApi::info` for the apps enabled in the project environment
+      (moved to Milestone 8).
+- [x] Unit tests: ownership checks, `include_credentials` handling with
       redacted `Debug`, every blocked header, prefixing, target encoding,
       and upstream error statuses preserved.
-- [ ] Update the READMEs and the resources protocol doc only if a contract
+- [x] Update the READMEs and the resources protocol doc only if a contract
       changed.
-- [ ] Run the gate, commit, and push.
+- [x] Run the gate and commit. The assigned worktree does not push.
 
 ## Milestone 7: Trigger lifecycle resources
 
 Summary: deploy and manage triggers for an external user.
 
-- [ ] `TriggersApi::deploy` with `webhook_url`, `workflow_id`,
+- [x] `TriggersApi::deploy` with `webhook_url`, `workflow_id`,
       `emit_on_deploy`, and the `Emitter` response.
-- [ ] `DeployedTriggersApi`:
-  - [ ] List with `emitter_type`, get, update, and delete with
+- [x] `DeployedTriggersApi`:
+  - [x] List with `emitter_type`, get, update, and delete with
         `ignore_hook_errors`.
-  - [ ] List events with `n`, and get and set workflows.
-  - [ ] List and set webhooks, get one webhook, and regenerate its signing
+  - [x] List events with `n`, and get and set workflows.
+  - [x] List and set webhooks, get one webhook, and regenerate its signing
         key.
-- [ ] Unit tests: tenant scoping on every call, idempotent delete of a
+- [x] Unit tests: tenant scoping on every call, idempotent delete of a
       missing trigger, epoch-millisecond timestamps, signing-key redaction,
       and the emitter variants.
-- [ ] A credential-gated live test that deploys a timer-free Google
+- [x] A credential-gated live test that deploys a timer-free Google
       Calendar trigger to a loopback webhook URL, lists it, and deletes it.
-- [ ] Update the READMEs and the resources protocol doc only if a contract
+- [x] Update the READMEs and the resources protocol doc only if a contract
       changed.
-- [ ] Run the gate and the live test against a development project, commit,
-      and push.
+- [x] Run the complete gate and commit the branch without pushing.
+- [ ] Run the trigger live test against a development project. Blocked: the
+      required Pipedream credential and connected-account variables are absent.
 
 ## Milestone 8: Administration resources
 
 Summary: the remaining Connect operations.
 
-- [ ] `ProjectsApi`: list, create, get, update, delete, and update logo.
-- [ ] `OauthAppsApi` and `AppOverridesApi`: list, create, get, update, and
+- [x] `ProjectsApi`: list, create, get, update, delete, and update logo.
+- [x] `OauthAppsApi` and `AppOverridesApi`: list, create, get, update, and
       delete.
-- [ ] `ProjectWebhooksApi`: get, set, delete, and regenerate the signing
+- [x] `ProjectWebhooksApi`: get, set, delete, and regenerate the signing
       key for the project environment webhook.
-- [ ] `UsageApi::list` for a time window, and `RateLimitsApi::create` that
+- [x] `UsageApi::list` for a time window, and `RateLimitsApi::create` that
       returns the token for the `x-pd-rate-limit` header.
-- [ ] `FileStashApi::download` that returns bytes or the redirect location
+- [x] `FileStashApi::download` that returns bytes or the redirect location
       without following it.
-- [ ] `WorkflowsApi::invoke_for_external_user` against a workflow endpoint
+- [x] `WorkflowsApi::invoke_for_external_user` against a workflow endpoint
       URL with the external user and environment headers.
 - [ ] A coverage test that reads the vendored OpenAPI document and asserts
       that every `operationId` appears in the SDK coverage table.
-- [ ] Unit tests per resource. Update the READMEs.
-- [ ] Run the gate, commit, and push.
+- [x] Unit tests per resource. Update the READMEs.
+- [x] Run the gate, commit, and hand off. The assigned worktree branch must
+      not push. The orchestrator merges and pushes it.
 
 ## Milestone 9: Webhook verification
 

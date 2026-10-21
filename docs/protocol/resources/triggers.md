@@ -31,6 +31,11 @@ configured properties.
 A deployment MAY specify a webhook URL, a workflow endpoint, and whether to
 emit an event during deployment.
 
+A trigger webhook URL MUST use HTTPS or loopback HTTP.
+
+A trigger webhook URL MUST NOT contain credentials, control characters, or a
+fragment.
+
 A deployment returns the deployed trigger identity and its emitter metadata.
 
 A deployed trigger list uses cursor pagination and MAY filter by emitter type.
@@ -41,11 +46,11 @@ An update operation changes only the fields included by the request.
 
 A delete operation MAY ignore webhook delivery errors when requested.
 
-A delete operation for an already missing deployment returns success when the
-request enables missing-resource tolerance.
+A delete operation with `ignore_hook_errors=true` returns success when the
+deployment is already missing.
 
-Every lifecycle operation MUST include both the project and deployed trigger
-identity.
+Every deployed-trigger operation MUST include both the project and deployed
+trigger identity.
 
 Every deployed-trigger operation MUST send the `external_user_id` query value.
 
