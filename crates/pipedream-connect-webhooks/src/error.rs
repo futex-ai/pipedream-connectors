@@ -23,13 +23,7 @@ pub enum PayloadError {
     /// The trigger context identifier is empty, too long, or contains a control character.
     #[error("[pipedream-connect-webhooks/payload] invalid trigger context id")]
     InvalidContextId,
-    /// A connection event contained credential data in its account object.
-    #[error("[pipedream-connect-webhooks/payload] connection account contains credentials")]
-    CredentialsPresent,
 }
-
-/// Alias for callers that use the term decode error.
-pub type DecodeError = PayloadError;
 
 impl PayloadError {
     /// Returns the HTTP status that normally represents this payload failure.
@@ -39,8 +33,7 @@ impl PayloadError {
             Self::InvalidJson
             | Self::InvalidConnectionEvent
             | Self::InvalidTriggerDelivery
-            | Self::InvalidContextId
-            | Self::CredentialsPresent => 400,
+            | Self::InvalidContextId => 400,
         }
     }
 }

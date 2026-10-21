@@ -21,6 +21,12 @@ trigger deliveries without an async runtime or HTTP server. A delivery without
 a context ID uses lowercase hexadecimal SHA-256 of the exact raw body as its
 stable event ID.
 
+Session identifiers, event JSON, and unknown webhook fields use `RawJson`.
+Call `as_str()` for the exact JSON text. Call `decode::<T>()` for typed access.
+This preserves large integers and fractional numbers without enabling
+`serde_json` arbitrary-precision handling in the host application. Connection
+events keep account credentials through the shared redacted account model.
+
 ## Quick Start
 
 Verify a raw body before decoding its delivery:
@@ -42,7 +48,7 @@ verifier.verify(
     UNIX_EPOCH + Duration::from_secs(1000),
 )?;
 let delivery = TriggerDelivery::decode_with_limit(body, verifier.body_limit())?;
-assert_eq!(delivery.event_id, delivery.identity());
+assert!(!delivery.identity().is_empty());
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
@@ -65,6 +71,7 @@ cargo xtask check
 - `src/signature.rs` defines `WebhookSignatureVerifier`,
   `HmacWebhookSignatureVerifier`, and `SignatureError`.
 - `src/events.rs` defines `ConnectionEvent` and its lossless event models.
+- `src/raw_json.rs` defines exact `RawJson` values and typed decoding.
 - `src/trigger.rs` defines `TriggerDelivery`, `TriggerContext`, and the
   SHA-256 body-hash identity fallback.
 - `src/error.rs` defines bounded payload errors and their status mapping.

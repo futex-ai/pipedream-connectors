@@ -18,6 +18,9 @@ than requiring one HTTP implementation.
 The webhooks library owns signature verification, replay-window checks, raw
 body limits, connection event decoding, and trigger delivery decoding. It
 shares the pure models and credential wrappers with the client boundary.
+It keeps session identifiers, event payloads, and unknown webhook fields as
+exact JSON text. It offers typed access without changing JSON number handling
+in applications that depend on the SDK.
 
 The CLI is a user-facing composition root. It reads configuration from flags
 or `PIPEDREAM_*` environment variables, constructs a client, runs read

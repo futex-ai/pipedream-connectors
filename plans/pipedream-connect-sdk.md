@@ -313,6 +313,17 @@ no user answer. Each records the alternative and the reason.
   invented body-limit default, or floating-point JSON, because hosts own
   ingress admission and the protocol requires lossless payloads.
 
+- **Review fix round, webhook JSON (2026-10-21).** Exact `RawJson` text with
+  typed accessors replaces arbitrary-precision `serde_json` handling.
+  Session IDs, app events, and unknown webhook fields keep their original
+  JSON number text. This supersedes the arbitrary-precision choice above.
+  Rejected: a workspace-wide number feature or floating-point event JSON.
+  Reason: an SDK must preserve event data without changing host JSON
+  handling through Cargo feature unification. Direct serde decoding also
+  initializes the private trigger identity. Rejected: an empty identity
+  outside the bounded decoder. Reason: every decoded delivery needs a stable
+  identity.
+
 ## Open decisions
 
 - **GET retry defaults (2026-10-21).** Decision 4 requires an opt-in GET
@@ -635,6 +646,10 @@ Summary: the `pipedream-connect-webhooks` crate.
       header parts, bad hex, empty key, and oversize body. Write the crate
       README.
 - [x] Run the gate, commit, and push.
+
+- [x] Review fix round for Milestones 3 and 9: resolve review items 37 to 40,
+      preserve raw webhook JSON, update the docs, run the gate, commit, and
+      push. Leave the webhook body-limit default open.
 
 ## Milestone 10: CLI
 

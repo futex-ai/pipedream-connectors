@@ -30,7 +30,7 @@ internal-error = { version = "0.1.0", git = "https://github.com/futex-ai/interna
 pipedream-connect-types = { version = "0.1.0", path = "crates/pipedream-connect-types" }
 reqwest = { version = "0.13.5", default-features = false, features = ["form", "json", "rustls", "stream"] }
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = { version = "1.0.154", features = ["arbitrary_precision"] }
+serde_json = { version = "1.0.154", features = ["raw_value"] }
 sha2 = "0.11.1"
 subtle = "2.6.1"
 thiserror = "2.0.21"

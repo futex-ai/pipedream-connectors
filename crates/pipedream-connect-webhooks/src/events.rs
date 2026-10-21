@@ -1,10 +1,10 @@
 //! Lossless connection success and error webhook models.
 
-use pipedream_connect_types::{Account, ConnectToken, Environment, UnknownFields};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use pipedream_connect_types::{Account, ConnectToken, Environment};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::error::{PayloadError, check_body_limit};
+use crate::raw_json::{RawFields, RawJson, optional, required};
 
 /// The two connection event discriminator values defined by Connect.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -18,7 +18,7 @@ pub enum ConnectionEventKind {
 }
 
 /// A connection webhook payload.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ConnectionEvent {
     /// Event discriminator.
     pub event: ConnectionEventKind,
@@ -27,7 +27,7 @@ pub struct ConnectionEvent {
     /// Project environment that handled the connection.
     pub environment: Environment,
     /// Lossless session identifier, including large JSON integers.
-    pub connect_session_id: Value,
+    pub connect_session_id: RawJson,
     /// Connected account metadata on a successful connection.
     #[serde(default)]
     pub account: Option<Account>,
@@ -36,7 +36,27 @@ pub struct ConnectionEvent {
     pub error: Option<String>,
     /// Unknown top-level fields preserved for forward compatibility.
     #[serde(flatten)]
-    pub extra: UnknownFields,
+    pub extra: RawFields,
+}
+
+impl<'de> Deserialize<'de> for ConnectionEvent {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let mut fields = RawFields::deserialize(deserializer)?;
+        Ok(Self {
+            event: required(&mut fields, "event")?,
+            connect_token: required(&mut fields, "connect_token")?,
+            environment: required(&mut fields, "environment")?,
+            connect_session_id: fields
+                .remove("connect_session_id")
+                .ok_or_else(|| serde::de::Error::missing_field("connect_session_id"))?,
+            account: optional(&mut fields, "account")?,
+            error: optional(&mut fields, "error")?,
+            extra: fields,
+        })
+    }
 }
 
 impl ConnectionEvent {
@@ -56,15 +76,8 @@ impl ConnectionEvent {
     }
 
     fn validate(self) -> Result<Self, PayloadError> {
-        if self.connect_session_id.is_null() {
+        if self.connect_session_id.as_str().trim() == "null" {
             return Err(PayloadError::InvalidConnectionEvent);
-        }
-        if self
-            .account
-            .as_ref()
-            .is_some_and(|account| account.credentials.is_some())
-        {
-            return Err(PayloadError::CredentialsPresent);
         }
         match &self.event {
             ConnectionEventKind::Success if self.account.is_none() => {

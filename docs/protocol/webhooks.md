@@ -101,7 +101,7 @@ A success payload contains `connect_token`, `environment`,
 The success `account` object contains the connected account identity and app
 metadata.
 
-A success payload MUST NOT contain user credentials.
+The decoder MUST keep any account credentials redacted in diagnostics.
 
 A consumer MAY retrieve credentials through the account operation when its
 policy permits `include_credentials`.
