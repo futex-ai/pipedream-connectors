@@ -14,6 +14,9 @@ on this crate when a server needs authenticated HTTP access. Use
 - Support explicit GET retry and pagination budgets.
 - Discover apps, components, actions, and registry triggers.
 - Configure properties, reload dynamic properties, and run actions once.
+- Create and validate Connect tokens.
+- List, create, retrieve, and delete connected accounts and external users.
+- Send authenticated proxy requests with bounded, lossless byte responses.
 
 ## What This Crate Does
 
@@ -34,6 +37,18 @@ An omitted or explicit `blocking: Some(false)` maps a 202 from configure or
 reload to `Error::Accepted` without decoding a result body. Action runs never
 send a blocking flag, so every 202 from a run is `Error::Accepted`. These
 mutations never retry.
+
+`tokens()`, `accounts()`, and `users()` return managed-auth handles. Account
+credential fields use `SecretJson`, so their `Debug` output is redacted.
+Account list, retrieval, and user-account requests default
+`include_credentials` to false.
+Ownership helpers check the returned account partition before deletion.
+
+`proxy()` returns a lossless pass-through handle. `ProxyRequest` encodes an
+exact HTTPS target or relative path as URL-safe Base64 without padding. It
+rejects reserved headers before authentication, prefixes allowed headers with
+`x-pd-proxy-`, and sends body bytes unchanged. `ProxyResponse` preserves the
+upstream status, every response header, and every body byte.
 
 `PipedreamClient::new(config, transport, clock, sleeper)` accepts shared trait
 objects. It has no implicit Tokio sleeper. The builder supplies a Tokio
@@ -188,6 +203,11 @@ let _pages = paginator.paginate(PageRequest::default(), std::num::NonZeroUsize::
 - `src/resources/` defines the resource traits, handles, and client accessors.
 - `src/resources/operation.rs` builds, dispatches, decodes, and checks
   resource operations.
+- `src/resources/auth_operations.rs` builds managed-auth and proxy requests,
+  validates proxy targets and headers, and checks account identities.
+- `src/resources/tokens.rs`, `accounts.rs`, and `users.rs` define managed-auth
+  traits and handles.
+- `src/resources/proxy.rs` defines proxy requests, methods, and responses.
 - `src/token.rs` defines static and single-flight OAuth token providers.
 - `src/transport.rs` defines the redacted HTTP boundary and safe JSON access.
 - `src/reqwest_transport.rs` streams bounded HTTP responses.

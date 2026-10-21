@@ -62,6 +62,8 @@ fn repeat_invalid(reason: &InvalidRequest, original: &Arc<Error>) -> InvalidRequ
         InvalidRequest::Bearer => InvalidRequest::Bearer,
         InvalidRequest::Environment => InvalidRequest::Environment,
         InvalidRequest::Header => InvalidRequest::Header,
+        InvalidRequest::ProxyTarget => InvalidRequest::ProxyTarget,
+        InvalidRequest::ProxyHeader => InvalidRequest::ProxyHeader,
         InvalidRequest::MissingConfiguration { field } => {
             InvalidRequest::MissingConfiguration { field: *field }
         }

@@ -17,9 +17,9 @@ mod triggers;
 mod wire;
 
 pub use accounts::{
-    Account, ConnectTokenResponse, CreateAccountRequest, CreateConnectTokenRequest, ExternalUser,
-    GetAccountRequest, ListAccountsRequest, ListUserAccountsRequest, ListUsersRequest,
-    ValidateTokenRequest, ValidateTokenResponse,
+    Account, AccountRef, ConnectTokenResponse, CreateAccountRequest, CreateConnectTokenRequest,
+    ExternalUser, GetAccountRequest, ListAccountsRequest, ListUserAccountsRequest,
+    ListUsersRequest, ValidateTokenRequest, ValidateTokenResponse,
 };
 pub use admin::{
     AppOverride, CreateAppOverrideRequest, CreateOauthAppRequest, CreateOauthTokenRequest,

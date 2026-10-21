@@ -8,6 +8,31 @@ use crate::{
     SecretString, UnknownFields,
 };
 
+/// An account identity paired with its external-user partition.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AccountRef {
+    /// External user that owns the account.
+    pub external_user_id: ExternalUserId,
+    /// Pipedream account identifier.
+    pub account_id: AccountId,
+}
+
+impl AccountRef {
+    /// Creates an account reference from validated identifiers.
+    pub fn new(external_user_id: ExternalUserId, account_id: AccountId) -> Self {
+        Self {
+            external_user_id,
+            account_id,
+        }
+    }
+}
+
+impl From<(ExternalUserId, AccountId)> for AccountRef {
+    fn from((external_user_id, account_id): (ExternalUserId, AccountId)) -> Self {
+        Self::new(external_user_id, account_id)
+    }
+}
+
 /// A connected account returned by the API.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Account {

@@ -110,7 +110,14 @@ impl CreateConnectTokenRequest {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Error::InvalidHttpsUrl { field }),
                 };
-                if parsed.scheme() != "https" || parsed.host_str().is_none() {
+                if value.trim() != value
+                    || value.chars().any(char::is_control)
+                    || parsed.scheme() != "https"
+                    || parsed.host_str().is_none()
+                    || !parsed.username().is_empty()
+                    || parsed.password().is_some()
+                    || parsed.fragment().is_some()
+                {
                     return Err(Error::InvalidHttpsUrl { field });
                 }
             }

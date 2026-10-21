@@ -54,6 +54,9 @@ fn each_uri_builder_rejects_invalid_urls_without_leaking_values() {
             "https:///",
             "not a URL",
             "https://[bad",
+            "https://user:secret@example.com/return",
+            "https://example.com/return#fragment",
+            " https://example.com/return",
         ] {
             let error = set(request(), uri.into()).unwrap_err();
             assert!(matches!(error, Error::InvalidHttpsUrl {field} if field == expected));

@@ -1,9 +1,9 @@
 # pipedream-connectors
 
-Status: Typed models, webhooks, the client core, and registry and execution
-resources are available. Category listing returns a bare category array.
-Managed auth, proxy, trigger lifecycle, and administration resources remain
-under construction in the Pipedream Connect SDK plan.
+Status: Typed models, webhooks, the client core, registry and execution
+resources, and managed auth and proxy resources are available. Category
+listing returns a bare category array. Trigger lifecycle and administration
+resources remain under construction in the Pipedream Connect SDK plan.
 
 This repository will provide a Rust SDK for the Pipedream Connect API. The
 SDK will manage server-side OAuth client credentials, typed Connect resources,
@@ -39,8 +39,8 @@ The [client crate README](crates/pipedream-connect/README.md) shows the shared
 resource handles and its injectable runtime boundaries. The registry handles
 list apps, components, actions, and triggers. Component, action, and trigger
 handles also configure and reload properties. The action handle runs
-configured actions.
-Token and proxy resources follow in later milestones.
+configured actions. Managed-auth handles create and validate Connect tokens,
+manage accounts and users, and support authenticated proxy calls.
 
 The client uses `https://api.pipedream.com` by default. Set
 `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, `PIPEDREAM_PROJECT_ID`, and

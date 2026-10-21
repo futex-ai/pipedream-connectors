@@ -38,7 +38,14 @@ value before exposing diagnostics.
 The client MUST preserve app-specific credential fields inside the credential
 object.
 
-Account and user list operations use the common cursor contract.
+Account and external-user list operations use the common cursor contract.
+The user-account subresource returns a bare account array because its OpenAPI
+response has no page metadata or cursor query.
+
+**Decision.** The SDK preserves the bare user-account response shape from the
+OpenAPI operation. Wrapping it in `Page<Account>` was rejected because it
+would fabricate pagination metadata and a cursor contract that the operation
+does not define.
 
 Account creation and retrieval return a bare account object.
 

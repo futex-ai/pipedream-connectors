@@ -81,7 +81,8 @@ crates/pipedream-connect-types/tests/fixtures/refresh-openapi.sh
 - `src/registry/` defines apps, components, enums, annotations, and list
   requests.
 - `src/props/` defines lossless configurable props and configured values.
-- `src/accounts/` defines accounts, external users, and Connect token requests.
+- `src/accounts/` defines accounts, account references, external users, and
+  Connect token requests.
 - `src/execution/` defines configuration, dynamic props, observations, and
   action results.
 - `src/triggers/` defines emitters, deployed triggers, webhooks, workflows,

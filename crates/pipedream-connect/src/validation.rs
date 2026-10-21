@@ -1,7 +1,7 @@
 //! Request-owned validation required by JSON dispatch construction.
 
 use pipedream_connect_types::{
-    ConfigurePropRequest, CreateAccountRequest, CreateAppOverrideRequest,
+    AppSlug, ConfigurePropRequest, CreateAccountRequest, CreateAppOverrideRequest,
     CreateConnectTokenRequest, CreateOauthAppRequest, CreateOauthTokenRequest,
     CreateProjectRequest, DeleteTriggerRequest, DeployTriggerRequest, DeployedTriggerQuery,
     DownloadFileStashRequest, GetAccountRequest, GetComponentRequest, ListAccountsRequest,
@@ -67,6 +67,13 @@ impl Validate for ListTriggerEventsRequest {
     }
 }
 
+impl Validate for ValidateTokenRequest {
+    fn validate(&self) -> Result<()> {
+        validate(AppSlug::new(self.app_id.clone()))?;
+        Ok(())
+    }
+}
+
 /// These models have no additional bounds beyond their validated field types.
 macro_rules! valid_by_construction {
     ($($request:ty),+ $(,)?) => {$(
@@ -102,5 +109,4 @@ valid_by_construction!(
     UpdateTriggerRequest,
     UpdateTriggerWebhooksRequest,
     UpdateTriggerWorkflowsRequest,
-    ValidateTokenRequest,
 );

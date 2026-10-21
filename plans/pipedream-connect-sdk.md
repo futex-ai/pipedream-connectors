@@ -428,6 +428,29 @@ no user answer. Each records the alternative and the reason.
   identity. Category retrieval keeps its documented bare response. Rejected:
   returning only the inner app or component, because that drops unknown
   fields on the response envelope.
+- **Managed-auth account ownership (2026-10-21).** Account handles offer an
+  `AccountRef` path that checks the external-user partition before deletion,
+  while the OpenAPI-shaped methods remain available for project-scoped calls.
+  Rejected: deleting through an account ID without an optional ownership
+  check, because hosts need a safe tenant boundary for cleanup.
+- **Managed-auth credential defaults (2026-10-21).** Account list, account
+  retrieval, and user-account list requests send `include_credentials=false`
+  when callers omit the option. Rejected: relying on a provider default,
+  because diagnostics must keep credential retrieval explicit.
+- **Proxy resource model (2026-10-21).** The client crate owns `ProxyRequest`
+  and returns the existing bounded `HttpResponse` as `ProxyResponse`, with
+  `HeaderMap` and byte vectors at the transport boundary. Rejected: a JSON
+  proxy model or a filtered response-header map, because proxy calls are
+  lossless and may return binary data and repeated headers.
+- **Proxy target admission (2026-10-21).** Proxy targets accept absolute
+  HTTPS URLs or relative paths and reject credentials, fragments, controls,
+  and non-HTTPS absolute URLs before authentication. Rejected: accepting all
+  strings or requiring absolute URLs, because the protocol permits app-relative
+  paths and URL data must not alter the request origin.
+- **User-account list response (2026-10-21).** `UsersApi::list_accounts`
+  returns the bare account array defined by the OpenAPI operation. Rejected:
+  wrapping it in `Page<Account>`, because that operation has no cursor query
+  or page metadata. The accounts protocol records this provider exception.
 - **Action blocking field (2026-10-21).** The milestone assignment requires
   action runs with an optional blocking flag. `RunActionRequest` therefore
   carries `blocking` in the JSON body, like configure and reload requests.
@@ -792,21 +815,22 @@ skip, documentation validation, and contract notes.
 
 Summary: tokens, accounts, users, and the proxy work against the real API.
 
-- [ ] `TokensApi`: create with URL validation of the redirect and webhook
+- [x] `TokensApi`: create with URL validation of the redirect and webhook
       URIs, and validate.
-- [ ] `AccountsApi`: list with filters, get with and without credentials,
+- [x] `AccountsApi`: list with filters, get with and without credentials,
       create from a Connect token, and delete. Delete all accounts of an app
       for the project.
-- [ ] `UsersApi`: list, delete, and list the accounts of one external user.
-- [ ] `ProxyApi`: GET, POST, PUT, PATCH, and DELETE with the header policy,
+- [x] `UsersApi`: list, delete, and list the accounts of one external user.
+- [x] `ProxyApi`: GET, POST, PUT, PATCH, and DELETE with the header policy,
       the base64 target, byte bodies, and the lossless response.
-- [ ] `ProjectsApi::info` for the apps enabled in the project environment.
-- [ ] Unit tests: ownership checks, `include_credentials` handling with
+- [ ] `ProjectsApi::info` for the apps enabled in the project environment
+      (moved to Milestone 8).
+- [x] Unit tests: ownership checks, `include_credentials` handling with
       redacted `Debug`, every blocked header, prefixing, target encoding,
       and upstream error statuses preserved.
-- [ ] Update the READMEs and the resources protocol doc only if a contract
+- [x] Update the READMEs and the resources protocol doc only if a contract
       changed.
-- [ ] Run the gate, commit, and push.
+- [x] Run the gate and commit. The assigned worktree does not push.
 
 ## Milestone 7: Trigger lifecycle resources
 
