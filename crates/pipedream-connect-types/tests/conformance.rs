@@ -8,8 +8,7 @@ use pipedream_connect_types::{
     GetTriggerWorkflowsResponse, GetTriggersResponse, ListAccountsResponse,
     ListAppCategoriesResponse, ListAppOverridesResponse, ListAppsResponse, ListOauthAppsResponse,
     ListProjectsResponse, OAuthTokenResponse, OauthApp, PageEnvelope, Project, ProjectInfo,
-    ProxyResponse, ReloadPropsResponse, RunActionResponse, SetWebhookResponse,
-    ValidateTokenResponse,
+    ReloadPropsResponse, RunActionResponse, SetWebhookResponse, ValidateTokenResponse,
 };
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
@@ -137,7 +136,7 @@ fn response_schema_samples_decode_without_unknown_documented_fields() {
                                 decoder(name, value);
                             }
                         } else {
-                            let decoded: ProxyResponse = serde_json::from_value(value.clone())
+                            let decoded: Value = serde_json::from_value(value.clone())
                                 .unwrap_or_else(|error| {
                                     panic!(
                                         "{path} {method} {status} {media} example did not decode: {error}"

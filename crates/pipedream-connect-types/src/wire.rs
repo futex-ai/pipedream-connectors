@@ -100,9 +100,3 @@ pub type GetWebhookWithSigningKeyResponse = Data<crate::WebhookWithSigningKey>;
 
 /// Project webhook update response.
 pub type SetWebhookResponse = Data<crate::WebhookWithOptionalSigningKey>;
-
-/// Parsed JSON body returned by a proxy request.
-pub type ProxyResponse = Value;
-
-/// Binary body returned by a proxy request.
-pub type ProxyResponseBinary = Vec<u8>;
