@@ -99,10 +99,10 @@ fn decodes_error_payload_and_keeps_credentials_redacted() {
 
 #[test]
 fn validates_shape_and_body_limit_before_json_processing() {
-    assert_eq!(
+    assert!(matches!(
         ConnectionEvent::decode_with_limit(&[b'{'; 9], 8),
         Err(PayloadError::BodyTooLarge { limit: 8 })
-    );
+    ));
     let body = serde_json::to_vec(&json!({
         "event": "CONNECTION_SUCCESS",
         "connect_token": TOKEN,
@@ -110,14 +110,14 @@ fn validates_shape_and_body_limit_before_json_processing() {
         "connect_session_id": 7
     }))
     .unwrap();
-    assert_eq!(
+    assert!(matches!(
         ConnectionEvent::decode(&body),
         Err(PayloadError::InvalidConnectionEvent)
-    );
-    assert_eq!(
+    ));
+    assert!(matches!(
         ConnectionEvent::decode(br#"{"event":"UNKNOWN"}"#),
         Err(PayloadError::InvalidJson)
-    );
+    ));
 }
 
 #[test]

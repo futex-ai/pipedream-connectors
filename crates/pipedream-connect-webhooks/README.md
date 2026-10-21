@@ -19,13 +19,20 @@ body limit when it constructs `HmacWebhookSignatureVerifier` because the
 protocol does not define one default. The crate decodes connection events and
 trigger deliveries without an async runtime or HTTP server. A delivery without
 a context ID uses lowercase hexadecimal SHA-256 of the exact raw body as its
-stable event ID.
+stable event ID. `decode` and `decode_with_limit` hash all raw body bytes.
+Direct serde decoding hashes the JSON value text without outer whitespace.
+Both decoding paths reject an invalid context ID.
 
 Session identifiers, event JSON, and unknown webhook fields use `RawJson`.
 Call `as_str()` for the exact JSON text. Call `decode::<T>()` for typed access.
-This preserves large integers and fractional numbers without enabling
-`serde_json` arbitrary-precision handling in the host application. Connection
-events keep account credentials through the shared redacted account model.
+The stored text preserves large integers and long decimals. Typed access uses
+the selected type's number precision. `new` and `decode` return `PayloadError`
+with the original serde error as their source when conversion fails.
+
+Connection accounts use the shared models and redacted credential wrappers.
+Those models use `serde_json::Value` for JSON fields. They keep integers exactly
+within the `i64` and `u64` ranges. Larger integers and long decimals can round.
+Only fields stored as `RawJson` retain exact JSON number text.
 
 ## Quick Start
 

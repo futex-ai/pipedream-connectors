@@ -66,19 +66,19 @@ fn rejects_invalid_context_ids_and_oversized_bodies() {
             "context": {"id": id}
         }))
         .unwrap();
-        assert_eq!(
+        assert!(matches!(
             TriggerDelivery::decode(&body),
             Err(PayloadError::InvalidContextId)
-        );
+        ));
     }
-    assert_eq!(
+    assert!(matches!(
         TriggerDelivery::decode_with_limit(&[b'{'; 9], 8),
         Err(PayloadError::BodyTooLarge { limit: 8 })
-    );
-    assert_eq!(
+    ));
+    assert!(matches!(
         TriggerDelivery::decode(br#"{"context":{}}"#),
-        Err(PayloadError::InvalidJson)
-    );
+        Err(PayloadError::InvalidTriggerDelivery)
+    ));
 }
 
 #[test]
@@ -110,4 +110,60 @@ fn serde_decoding_initializes_the_private_delivery_identity() {
         let checked = TriggerDelivery::decode(body).unwrap();
         assert_eq!(decoded.identity(), checked.identity());
     }
+}
+
+#[test]
+fn hashes_trailing_newline_bytes_in_both_decode_methods() {
+    let body = b"{\"event\":\"created\"}\n";
+    for delivery in [
+        TriggerDelivery::decode(body).unwrap(),
+        TriggerDelivery::decode_with_limit(body, body.len()).unwrap(),
+    ] {
+        assert_eq!(delivery.identity(), hex::encode(Sha256::digest(body)));
+    }
+}
+
+#[test]
+fn hashes_leading_whitespace_bytes_in_both_decode_methods() {
+    let body = b" \t\n{\"event\":\"created\"}";
+    for delivery in [
+        TriggerDelivery::decode(body).unwrap(),
+        TriggerDelivery::decode_with_limit(body, body.len()).unwrap(),
+    ] {
+        assert_eq!(delivery.identity(), hex::encode(Sha256::digest(body)));
+    }
+}
+
+#[test]
+fn serde_rejects_invalid_context_ids() {
+    for id in ["", "line\nbreak", "control\u{7f}", &"x".repeat(251)] {
+        let body = serde_json::to_vec(&json!({"event": {}, "context": {"id": id}})).unwrap();
+        assert!(serde_json::from_slice::<TriggerDelivery>(&body).is_err());
+    }
+}
+
+#[test]
+fn invalid_delivery_shapes_return_the_delivery_error() {
+    for body in [
+        &br#"{"context":{}}"#[..],
+        &br#"[]"#[..],
+        &br#"{"event":{},"context":false}"#[..],
+    ] {
+        assert!(matches!(
+            TriggerDelivery::decode(body),
+            Err(PayloadError::InvalidTriggerDelivery)
+        ));
+    }
+}
+
+#[test]
+fn serde_hashes_the_value_text_without_outer_whitespace() {
+    let body = b" \t{\"event\": {\"created\": true}}\n";
+    let value_text = br#"{"event": {"created": true}}"#;
+    let delivery: TriggerDelivery = serde_json::from_slice(body).unwrap();
+    assert_eq!(delivery.identity(), hex::encode(Sha256::digest(value_text)));
+    assert_ne!(
+        delivery.identity(),
+        TriggerDelivery::decode(body).unwrap().identity()
+    );
 }

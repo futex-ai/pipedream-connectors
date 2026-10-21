@@ -63,29 +63,18 @@ impl<'de> Deserialize<'de> for TriggerDelivery {
         D: Deserializer<'de>,
     {
         let raw = RawJson::deserialize(deserializer)?;
-        let mut fields: RawFields = match raw.decode() {
-            Ok(fields) => fields,
-            Err(error) => return Err(serde::de::Error::custom(error)),
-        };
-        let event = fields
-            .remove("event")
-            .ok_or_else(|| serde::de::Error::missing_field("event"))?;
-        let context: TriggerContext = optional(&mut fields, "context")?.unwrap_or_default();
-        let event_id = context
-            .id
-            .clone()
-            .unwrap_or_else(|| hex::encode(Sha256::digest(raw.as_str().as_bytes())));
-        Ok(Self {
-            event,
-            context,
-            event_id,
-            extra: fields,
-        })
+        match Self::decode_value(&raw, raw.as_str().as_bytes()) {
+            Ok(delivery) => Ok(delivery),
+            Err(error) => Err(serde::de::Error::custom(error)),
+        }
     }
 }
 
 impl TriggerDelivery {
-    /// Decodes a trigger delivery without applying a body limit.
+    /// Decodes a delivery and hashes the exact body when no context ID exists.
+    ///
+    /// This method does not apply a body limit. Direct serde decoding hashes
+    /// the JSON value text, which excludes whitespace outside that value.
     pub fn decode(raw_body: &[u8]) -> Result<Self, PayloadError> {
         Self::decode_with_limit(raw_body, usize::MAX)
     }
@@ -93,19 +82,43 @@ impl TriggerDelivery {
     /// Checks the body limit before decoding a trigger delivery.
     pub fn decode_with_limit(raw_body: &[u8], body_limit: usize) -> Result<Self, PayloadError> {
         check_body_limit(raw_body, body_limit)?;
-        let delivery = match serde_json::from_slice::<Self>(raw_body) {
-            Ok(delivery) => delivery,
+        let raw = match serde_json::from_slice::<RawJson>(raw_body) {
+            Ok(raw) => raw,
             Err(_) => return Err(PayloadError::InvalidJson),
         };
-        if delivery
-            .context
+        Self::decode_value(&raw, raw_body)
+    }
+
+    fn decode_value(raw: &RawJson, identity_body: &[u8]) -> Result<Self, PayloadError> {
+        let mut fields: RawFields = match raw.decode() {
+            Ok(fields) => fields,
+            Err(_) => return Err(PayloadError::InvalidTriggerDelivery),
+        };
+        let event = fields
+            .remove("event")
+            .ok_or(PayloadError::InvalidTriggerDelivery)?;
+        let context: TriggerContext = match optional::<_, serde_json::Error>(&mut fields, "context")
+        {
+            Ok(context) => context.unwrap_or_default(),
+            Err(_) => return Err(PayloadError::InvalidTriggerDelivery),
+        };
+        if context
             .id
             .as_deref()
             .is_some_and(|id| !valid_context_id(id))
         {
             return Err(PayloadError::InvalidContextId);
         }
-        Ok(delivery)
+        let event_id = context
+            .id
+            .clone()
+            .unwrap_or_else(|| hex::encode(Sha256::digest(identity_body)));
+        Ok(Self {
+            event,
+            context,
+            event_id,
+            extra: fields,
+        })
     }
 
     /// Returns the stable event identity selected during decoding.
