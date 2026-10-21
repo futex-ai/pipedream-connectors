@@ -84,7 +84,6 @@ valid_by_construction!(
     CreateOauthTokenRequest,
     CreateProjectRequest,
     DeleteTriggerRequest,
-    DeployTriggerRequest,
     DeployedTriggerQuery,
     DownloadFileStashRequest,
     GetAccountRequest,
@@ -100,7 +99,18 @@ valid_by_construction!(
     UpdateProjectLogoRequest,
     UpdateProjectRequest,
     UpdateTriggerRequest,
-    UpdateTriggerWebhooksRequest,
     UpdateTriggerWorkflowsRequest,
     ValidateTokenRequest,
 );
+
+impl Validate for DeployTriggerRequest {
+    fn validate(&self) -> Result<()> {
+        validate(DeployTriggerRequest::validate(self))
+    }
+}
+
+impl Validate for UpdateTriggerWebhooksRequest {
+    fn validate(&self) -> Result<()> {
+        validate(UpdateTriggerWebhooksRequest::validate(self))
+    }
+}

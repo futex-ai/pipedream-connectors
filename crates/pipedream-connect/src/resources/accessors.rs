@@ -8,6 +8,7 @@ use super::actions::{Actions, ActionsApi};
 use super::app_categories::{AppCategories, AppCategoriesApi};
 use super::apps::{Apps, AppsApi};
 use super::components::{Components, ComponentsApi};
+use super::deployed_triggers::{DeployedTriggers, DeployedTriggersApi};
 use super::triggers::{Triggers, TriggersApi};
 
 /// Factory for all resource groups backed by one Connect client.
@@ -26,6 +27,8 @@ pub trait ConnectResources: Send + Sync {
     fn actions(&self) -> Arc<dyn ActionsApi + Send + Sync>;
     /// Returns registry trigger operations.
     fn triggers(&self) -> Arc<dyn TriggersApi + Send + Sync>;
+    /// Returns deployed trigger lifecycle operations.
+    fn deployed_triggers(&self) -> Arc<dyn DeployedTriggersApi + Send + Sync>;
 }
 
 impl PipedreamClient {
@@ -53,6 +56,11 @@ impl PipedreamClient {
     pub fn triggers(&self) -> Arc<dyn TriggersApi + Send + Sync> {
         Arc::new(Triggers::new(self.dispatcher()))
     }
+
+    /// Returns deployed trigger lifecycle operations.
+    pub fn deployed_triggers(&self) -> Arc<dyn DeployedTriggersApi + Send + Sync> {
+        Arc::new(DeployedTriggers::new(self.dispatcher()))
+    }
 }
 
 impl ConnectResources for PipedreamClient {
@@ -74,5 +82,9 @@ impl ConnectResources for PipedreamClient {
 
     fn triggers(&self) -> Arc<dyn TriggersApi + Send + Sync> {
         PipedreamClient::triggers(self)
+    }
+
+    fn deployed_triggers(&self) -> Arc<dyn DeployedTriggersApi + Send + Sync> {
+        PipedreamClient::deployed_triggers(self)
     }
 }

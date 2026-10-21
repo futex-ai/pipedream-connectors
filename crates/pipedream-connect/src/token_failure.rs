@@ -97,6 +97,9 @@ fn repeat_model(
         pipedream_connect_types::Error::InvalidHttpsUrl { field } => {
             pipedream_connect_types::Error::InvalidHttpsUrl { field: *field }
         }
+        pipedream_connect_types::Error::InvalidTriggerWebhookUrl => {
+            pipedream_connect_types::Error::InvalidTriggerWebhookUrl
+        }
         pipedream_connect_types::Error::Internal(_) => {
             pipedream_connect_types::Error::internal(original.clone())
         }

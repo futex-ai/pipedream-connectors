@@ -100,7 +100,9 @@ impl RequestDispatcher for PipedreamClient {
                 request.headers.clone(),
                 matches!(
                     request.mode,
-                    ResponseMode::Json | ResponseMode::Execution { .. }
+                    ResponseMode::Json
+                        | ResponseMode::Execution { .. }
+                        | ResponseMode::Delete { .. }
                 ),
                 request.json_body,
             )?;

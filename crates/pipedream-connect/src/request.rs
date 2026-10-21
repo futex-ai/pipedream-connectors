@@ -59,6 +59,11 @@ pub enum ResponseMode {
     Bytes,
     /// Return a 3xx response to the caller without following it.
     Redirect,
+    /// Delete response that may tolerate a missing deployment.
+    Delete {
+        /// Treat a 404 as a successful idempotent delete.
+        missing_ok: bool,
+    },
     /// Preserve every status, header, and byte after execution-error checks.
     ///
     /// Never retries. A 401 still invalidates its bearer without replay.

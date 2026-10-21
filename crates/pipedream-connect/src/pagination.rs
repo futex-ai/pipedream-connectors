@@ -36,6 +36,12 @@ impl PagedRequest for pipedream_connect_types::ListRegistryRequest {
     }
 }
 
+impl PagedRequest for pipedream_connect_types::ListDeployedTriggersRequest {
+    fn set_page(&mut self, page: PageRequest) {
+        self.page = page;
+    }
+}
+
 type PageFetch<T, R> =
     dyn Fn(R) -> Pin<Box<dyn Future<Output = Result<Page<T>>> + Send>> + Send + Sync;
 
