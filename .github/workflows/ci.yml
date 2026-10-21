@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal --component clippy,rustfmt
+          rustup default 1.95.0
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'xtask/Cargo.toml') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+
+      - name: Rust format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Test
+        run: cargo test --locked --workspace --all-features
+
+      - name: Documentation
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --no-deps --all-features
+
+      - name: Rust file length
+        run: cargo run --locked -p xtask -- rust-file-length-lint --all

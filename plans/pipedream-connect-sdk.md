@@ -400,26 +400,28 @@ Evidence: `.context/pipedream-connect-sdk/markdownlint.txt` and
 
 Summary: a compiling workspace with the gate and CI, no SDK code yet.
 
-- [ ] Create the Cargo workspace with `crates/pipedream-connect-types`,
+- [x] Create the Cargo workspace with `crates/pipedream-connect-types`,
       `crates/pipedream-connect`, `crates/pipedream-connect-webhooks`, and
       `xtask`. Give each a `README.md` in the required section order.
       Milestone 10 adds `crates/pipedream-cli`.
-- [ ] Add `rust-toolchain.toml`, `.cargo/config.toml` with the `xtask`
+- [x] Add `rust-toolchain.toml`, `.cargo/config.toml` with the `xtask`
       alias, `LICENSE`, and `.gitignore` entries for `target` and `.context/`.
-- [ ] Add `internal-error` as a workspace git dependency at revision
+- [x] Add `internal-error` as a workspace git dependency at revision
       `6477922`, and the shared external dependencies with `cargo add`.
-- [ ] Implement `cargo xtask check` with these steps:
-  - [ ] `cargo fmt --all -- --check`.
-  - [ ] `cargo clippy --workspace --all-targets --all-features -- -D warnings`.
-  - [ ] `cargo test --workspace --all-features`.
-  - [ ] `cargo doc --no-deps` with warnings denied.
-  - [ ] A Rust file-length lint with the 300-line cap.
-- [ ] Add `.github/workflows/ci.yml` that runs the same steps on pull
+- [x] Implement `cargo xtask check` with these steps:
+  - [x] `cargo fmt --all -- --check`.
+  - [x] `cargo clippy --workspace --all-targets --all-features -- -D warnings`.
+  - [x] `cargo test --workspace --all-features`.
+  - [x] `cargo doc --no-deps` with warnings denied.
+  - [x] A Rust file-length lint with the 300-line cap.
+- [x] Add `.github/workflows/ci.yml` that runs the same steps on pull
       requests and on `main`.
-- [ ] Create `AGENTS.md` from the shared template: commands, repository
+- [x] Create `AGENTS.md` from the shared template: commands, repository
       rules, review focus, and status. Add `CLAUDE.md` as a symlink to it.
       Milestone 10 adds the CLI smoke command.
-- [ ] Run the gate, commit, and push.
+- [x] Run the gate and commit. The orchestrator will push after merging this
+      delegated branch.
+      Evidence: `.context/pipedream-connect-sdk/bootstrap-gate.txt`.
 
 ## Milestone 3: Typed models
 
