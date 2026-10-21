@@ -8,7 +8,7 @@ use pipedream_connect_types::{
     GetTriggerWorkflowsResponse, GetTriggersResponse, ListAccountsResponse,
     ListAppCategoriesResponse, ListAppOverridesResponse, ListAppsResponse, ListOauthAppsResponse,
     ListProjectsResponse, OAuthTokenResponse, OauthApp, PageEnvelope, Project, ProjectInfo,
-    ReloadPropsResponse, RunActionResponse, SetWebhookResponse, UnknownFields,
+    ProxyResponse, ReloadPropsResponse, RunActionResponse, SetWebhookResponse,
     ValidateTokenResponse,
 };
 use serde::de::DeserializeOwned;
@@ -129,14 +129,21 @@ fn response_schema_samples_decode_without_unknown_documented_fields() {
                         let Some(schema) = body.get("schema") else {
                             continue;
                         };
-                        let Some(reference) = schema.get("$ref").and_then(Value::as_str) else {
-                            continue;
-                        };
-                        let name = reference.rsplit('/').next().unwrap();
-                        if let Some((_, decoder)) =
-                            covered.iter().find(|(covered, _)| *covered == name)
-                        {
-                            decoder(name, value);
+                        if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
+                            let name = reference.rsplit('/').next().unwrap();
+                            if let Some((_, decoder)) =
+                                covered.iter().find(|(covered, _)| *covered == name)
+                            {
+                                decoder(name, value);
+                            }
+                        } else {
+                            let decoded: ProxyResponse = serde_json::from_value(value.clone())
+                                .unwrap_or_else(|error| {
+                                    panic!(
+                                        "{path} {method} {status} {media} example did not decode: {error}"
+                                    )
+                                });
+                            assert_eq!(serde_json::to_value(decoded).unwrap(), value);
                         }
                         let _ = (path, method, status, media);
                     }
@@ -146,56 +153,9 @@ fn response_schema_samples_decode_without_unknown_documented_fields() {
     }
 }
 
-trait HasExtra {
-    fn extra(&self) -> Option<&UnknownFields>;
-}
-
-macro_rules! extra_impl {
-    ($($type:ty),+ $(,)?) => {$ (
-        impl HasExtra for $type {
-            fn extra(&self) -> Option<&UnknownFields> { Some(&self.extra) }
-        }
-    )+ };
-}
-
-extra_impl!(
-    pipedream_connect_types::Account,
-    App,
-    AppOverride,
-    pipedream_connect_types::ConfigurePropResponse,
-    pipedream_connect_types::ConnectUsageResponse,
-    OAuthTokenResponse,
-    ConnectTokenResponse,
-    ErrorResponse,
-    AppCategory,
-    OauthApp,
-    Project,
-    ProjectInfo,
-    ReloadPropsResponse,
-    RunActionResponse,
-    pipedream_connect_types::TriggerWebhooks,
-    pipedream_connect_types::TriggerWorkflows,
-    ValidateTokenResponse,
-);
-
-impl<T> HasExtra for Data<T> {
-    fn extra(&self) -> Option<&UnknownFields> {
-        Some(&self.extra)
-    }
-}
-
-impl<T> HasExtra for PageEnvelope<T> {
-    fn extra(&self) -> Option<&UnknownFields> {
-        Some(&self.extra)
-    }
-}
-
-impl HasExtra for Vec<AppCategory> {
-    fn extra(&self) -> Option<&UnknownFields> {
-        None
-    }
-}
-
+#[path = "_support/conformance_extra.rs"]
+mod conformance_extra;
+use conformance_extra::HasExtra;
 type Decode = fn(&str, Value);
 
 fn decode<T: DeserializeOwned + serde::Serialize + HasExtra>(name: &str, sample: Value) {
