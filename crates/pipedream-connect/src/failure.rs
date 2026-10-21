@@ -27,6 +27,9 @@ fn classify(
     decode_error: impl FnOnce(&[u8]) -> Option<ErrorResponse>,
 ) -> Result<()> {
     let status = response.status.as_u16();
+    if mode == (ResponseMode::Delete { missing_ok: true }) && status == 404 {
+        return Ok(());
+    }
     if matches!(
         mode,
         ResponseMode::Execution { .. } | ResponseMode::PassThrough

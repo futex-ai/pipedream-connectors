@@ -384,6 +384,14 @@ no user answer. Each records the alternative and the reason.
   truncating records without resumption state or repeatedly fetching a stuck
   cursor, because the host needs a bounded, recoverable traversal.
 
+- **Trigger callback admission and cleanup (2026-10-21).** Trigger webhook
+  requests accept HTTPS and loopback HTTP URLs, and reject credentials,
+  fragments, controls, and other schemes before authentication. A delete with
+  `ignore_hook_errors=true` treats a missing deployment as success. Rejected:
+  arbitrary callback URLs and unconditional 404 success. Reason: callback
+  admission follows the proven Firna boundary, and the public request model
+  exposes no separate missing-resource flag.
+
 - **Review fix round, failed refresh sharing (2026-10-21).** A generation
   identifies each completed refresh. Queued callers share its typed failure.
   Internal failures retain the shared original source. A later call can
@@ -812,23 +820,24 @@ Summary: tokens, accounts, users, and the proxy work against the real API.
 
 Summary: deploy and manage triggers for an external user.
 
-- [ ] `TriggersApi::deploy` with `webhook_url`, `workflow_id`,
+- [x] `TriggersApi::deploy` with `webhook_url`, `workflow_id`,
       `emit_on_deploy`, and the `Emitter` response.
-- [ ] `DeployedTriggersApi`:
-  - [ ] List with `emitter_type`, get, update, and delete with
+- [x] `DeployedTriggersApi`:
+  - [x] List with `emitter_type`, get, update, and delete with
         `ignore_hook_errors`.
-  - [ ] List events with `n`, and get and set workflows.
-  - [ ] List and set webhooks, get one webhook, and regenerate its signing
+  - [x] List events with `n`, and get and set workflows.
+  - [x] List and set webhooks, get one webhook, and regenerate its signing
         key.
-- [ ] Unit tests: tenant scoping on every call, idempotent delete of a
+- [x] Unit tests: tenant scoping on every call, idempotent delete of a
       missing trigger, epoch-millisecond timestamps, signing-key redaction,
       and the emitter variants.
-- [ ] A credential-gated live test that deploys a timer-free Google
+- [x] A credential-gated live test that deploys a timer-free Google
       Calendar trigger to a loopback webhook URL, lists it, and deletes it.
-- [ ] Update the READMEs and the resources protocol doc only if a contract
+- [x] Update the READMEs and the resources protocol doc only if a contract
       changed.
-- [ ] Run the gate and the live test against a development project, commit,
-      and push.
+- [x] Run the complete gate and commit the branch without pushing.
+- [ ] Run the trigger live test against a development project. Blocked: the
+      required Pipedream credential and connected-account variables are absent.
 
 ## Milestone 8: Administration resources
 

@@ -13,6 +13,7 @@ on this crate when a server needs authenticated HTTP access. Use
 - Bound response bodies and map statuses to typed errors.
 - Support explicit GET retry and pagination budgets.
 - Discover apps, components, actions, and registry triggers.
+- Deploy and manage external-user triggers, events, workflows, and webhooks.
 - Configure properties, reload dynamic properties, and run actions once.
 
 ## What This Crate Does
@@ -22,12 +23,15 @@ redirects and performs no transport retries. Its default connection timeout
 is 10 seconds. Its default total request timeout is 60 seconds. Its default
 response limit is 10 MiB. The builder can change each limit.
 
-`apps()`, `components()`, `actions()`, and `triggers()` return shared resource
-trait objects. Each group has a `unimock` mock under the `unimock` feature.
-Paged lists return `Page<T>` with provider metadata. App and component
-retrieval returns the complete `Data<T>` envelope and checks its identity.
-`app_categories()` lists the bare category array and provides checked category
-retrieval.
+`apps()`, `components()`, `actions()`, `triggers()`, and
+`deployed_triggers()` return shared resource trait objects. Each group has a
+`unimock` mock under the `unimock` feature. Paged lists return `Page<T>` with
+provider metadata. App, component, and deployed-trigger retrieval preserve
+their response envelopes and check returned identities where the API provides
+the requested identity. Deployed trigger calls keep the project and external
+user scope. Delete can treat a missing deployment as success when
+`ignore_hook_errors` is true. Trigger callback URLs accept HTTPS and loopback
+HTTP. Signing keys stay wrapped in `SecretString`.
 
 Configure, reload, and run calls use the shared execution error mapping.
 An omitted or explicit `blocking: Some(false)` maps a 202 from configure or
@@ -103,6 +107,27 @@ let page = client.actions().list(ListRegistryRequest {
 # }
 ```
 
+Deploy and manage a trigger through the lifecycle handle:
+
+```rust,no_run
+# async fn deploy_trigger(
+#     client: pipedream_connect::PipedreamClient,
+#     request: pipedream_connect_types::DeployTriggerRequest,
+# ) -> Result<(), Box<dyn std::error::Error>> {
+let external_user_id = request.external_user_id.clone();
+let deployed = client.triggers().deploy(request).await?;
+let _page = client.deployed_triggers().list(
+    pipedream_connect_types::ListDeployedTriggersRequest {
+        external_user_id,
+        page: pipedream_connect_types::PageRequest::default(),
+        emitter_type: None,
+    },
+).await?;
+let _ = deployed;
+# Ok(())
+# }
+```
+
 For a custom operation, use `ApiPath::project` for routes under
 `/v1/connect/{project_id}`. Pass each
 path parameter as a separate segment. Query pairs preserve repeated keys.
@@ -137,8 +162,7 @@ The local-socket transport tests start a local HTTP server. They need no
 Pipedream credentials. Unit tests use mocked transport, time, and sleep.
 No unit test uses a real network or clock.
 
-Run the read-only registry smoke test with all three credentials and the
-explicit opt-in:
+Run the registry and trigger smoke tests with the explicit opt-in:
 
 ```sh
 PIPEDREAM_LIVE_TESTS=1 cargo test -p pipedream-connect \
@@ -146,8 +170,10 @@ PIPEDREAM_LIVE_TESTS=1 cargo test -p pipedream-connect \
 ```
 
 It reads Google Calendar and lists its actions and triggers in development.
-It prints the missing variable names and skips when credentials or the opt-in
-are absent.
+The trigger smoke also deploys and deletes a timer-free trigger. It requires
+`PIPEDREAM_EXTERNAL_USER_ID` and `PIPEDREAM_CONNECTED_ACCOUNT_ID`. Both tests
+print missing variable names and skip when credentials or the opt-in are
+absent.
 
 ### Adding an operation
 
@@ -188,6 +214,11 @@ let _pages = paginator.paginate(PageRequest::default(), std::num::NonZeroUsize::
 - `src/resources/` defines the resource traits, handles, and client accessors.
 - `src/resources/operation.rs` builds, dispatches, decodes, and checks
   resource operations.
+- `src/resources/trigger_operations.rs` builds trigger lifecycle requests and
+  checks returned trigger and webhook identities.
+- `src/resources/triggers.rs` deploys registry triggers.
+- `src/resources/deployed_triggers.rs` manages deployed triggers, events,
+  workflow endpoints, webhook destinations, and signing keys.
 - `src/token.rs` defines static and single-flight OAuth token providers.
 - `src/transport.rs` defines the redacted HTTP boundary and safe JSON access.
 - `src/reqwest_transport.rs` streams bounded HTTP responses.
@@ -202,4 +233,5 @@ let _pages = paginator.paginate(PageRequest::default(), std::num::NonZeroUsize::
 
 - [Connect client protocol](../../docs/protocol/connect-client.md)
 - [Connect resource protocol](../../docs/protocol/connect-resources.md)
+- [Trigger resource protocol](../../docs/protocol/resources/triggers.md)
 - [SDK architecture](../../docs/architecture.md)

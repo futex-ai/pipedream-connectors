@@ -168,4 +168,6 @@ pub(crate) enum WireFailure {
     QueryShape,
     #[error("[pipedream-connect/resources] response identity does not match the request")]
     IdentityMismatch,
+    #[error("[pipedream-connect/resources] response exceeded the requested event count")]
+    Pagination,
 }

@@ -4,8 +4,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use pipedream_connect_types::{
-    Component, ComponentKey, ConfigurePropRequest, ConfigurePropResponse, GetComponentRequest,
-    GetComponentResponse, ListRegistryRequest, Page, ReloadPropsRequest, ReloadPropsResponse,
+    Component, ComponentKey, ConfigurePropRequest, ConfigurePropResponse, DeployTriggerRequest,
+    DeployTriggerResponse, GetComponentRequest, GetComponentResponse, ListRegistryRequest, Page,
+    ReloadPropsRequest, ReloadPropsResponse,
 };
 
 use crate::client::RequestDispatcher;
@@ -32,6 +33,8 @@ pub trait TriggersApi: Send + Sync {
     async fn configure(&self, request: ConfigurePropRequest) -> Result<ConfigurePropResponse>;
     /// Reloads dynamic properties without dropping unknown property kinds.
     async fn reload_props(&self, request: ReloadPropsRequest) -> Result<ReloadPropsResponse>;
+    /// Deploys a registry trigger for one external user.
+    async fn deploy(&self, request: DeployTriggerRequest) -> Result<DeployTriggerResponse>;
 }
 
 /// A registry triggers handle backed by the shared authenticated dispatcher.
@@ -88,6 +91,15 @@ impl TriggersApi for Triggers {
             operation::reload(CatalogGroup::Triggers, &request),
         )
         .await
+    }
+
+    async fn deploy(&self, request: DeployTriggerRequest) -> Result<DeployTriggerResponse> {
+        let response = operation::json(
+            &self.dispatcher,
+            super::trigger_operations::deploy(&request),
+        )
+        .await?;
+        super::trigger_operations::check_deployment(response, &request.id)
     }
 }
 

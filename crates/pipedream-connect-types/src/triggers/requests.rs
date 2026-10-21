@@ -1,9 +1,11 @@
 //! Trigger deployment models and requests.
 
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use crate::{
-    ComponentKey, ConfiguredProps, EmitterType, ExternalUserId, PageRequest, WorkflowEndpoint,
+    ComponentKey, ConfiguredProps, EmitterType, Error, ExternalUserId, PageRequest, Result,
+    WorkflowEndpoint,
 };
 
 /// A registry trigger deployment request.
@@ -31,6 +33,16 @@ pub struct DeployTriggerRequest {
     /// Whether deploy hooks may emit an event.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub emit_on_deploy: Option<bool>,
+}
+
+impl DeployTriggerRequest {
+    /// Validates the optional trigger callback URL.
+    pub fn validate(&self) -> Result<()> {
+        if let Some(url) = &self.webhook_url {
+            validate_trigger_webhook_url(url)?;
+        }
+        Ok(())
+    }
 }
 
 /// A partial deployed trigger update.
@@ -61,4 +73,22 @@ pub struct ListDeployedTriggersRequest {
     /// Emitter type filter.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub emitter_type: Option<EmitterType>,
+}
+
+pub(super) fn validate_trigger_webhook_url(value: &str) -> Result<()> {
+    let parsed = Url::parse(value).map_err(|_| Error::InvalidTriggerWebhookUrl)?;
+    let loopback_http = parsed.scheme() == "http"
+        && matches!(parsed.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"));
+    if value.trim() != value
+        || value.contains('\\')
+        || value.chars().any(char::is_control)
+        || !(parsed.scheme() == "https" || loopback_http)
+        || parsed.host_str().is_none()
+        || !parsed.username().is_empty()
+        || parsed.password().is_some()
+        || parsed.fragment().is_some()
+    {
+        return Err(Error::InvalidTriggerWebhookUrl);
+    }
+    Ok(())
 }
