@@ -419,8 +419,7 @@ Summary: a compiling workspace with the gate and CI, no SDK code yet.
 - [x] Create `AGENTS.md` from the shared template: commands, repository
       rules, review focus, and status. Add `CLAUDE.md` as a symlink to it.
       Milestone 10 adds the CLI smoke command.
-- [x] Run the gate and commit. The orchestrator will push after merging this
-      delegated branch.
+- [x] Run the gate, commit, and push.
       Evidence: `.context/pipedream-connect-sdk/bootstrap-gate.txt`.
 
 ## Milestone 3: Typed models

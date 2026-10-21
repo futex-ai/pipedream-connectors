@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use crate::command::{self, CommandRunner, CommandSpec};
-use crate::error::{Error, Result};
+use crate::error::{Error, FileLengthViolation, FileLengthViolations, Result};
 use crate::file_access::FileAccess;
 
 const MAX_LINES: usize = 300;
@@ -42,10 +42,10 @@ pub(crate) fn run(
         };
         let line_count = contents.lines().count();
         if line_count > MAX_LINES {
-            violations.push(format!(
-                "{} has {line_count} lines, allowed maximum is {MAX_LINES}",
-                display_path(root, &path)
-            ));
+            violations.push(FileLengthViolation {
+                path: display_path(root, &path).into(),
+                lines: line_count,
+            });
         }
     }
     if violations.is_empty() {
@@ -53,7 +53,7 @@ pub(crate) fn run(
     } else {
         Err(Error::FileLengthViolations {
             count: violations.len(),
-            details: violations.join("\n"),
+            details: FileLengthViolations(violations),
         })
     }
 }

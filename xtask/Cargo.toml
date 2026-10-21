@@ -12,4 +12,6 @@ publish = false
 [dependencies]
 clap.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
 unimock.workspace = true

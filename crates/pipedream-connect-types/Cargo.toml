@@ -9,7 +9,3 @@ description = "Typed data models for the Pipedream Connect API."
 readme = "README.md"
 
 [dependencies]
-chrono.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-thiserror.workspace = true

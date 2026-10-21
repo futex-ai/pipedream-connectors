@@ -5,7 +5,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 /// Boundary for filesystem reads used by xtask.
-#[unimock::unimock(api = FileAccessMock)]
+#[cfg_attr(test, unimock::unimock(api = FileAccessMock))]
 pub trait FileAccess {
     /// Recursively finds Rust files below the workspace roots.
     fn rust_files(&self, root: &Path) -> io::Result<Vec<PathBuf>>;

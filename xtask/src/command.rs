@@ -65,7 +65,7 @@ pub struct CommandOutcome {
 }
 
 /// Boundary for executing external commands.
-#[unimock::unimock(api = CommandRunnerMock)]
+#[cfg_attr(test, unimock::unimock(api = CommandRunnerMock))]
 pub trait CommandRunner {
     /// Executes one command from the workspace root.
     fn execute(&self, root: &Path, command: &CommandSpec) -> io::Result<CommandOutcome>;
