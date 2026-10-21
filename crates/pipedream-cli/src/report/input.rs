@@ -98,6 +98,9 @@ pub(super) fn invalid_argument(
         pipedream_connect_types::Error::InvalidHttpsUrl { .. } => {
             format!("{argument} must be an HTTPS URL.")
         }
+        pipedream_connect_types::Error::InvalidTriggerWebhookUrl => {
+            format!("{argument} must be an HTTPS URL or an HTTP URL on localhost.")
+        }
         pipedream_connect_types::Error::ConflictingCursors => {
             "Pass --after or --before, not both.".to_owned()
         }

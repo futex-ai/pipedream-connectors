@@ -216,6 +216,18 @@ fn invalid_requests_exit_two_and_internal_failures_exit_one() {
             InvalidRequest::Origin,
             "The connection settings are not valid. Check the configuration flags and variables.",
         ),
+        (
+            InvalidRequest::ProxyTarget,
+            "<URL> must be an HTTPS URL or a path that starts with /. Fix the proxy target.",
+        ),
+        (
+            InvalidRequest::ProxyHeader,
+            "Pipedream does not forward one of the --header values. Check the header names.",
+        ),
+        (
+            InvalidRequest::WorkflowMethod,
+            "Pipedream workflows accept GET, POST, PUT, PATCH, and DELETE. Use one of them.",
+        ),
     ];
     for (reason, message) in cases {
         assert_eq!(

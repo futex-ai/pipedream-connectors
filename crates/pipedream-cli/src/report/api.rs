@@ -70,6 +70,15 @@ fn invalid_request(reason: &InvalidRequest) -> &'static str {
             "A request header is not valid. Check the header names and values."
         }
         InvalidRequest::Model(_) => "A request value is not valid. Check the command arguments.",
+        InvalidRequest::ProxyTarget => {
+            "<URL> must be an HTTPS URL or a path that starts with /. Fix the proxy target."
+        }
+        InvalidRequest::ProxyHeader => {
+            "Pipedream does not forward one of the --header values. Check the header names."
+        }
+        InvalidRequest::WorkflowMethod => {
+            "Pipedream workflows accept GET, POST, PUT, PATCH, and DELETE. Use one of them."
+        }
         InvalidRequest::Origin
         | InvalidRequest::Credentials
         | InvalidRequest::Bearer

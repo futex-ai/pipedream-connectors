@@ -179,6 +179,13 @@ fn invalid_arguments_name_the_argument_and_its_rule() {
         ),
         (
             argument(
+                Argument::Props,
+                pipedream_connect_types::Error::InvalidTriggerWebhookUrl,
+            ),
+            "--props must be an HTTPS URL or an HTTP URL on localhost.",
+        ),
+        (
+            argument(
                 Argument::After,
                 pipedream_connect_types::Error::ConflictingCursors,
             ),
