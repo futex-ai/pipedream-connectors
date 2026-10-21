@@ -1,7 +1,7 @@
 # pipedream-connectors
 
-Status: The crates are under construction under the Pipedream Connect SDK
-plan.
+Status: The typed model crate is available. The client and webhook crates are
+still under construction under the Pipedream Connect SDK plan.
 
 This repository will provide a Rust SDK for the Pipedream Connect API. The
 SDK will manage server-side OAuth client credentials, typed Connect resources,
@@ -75,8 +75,8 @@ The planned CLI commands are:
 
 ## Developer start
 
-Milestone 2 will create the compiling Cargo workspace and the `xtask` gate.
-After that milestone:
+The workspace and `xtask` gate are available. The typed model crate is under
+active development. To work on the repository:
 
 1. Install the pinned Rust toolchain.
 2. Copy the required Pipedream variables into the shell environment.
@@ -88,10 +88,16 @@ Do not commit credentials. Keep scratch output under `.context/`.
 
 ## Key code
 
-The planned entry points are:
+The main entry points are:
 
-- `crates/pipedream-connect-types` for identifiers, models, pagination,
-  credential wrappers, and public data contracts.
+- `crates/pipedream-connect-types/src/ids.rs` for validated identifiers.
+- `crates/pipedream-connect-types/src/secret.rs` for redacted credential
+  wrappers.
+- `crates/pipedream-connect-types/src/pagination.rs` for bounded cursor pages.
+- `crates/pipedream-connect-types/src/registry/` for app and component models.
+- `crates/pipedream-connect-types/src/props/` for lossless property models.
+- `crates/pipedream-connect-types/tests/conformance.rs` for schema-generated
+  OpenAPI conformance samples.
 - `crates/pipedream-connect` for client configuration, token providers,
   transport boundaries, resource operations, proxy calls, and errors.
 - `crates/pipedream-connect-webhooks` for raw-body signature checks and

@@ -287,6 +287,25 @@ no user answer. Each records the alternative and the reason.
   example as proof that the OpenAPI pattern is wrong. Reason: the API schema
   is the stronger contract for these identifiers.
 
+- **Secret wire serialization (2026-10-21).** `SecretString`, `SecretJson`,
+  Connect tokens, and credential fields serialize their inner values because
+  request and response bodies need the exact wire value. Their `Debug`
+  implementations stay redacted, and callers need `expose_secret` for code
+  access. Rejected: omitting secret fields from serialization, because the
+  client could not send or round-trip credential-class values.
+- **Pagination next API (2026-10-21).** `PageRequest::next(&PageInfo)` is the
+  one pagination advancement API. It supports both cursor directions and
+  rejects a repeated cursor. Rejected: a method on `Page<T>`, because request
+  state belongs to `PageRequest` and response models stay pure.
+- **Schema-generated conformance samples (2026-10-21).** The conformance
+  test generates one JSON instance from every covered response schema,
+  including required and optional fields, types, formats, enums, and a small
+  identifier-pattern table. It decodes each instance, checks documented
+  fields do not enter unknown-field maps, and checks a lossless round trip.
+  It also decodes future `example` and `examples` response values. Rejected:
+  testing only response examples, because the fetched OpenAPI document has no
+  response examples.
+
 ## Open decisions
 
 - **GET retry defaults (2026-10-21).** Decision 4 requires an opt-in GET
@@ -426,49 +445,50 @@ Summary: a compiling workspace with the gate and CI, no SDK code yet.
 
 Summary: the `pipedream-connect-types` crate, pure data with serde.
 
-- [ ] Identifiers with one grammar for construction and deserialization:
+- [x] Identifiers with one grammar for construction and deserialization:
       `ProjectId`, `ExternalUserId`, `AccountId`, `DeployedTriggerId`,
       `OauthAppId`, `AppCategoryId`, `AppSlug`, `ComponentKey`, `PropName`,
       `WebhookId`, `ConnectToken`, and `Cursor`.
-- [ ] `SecretString` and `SecretJson` with redacted `Debug` and explicit
+- [x] `SecretString` and `SecretJson` with redacted `Debug` and explicit
       exposure, and `Environment`.
-- [ ] Pagination: `PageRequest` with limit 1 to 200, `PageInfo`, `Page<T>`,
+- [x] Pagination: `PageRequest` with limit 1 to 200, `PageInfo`, `Page<T>`,
       and `PageRequest::next` that detects a stuck cursor.
-- [ ] Registry models: `App`, `AppAuthType`, `ProxySupport`, `AppCategory`,
+- [x] Registry models: `App`, `AppAuthType`, `ProxySupport`, `AppCategory`,
       `ListAppsRequest` with sort and filters, `Component`, `ComponentType`,
       `ToolAnnotations`, `ComponentStash`, and `ListComponentsRequest`.
-- [ ] Prop models:
-  - [ ] `ConfigurableProp` with the shared base fields and a lossless
+- [x] Prop models:
+  - [x] `ConfigurableProp` with the shared base fields and a lossless
         `PropKind`.
-  - [ ] `PropOption` for labelled, nested, and scalar choices, and
+  - [x] `PropOption` for labelled, nested, and scalar choices, and
         `TimerValue`.
-  - [ ] `ConfiguredProps` with a typed `ConfiguredPropValue` that keeps
+  - [x] `ConfiguredProps` with a typed `ConfiguredPropValue` that keeps
         app, SQL, and raw JSON values.
-- [ ] Managed-auth models: `Account` with the nested `App` and optional
+- [x] Managed-auth models: `Account` with the nested `App` and optional
       credentials, `CreateAccountRequest`, `ListAccountsRequest`,
       `CreateConnectTokenRequest` with `expires_in` 1 to 14,400,
       `ConnectTokenResponse`, `ValidateTokenResponse`, and `ExternalUser`.
-- [ ] Execution models: `ConfigurePropRequest` and response,
+- [x] Execution models: `ConfigurePropRequest` and response,
       `ReloadPropsRequest` and response with `DynamicProps`,
       `RunActionRequest` with `stash_id`, `RunActionResponse`,
       `Observation`, and `ExecutionError` with the attribution origin.
-- [ ] Trigger models:
-  - [ ] `DeployTriggerRequest` and the `Emitter` enum for deployed
+- [x] Trigger models:
+  - [x] `DeployTriggerRequest` and the `Emitter` enum for deployed
         components, HTTP interfaces, and timer interfaces.
-  - [ ] `UpdateTriggerRequest`, `TriggerWebhook`, `TriggerWebhooks`, and
+  - [x] `UpdateTriggerRequest`, `TriggerWebhook`, `TriggerWebhooks`, and
         `TriggerWorkflows`.
-  - [ ] `EmittedEvent` and `ListDeployedTriggersRequest` with
+  - [x] `EmittedEvent` and `ListDeployedTriggersRequest` with
         `emitter_type`.
-- [ ] Administration models: `Project`, `ProjectInfo`, `OauthApp`,
+- [x] Administration models: `Project`, `ProjectInfo`, `OauthApp`,
       `AppOverride`, `ProjectWebhook`, `UsageRecord`, `RateLimitRequest`,
       `RateLimitToken`, and the create and update requests.
-- [ ] Wire envelopes: `Data<T>`, `PageEnvelope<T>`, and `ErrorResponse`.
-- [ ] Vendor the OpenAPI document under the crate `tests/fixtures/` with a
+- [x] Wire envelopes: `Data<T>`, `PageEnvelope<T>`, and `ErrorResponse`.
+- [x] Vendor the OpenAPI document under the crate `tests/fixtures/` with a
       refresh script. Add a conformance test that decodes every response
       example in it into the matching model.
-- [ ] Unit tests for every grammar, lossless decoding of unknown kinds,
+- [x] Unit tests for every grammar, lossless decoding of unknown kinds,
       redacted `Debug`, and pagination. Write the crate README.
-- [ ] Run the gate, commit, and push.
+- [x] Run the gate, commit, and push.
+      Evidence: `.context/pipedream-connect-sdk/typed-models-gate-final.txt`.
 
 ## Milestone 4: Client core
 
