@@ -271,6 +271,38 @@ no user answer. Each records the alternative and the reason.
   milestone gives the CLI one consistent design. Decided by the implementer
   on 2026-10-21.
 
+- **OpenAPI operation inventory (2026-10-21).** The fetched OpenAPI document
+  contains 67 `/v1/connect/*` operations and one OAuth token operation. The
+  resources protocol lists those 68 operation IDs once, plus the documented
+  rate-limit token and workflow invocation operations without invented IDs.
+  Rejected: adding the four legacy `/v1/apps` and `/v1/app_categories`
+  operations or inventing IDs for undocumented operations. Reason: decision
+  3 selects the Connect surface, and the OpenAPI document is the source for
+  operation IDs.
+- **Identifier prefix evidence (2026-10-21).** The OpenAPI patterns confirm
+  `proj_`, `apn_`, `dc_`, `oa_`, `appcat_`, and `ctok_`. The current official
+  Connect pages show examples for `proj_`, `apn_`, `oa_`, and `ctok_`, but do
+  not show `dc_` or `appcat_` values. The protocol reports those two prefixes
+  as OpenAPI-only evidence. Rejected: treating an absent documentation
+  example as proof that the OpenAPI pattern is wrong. Reason: the API schema
+  is the stronger contract for these identifiers.
+
+## Open decisions
+
+- **GET retry defaults (2026-10-21).** Decision 4 requires an opt-in GET
+  retry policy but does not settle the default total attempts or maximum
+  delay. **A.** Three total attempts, with a 30-second maximum delay and
+  `Retry-After` support. Effort: Medium. **B.** Two total attempts, with a
+  60-second maximum delay and `Retry-After` support. Effort: Medium.
+  **Recommendation:** A, because it matches the settled two-retry wording
+  while bounding delay and work. The protocol leaves this default open.
+- **Webhook body limit (2026-10-21).** Milestone 9 requires a bounded webhook
+  body but does not settle its default. **A.** Use a 1 MiB default, with a
+  configurable limit. Effort: Small. **B.** Use the 10 MiB client response
+  default, with a configurable limit. Effort: Small. **Recommendation:** A,
+  because webhook ingress should have a smaller independent bound. The
+  protocol leaves this default open.
+
 ## Public API sketch
 
 ```rust
@@ -330,36 +362,39 @@ The public error contract of the client crate:
 Summary: write the requirements and the decisions before any code, with the
 recommended options applied.
 
-- [ ] Write `docs/protocol/connect-client.md`:
-  - [ ] OAuth client-credentials token acquisition, the one-hour lifetime,
+- [x] Write `docs/protocol/connect-client.md`:
+  - [x] OAuth client-credentials token acquisition, the one-hour lifetime,
         and early refresh.
-  - [ ] The `x-pd-environment` header, the optional `x-pd-rate-limit`
+  - [x] The `x-pd-environment` header, the optional `x-pd-rate-limit`
         header, and the other request headers.
-  - [ ] Status mapping to the error contract, `Retry-After` and
+  - [x] Status mapping to the error contract, `Retry-After` and
         `X-RateLimit-*` parsing.
-  - [ ] Response caps, timeouts, the no-replay rule, and the opt-in GET
+  - [x] Response caps, timeouts, the no-replay rule, and the opt-in GET
         retry policy.
-  - [ ] The redaction rule for credential-class values.
-- [ ] Write `docs/protocol/connect-resources.md`:
-  - [ ] The covered operations grouped by resource.
-  - [ ] Cursor pagination with `limit`, `after`, and `before`.
-  - [ ] Lossless models and identifier grammars.
-  - [ ] Connect token limits and `include_credentials`.
-  - [ ] Proxy encoding and header policy, and the 202 contract.
-  - [ ] The trigger lifecycle operations.
-- [ ] Write `docs/protocol/webhooks.md`:
-  - [ ] `x-pd-signature` verification, the 300-second default tolerance,
+  - [x] The redaction rule for credential-class values.
+- [x] Write `docs/protocol/connect-resources.md`:
+  - [x] The covered operations grouped by resource.
+  - [x] Cursor pagination with `limit`, `after`, and `before`.
+  - [x] Lossless models and identifier grammars.
+  - [x] Connect token limits and `include_credentials`.
+  - [x] Proxy encoding and header policy, and the 202 contract.
+  - [x] The trigger lifecycle operations.
+- [x] Write `docs/protocol/webhooks.md`:
+  - [x] `x-pd-signature` verification, the 300-second default tolerance,
         and the body cap.
-  - [ ] Connection event payloads and trigger delivery payloads.
-  - [ ] Key selection between trigger webhooks and the project environment
+  - [x] Connection event payloads and trigger delivery payloads.
+  - [x] Key selection between trigger webhooks and the project environment
         webhook.
-- [ ] Write `docs/architecture.md`: the three library crates, the CLI, the
+- [x] Write `docs/architecture.md`: the three library crates, the CLI, the
       transport and clock boundaries, the token provider, and the host
       responsibilities.
-- [ ] Write the workspace `README.md`: features, quick start, the CLI
+- [x] Write the workspace `README.md`: features, quick start, the CLI
       commands, developer get-started, key code, and links to the docs and
       `plans/`.
-- [ ] Validate the Markdown, review the diff, commit, and push.
+- [x] Validate the Markdown, review the diff, commit, and push.
+
+Evidence: `.context/pipedream-connect-sdk/markdownlint.txt` and
+`.context/pipedream-connect-sdk/operation-table-check.txt`.
 
 ## Milestone 2: Repository bootstrap
 
