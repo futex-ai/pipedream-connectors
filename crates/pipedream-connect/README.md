@@ -1,9 +1,9 @@
 # pipedream-connect
 
-`pipedream-connect` provides asynchronous authentication and request dispatch
-for Pipedream Connect. Depend on this crate when a server needs authenticated
-HTTP access. Use `pipedream-connect-types` for request and response models.
-Resource handles will arrive in the next SDK milestones.
+`pipedream-connect` provides asynchronous authentication, registry discovery,
+property configuration, and action execution for Pipedream Connect. Depend
+on this crate when a server needs authenticated HTTP access. Use
+`pipedream-connect-types` for request and response models.
 
 ## Responsibilities
 
@@ -12,6 +12,8 @@ Resource handles will arrive in the next SDK milestones.
 - Build API routes and apply the environment and authentication headers.
 - Bound response bodies and map statuses to typed errors.
 - Support explicit GET retry and pagination budgets.
+- Discover apps, components, actions, and registry triggers.
+- Configure properties, reload dynamic properties, and run actions once.
 
 ## What This Crate Does
 
@@ -19,6 +21,19 @@ The default `reqwest` feature provides a rustls transport. It follows no
 redirects and performs no transport retries. Its default connection timeout
 is 10 seconds. Its default total request timeout is 60 seconds. Its default
 response limit is 10 MiB. The builder can change each limit.
+
+`apps()`, `components()`, `actions()`, and `triggers()` return shared resource
+trait objects. Each group has a `unimock` mock under the `unimock` feature.
+Paged lists return `Page<T>` with provider metadata. App and component
+retrieval returns the complete `Data<T>` envelope and checks its identity.
+`app_categories()` provides checked category retrieval. Category listing
+waits for the response-shape decision in the SDK plan.
+
+Configure, reload, and run calls use the shared execution error mapping.
+An explicit `blocking: Some(false)` maps a 202 to `Error::Accepted` without
+decoding a result body. These mutations never retry. The action request's
+optional `blocking` field follows the SDK plan. The current Pipedream
+run-action schema omits it. Live verification is pending.
 
 `PipedreamClient::new(config, transport, clock, sleeper)` accepts shared trait
 objects. It has no implicit Tokio sleeper. The builder supplies a Tokio
@@ -68,25 +83,27 @@ let client = PipedreamClient::builder()
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-Use the shared dispatcher until resource handles are available:
+Read an app and list its actions through the resource handles:
 
 ```rust,no_run
 # async fn read_apps(client: pipedream_connect::PipedreamClient)
 # -> Result<(), Box<dyn std::error::Error>> {
-use http::Method;
-use pipedream_connect::request::{ApiPath, ApiRequest};
-use pipedream_connect_types::{App, Page, PageRequest};
+use pipedream_connect_types::{AppSlug, ListRegistryRequest, PageRequest};
 
-let request = ApiRequest::new(Method::GET, ApiPath::connect(&["apps"]))
-    .with_page(&PageRequest::with_limit(25)?)?;
-let response = client.dispatcher().dispatch(request).await?;
-let page: Page<App> = response.json()?;
-# let _ = page;
+let slug = AppSlug::new("google_calendar")?;
+let app = client.apps().get(slug.clone()).await?;
+let page = client.actions().list(ListRegistryRequest {
+    app: Some(slug),
+    page: PageRequest::with_limit(25)?,
+    ..ListRegistryRequest::default()
+}).await?;
+# let _ = (app, page);
 # Ok(())
 # }
 ```
 
-Use `ApiPath::project` for routes under `/v1/connect/{project_id}`. Pass each
+For a custom operation, use `ApiPath::project` for routes under
+`/v1/connect/{project_id}`. Pass each
 path parameter as a separate segment. Query pairs preserve repeated keys.
 For a JSON body, call `with_json(&model)`. The model must implement `Validate`.
 This checks the model before the token call. `with_bytes` sends an exact byte
@@ -119,6 +136,15 @@ The local-socket transport tests start a local HTTP server. They need no
 Pipedream credentials. Unit tests use mocked transport, time, and sleep.
 No unit test uses a real network or clock.
 
+Run the read-only registry smoke test with all three `PIPEDREAM_*` variables:
+
+```sh
+cargo test -p pipedream-connect --test live_pipedream -- --nocapture
+```
+
+It reads Google Calendar and lists its actions and triggers in development.
+It prints the missing variable names and skips when credentials are absent.
+
 ### Key Code
 
 - `src/client.rs` defines `PipedreamClient` and `RequestDispatcher`.
@@ -126,6 +152,9 @@ No unit test uses a real network or clock.
 - `src/builder.rs` constructs the default transport and clock.
 - `src/request.rs` defines operations and the shared URL builder.
 - `src/validation.rs` requires each JSON request model to own its validation.
+- `src/resources/` defines the resource traits, handles, and client accessors.
+- `src/resources/queries.rs` encodes documented filters without local defaults.
+- `src/resources/execution.rs` builds validated execution operations.
 - `src/token.rs` defines static and single-flight OAuth token providers.
 - `src/transport.rs` defines the redacted HTTP boundary and safe JSON access.
 - `src/reqwest_transport.rs` streams bounded HTTP responses.
@@ -134,6 +163,7 @@ No unit test uses a real network or clock.
 - `src/pagination.rs` defines bounded page traversal and its stop reasons.
 - `src/error.rs` defines the public error contract.
 - `tests/http_transport.rs` exercises reqwest through local sockets.
+- `tests/live_pipedream.rs` provides the credential-gated registry smoke test.
 
 ### Related Docs
 

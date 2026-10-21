@@ -410,6 +410,24 @@ no user answer. Each records the alternative and the reason.
   Each request model implements the trait. Rejected: a separate validation
   result, because a resource could supply `Ok(())` without checking its model.
 
+- **Registry query models (2026-10-21).** Actions and registry triggers use
+  `ListRegistryRequest`. Only the generic component query carries
+  `component_type`. Rejected: reusing that field on routes that do not
+  document it, or silently ignoring it. Reason: each typed query must send
+  every input that its operation supports without an unsupported field.
+- **Registry response envelopes (2026-10-21).** App and component retrieval
+  return the complete typed `Data<T>` envelope after checking the returned
+  identity. Category retrieval keeps its documented bare response. Rejected:
+  returning only the inner app or component, because that drops unknown
+  fields on the response envelope.
+- **Action blocking field (2026-10-21).** The milestone assignment requires
+  action runs with an optional blocking flag. `RunActionRequest` therefore
+  carries `blocking` in the JSON body, like configure and reload requests.
+  An explicit false value selects the existing nonblocking 202 contract.
+  Rejected: omitting the required SDK option or putting it in an undocumented
+  query parameter. The current OpenAPI schema and public run-action page
+  omit this field. Real-project verification remains blocked on credentials.
+
 ## Open decisions
 
 - **GET retry defaults (2026-10-21).** Decision 4 requires an opt-in GET
@@ -435,6 +453,16 @@ no user answer. Each records the alternative and the reason.
   change with one identifier rule. No new rejection is applied before the
   user answers. This choice blocks final handling of these identifiers in
   resource paths.
+
+- **Category list shape (2026-10-21).** The saved OpenAPI schema and the
+  current public category-list page return a bare array without query
+  parameters. The milestone guidance asks every list to take a typed request
+  and return `Page<T>`. **A.** Return `Vec<AppCategory>` from `list()` and
+  document this non-paged exception. Effort: Small. **B.** Take an empty typed
+  request and normalize the array into `Page<AppCategory>` with absent page
+  metadata. Effort: Medium. **Recommendation:** A, because it matches the
+  provider contract without fabricated page data. No list option is applied
+  before the user answers. This blocks category listing and its tests.
 
 ## Public API sketch
 
@@ -655,30 +683,40 @@ results, regression evidence, Markdown checks, and the complete gate.
 - [x] Resolve Milestone 4 review items 1 to 14 with regression tests,
       aligned docs, the complete gate, separate fix and test commits,
       and a push. Evidence: `.context/client-review-fixes/`.
+- [x] Preserve custom-transport validation errors in shared refresh failures
+      and show safe model field bounds in diagnostics. Added while checking
+      Milestone 5. Evidence: `.context/registry-resources/`.
 
 ## Milestone 5: Registry and execution resources
 
 Summary: apps, components, actions, and registry triggers work against the
 real API.
 
-- [ ] `AppsApi`: list with every filter, get by slug with an identity check.
+- [x] `AppsApi`: list with every filter, get by slug with an identity check.
 - [ ] `AppCategoriesApi`: list and get.
-- [ ] `ComponentsApi`: list with `component_type`, get with `version`,
+  - [x] Retrieve a category with an identity check.
+  - [ ] Resolve the category-list response-shape decision, then implement
+        and test the chosen contract.
+- [x] `ComponentsApi`: list with `component_type`, get with `version`,
       configure a prop, and reload props.
-- [ ] `ActionsApi`: list, get, configure, reload props, and run with
+- [x] `ActionsApi`: list, get, configure, reload props, and run with
       `blocking`, `stash_id`, and the 202 contract.
-- [ ] `TriggersApi` for registry triggers: list, get, configure, and reload
+- [x] `TriggersApi` for registry triggers: list, get, configure, and reload
       props.
 - [ ] Unit tests per resource: query encoding, request bodies, response
       mapping, lossless unknown kinds, and error mapping.
-- [ ] A credential-gated live test that reads the `google_calendar` app and
+- [x] A credential-gated live test that reads the `google_calendar` app and
       lists its actions and triggers in a development project. It skips
       without `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, and
       `PIPEDREAM_PROJECT_ID`.
-- [ ] Update the READMEs and the resources protocol doc only if a contract
+- [x] Update the READMEs and the resources protocol doc only if a contract
       changed.
-- [ ] Run the gate and the live test against a development project, commit,
-      and push.
+- [x] Run the gate, commit, and push the independent resource work.
+- [ ] Run the live test against a development project. Blocked: the three
+      Pipedream credential variables are absent.
+
+Evidence: `.context/registry-resources/` holds targeted checks, the live-test
+skip, documentation validation, and contract notes.
 
 ## Milestone 6: Managed auth and proxy resources
 

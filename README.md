@@ -1,7 +1,9 @@
 # pipedream-connectors
 
-Status: The typed model, webhook, and client core crates are available.
-Resource handles remain under construction in the Pipedream Connect SDK plan.
+Status: Typed models, webhooks, the client core, and registry and execution
+resources are available. Category listing awaits a contract decision.
+Managed auth, proxy, trigger lifecycle, and administration resources remain
+under construction in the Pipedream Connect SDK plan.
 
 This repository will provide a Rust SDK for the Pipedream Connect API. The
 SDK will manage server-side OAuth client credentials, typed Connect resources,
@@ -17,7 +19,7 @@ Milestone 10 will add the unpublished `crates/pipedream-cli` command.
 
 ## Quick start
 
-The client core can authenticate and dispatch requests. Construct it with an
+The client can authenticate and use typed resources. Construct it with an
 explicit project and environment:
 
 ```rust,no_run
@@ -34,9 +36,10 @@ let client = PipedreamClient::builder()
 ```
 
 The [client crate README](crates/pipedream-connect/README.md) shows the shared
-request dispatcher and its injectable runtime boundaries. Resource handles
-for apps, tokens, proxy calls, and other operations follow in later
-milestones.
+resource handles and its injectable runtime boundaries. The registry handles
+list apps, components, actions, and triggers. Action and trigger handles also
+configure and reload properties. The action handle runs configured actions.
+Token and proxy resources follow in later milestones.
 
 The client uses `https://api.pipedream.com` by default. Set
 `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, and
@@ -94,6 +97,8 @@ The main entry points are:
   OpenAPI conformance samples.
 - `crates/pipedream-connect` for client configuration, token providers,
   transport boundaries, resource operations, proxy calls, and errors.
+- `crates/pipedream-connect/src/resources/` for registry and execution traits,
+  handles, query encoding, and the client accessors.
 - `crates/pipedream-connect-webhooks` for raw-body signature checks and
   webhook payload decoding.
 - `crates/pipedream-cli` for smoke commands and JSON output.

@@ -11,4 +11,6 @@ pub use enums::{
     AppAuthType, AppSortKey, ComponentStash, ComponentType, RegistryKind, ScopeProfileName,
     SortDirection,
 };
-pub use requests::{GetComponentRequest, ListAppsRequest, ListComponentsRequest};
+pub use requests::{
+    GetComponentRequest, ListAppsRequest, ListComponentsRequest, ListRegistryRequest,
+};

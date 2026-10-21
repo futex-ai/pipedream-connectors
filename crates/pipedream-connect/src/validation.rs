@@ -6,10 +6,10 @@ use pipedream_connect_types::{
     CreateProjectRequest, DeleteTriggerRequest, DeployTriggerRequest, DeployedTriggerQuery,
     DownloadFileStashRequest, GetAccountRequest, GetComponentRequest, ListAccountsRequest,
     ListAppOverridesRequest, ListAppsRequest, ListComponentsRequest, ListDeployedTriggersRequest,
-    ListOauthAppsRequest, ListProjectsRequest, ListTriggerEventsRequest, ListUsageRequest,
-    ListUserAccountsRequest, ListUsersRequest, PageRequest, RateLimitRequest, ReloadPropsRequest,
-    RunActionRequest, SetWebhookRequest, UpdateAppOverrideRequest, UpdateOauthAppRequest,
-    UpdateProjectLogoRequest, UpdateProjectRequest, UpdateTriggerRequest,
+    ListOauthAppsRequest, ListProjectsRequest, ListRegistryRequest, ListTriggerEventsRequest,
+    ListUsageRequest, ListUserAccountsRequest, ListUsersRequest, PageRequest, RateLimitRequest,
+    ReloadPropsRequest, RunActionRequest, SetWebhookRequest, UpdateAppOverrideRequest,
+    UpdateOauthAppRequest, UpdateProjectLogoRequest, UpdateProjectRequest, UpdateTriggerRequest,
     UpdateTriggerWebhooksRequest, UpdateTriggerWorkflowsRequest, ValidateTokenRequest,
 };
 
@@ -54,6 +54,7 @@ paged_requests!(
     ListOauthAppsRequest,
     ListProjectsRequest,
     ListUsersRequest,
+    ListRegistryRequest,
 );
 
 impl Validate for ListTriggerEventsRequest {

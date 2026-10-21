@@ -3,6 +3,7 @@
 use std::error::Error;
 use std::time::Duration;
 
+use pipedream_connect_types::ValidationField;
 use serde_json::json;
 
 use crate::error::{self, InvalidRequest};
@@ -14,6 +15,19 @@ fn invalid_requests_show_the_safe_reason_and_preserve_the_source() {
     let error = error::Error::InvalidRequest(InvalidRequest::Origin);
     assert!(error.to_string().contains("bare HTTPS origin"));
     assert!(error.source().is_some());
+}
+
+#[test]
+fn model_validation_messages_include_the_safe_field_and_bounds() {
+    let error = error::Error::InvalidRequest(InvalidRequest::Model(
+        pipedream_connect_types::Error::OutOfRange {
+            field: ValidationField::ExpiresIn,
+            minimum: 1,
+            maximum: 14_400,
+        },
+    ));
+    let message = error.to_string();
+    assert!(message.contains("expires_in must be between 1 and 14400"));
 }
 
 #[test]

@@ -13,5 +13,6 @@ mod provider_tests;
 mod recovery_tests;
 mod refresh_failure_tests;
 mod retry_tests;
-mod support;
+pub(crate) mod support;
+mod token_failure_tests;
 mod token_tests;

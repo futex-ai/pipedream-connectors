@@ -26,6 +26,11 @@ Every paged response uses `Page<T>`. A missing page count remains unknown.
 Only a zero count or a missing cursor stops `PageRequest::next`. Account
 creation and retrieval return bare `Account` values.
 
+`ListRegistryRequest` carries the filters shared by actions and registry
+triggers. `ListComponentsRequest` also carries `component_type`.
+`RunActionRequest` carries an optional `blocking` flag for the SDK execution
+contract. Live verification of that flag is pending.
+
 Only credentials use redacted wrappers. Account creation mappings and nested
 webhook signing keys stay redacted. Redirect and webhook URLs remain plain
 strings.

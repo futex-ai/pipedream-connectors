@@ -55,6 +55,23 @@ pub struct ListComponentsRequest {
     pub component_type: Option<ComponentType>,
 }
 
+/// Action or registry-trigger query without a component-type filter.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct ListRegistryRequest {
+    /// Cursor and page limit.
+    #[serde(flatten)]
+    pub page: PageRequest,
+    /// Full-text query sent as `q`.
+    #[serde(rename = "q", skip_serializing_if = "Option::is_none")]
+    pub query: Option<String>,
+    /// App filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app: Option<AppSlug>,
+    /// Registry source.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub registry: Option<RegistryKind>,
+}
+
 /// Component, action, or registry trigger version query.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct GetComponentRequest {

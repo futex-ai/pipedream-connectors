@@ -15,6 +15,7 @@ pub mod pagination;
 pub mod request;
 #[cfg(feature = "reqwest")]
 pub mod reqwest_transport;
+pub mod resources;
 pub mod retry;
 pub mod runtime;
 pub mod token;

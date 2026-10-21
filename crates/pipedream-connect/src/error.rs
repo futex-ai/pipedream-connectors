@@ -53,7 +53,7 @@ pub enum InvalidRequest {
         field: ConfigurationField,
     },
     /// A typed request failed its model validation.
-    #[error("[pipedream-connect/request] invalid request model")]
+    #[error("[pipedream-connect/request] invalid request model: {0}")]
     Model(pipedream_connect_types::Error),
 }
 
@@ -159,4 +159,6 @@ pub(crate) enum WireFailure {
     Token,
     #[error("[pipedream-connect/request] URL construction failed")]
     Url,
+    #[error("[pipedream-connect/resources] response identity does not match the request")]
+    IdentityMismatch,
 }
