@@ -14,16 +14,16 @@ pub struct ProjectWebhook {
     /// Whether a signing key exists.
     pub signing_key_set: bool,
     /// Signing key when returned.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signing_key: Option<SecretString>,
     /// Creation timestamp in epoch seconds.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
     /// Update timestamp in epoch seconds.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
     /// Project environment.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub environment: Option<Environment>,
     /// Unknown provider fields.
     #[serde(flatten)]
@@ -56,7 +56,7 @@ pub struct WebhookWithOptionalSigningKey {
     /// Destination URL.
     pub url: String,
     /// Signing key when returned.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signing_key: Option<SecretString>,
     /// Whether a signing key is configured.
     pub signing_key_set: bool,

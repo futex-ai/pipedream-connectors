@@ -8,8 +8,6 @@ mod epoch_millis;
 mod error;
 mod execution;
 mod ids;
-#[cfg(test)]
-mod option_epoch_millis;
 mod pagination;
 mod props;
 mod registry;

@@ -1,6 +1,6 @@
 # pipedream-connect-types
 
-`pipedream-connect-types` contains the pure, lossless Rust models for the
+`pipedream-connect-types` contains pure Rust models for the
 Pipedream Connect API. Depend on this crate when an application needs typed
 requests and responses without an HTTP client or an async runtime.
 
@@ -10,7 +10,8 @@ requests and responses without an HTTP client or an async runtime.
 - Serialize and deserialize registry, account, execution, trigger, and
   administration models.
 - Preserve unknown response fields, enum values, and property definitions.
-- Redact credential-class values in diagnostics while keeping wire values available.
+- Redact credential-class values in diagnostics while keeping wire values
+  available.
 
 ## What This Crate Does
 
@@ -19,8 +20,13 @@ clock, persistence, or async-runtime responsibilities. Response structs keep
 unknown fields in flattened maps, and unknown enum or property values remain
 available to callers. Configured values encode in the same untagged shape that
 the API accepts. App references, SQL values, timer values, and property options
-keep unknown object fields. Numeric values keep integer precision through the
-JSON integer range.
+keep unknown object fields. JSON values keep integers exactly within the
+`i64` and `u64` ranges. Larger integers and long decimals can round during
+decoding. These models do not retain the original JSON number text.
+
+Absent response fields stay omitted when their schemas do not permit null.
+Nullable response fields keep explicit null output. Request deserialization
+checks the page limit, trigger event limit, and Connect token lifetime.
 
 Every paged response uses `Page<T>`. A missing page count remains unknown.
 Only a zero count or a missing cursor stops `PageRequest::next`. Account
@@ -72,14 +78,16 @@ crates/pipedream-connect-types/tests/fixtures/refresh-openapi.sh
 - `src/secret.rs` defines redacted `SecretString`, `SecretJson`, and
   `ConnectToken`.
 - `src/pagination.rs` defines bounded `PageRequest`, `PageInfo`, and `Page<T>`.
-- `src/registry/` defines apps, components, enums, annotations, and list requests.
+- `src/registry/` defines apps, components, enums, annotations, and list
+  requests.
 - `src/props/` defines lossless configurable props and configured values.
 - `src/accounts/` defines accounts, external users, and Connect token requests.
 - `src/execution/` defines configuration, dynamic props, observations, and
   action results.
 - `src/triggers/` defines emitters, deployed triggers, webhooks, workflows,
   and events.
-- `src/admin/` defines projects, OAuth apps, overrides, webhooks, usage, and tokens.
+- `src/admin/` defines projects, OAuth apps, overrides, webhooks, usage, and
+  tokens.
 - `src/wire.rs` defines data and error envelopes and response aliases.
 - `tests/conformance.rs` checks nested response maps, union branches, nulls,
   optional fields, request bodies, and query models against vendored schemas.

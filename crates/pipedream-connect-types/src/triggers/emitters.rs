@@ -2,7 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_json::Value;
+use serde_json::{Number, Value};
 
 use crate::{
     ComponentKey, ConfigurableProp, ConfiguredProps, DeployedTriggerId, SecretString,
@@ -47,7 +47,7 @@ pub struct DeployedComponent {
     #[serde(default)]
     pub callback_observations: Option<Value>,
     /// Whether deploy hooks may emit.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub emit_on_deploy: Option<bool>,
     /// Discriminator.
     #[serde(rename = "type")]
@@ -56,10 +56,10 @@ pub struct DeployedComponent {
     #[serde(default)]
     pub webhook_signing_key: Option<SecretString>,
     /// Effective webhook destination URLs when returned.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhook_urls: Option<Vec<String>>,
     /// Webhook destinations and redacted signing keys when returned.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhooks: Option<Vec<TriggerWebhook>>,
     /// Unknown provider fields.
     #[serde(flatten)]
@@ -103,10 +103,10 @@ pub struct TimerInterface {
     /// Interface identifier.
     pub id: String,
     /// Interval schedule in seconds.
-    #[serde(default)]
-    pub interval_seconds: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interval_seconds: Option<Number>,
     /// Cron schedule.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cron: Option<String>,
     /// IANA timezone.
     pub timezone: String,

@@ -18,7 +18,7 @@ pub struct Project {
     #[serde(default)]
     pub support_email: Option<String>,
     /// Whether key-based account checks are required.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connect_require_key_auth_test: Option<bool>,
     /// Unknown provider fields.
     #[serde(flatten)]
@@ -72,6 +72,7 @@ pub struct ProjectInfoApp {
     #[serde(default)]
     pub id: Option<String>,
     /// Provider app slug.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name_slug: Option<AppSlug>,
     /// Unknown provider fields.
     #[serde(flatten)]

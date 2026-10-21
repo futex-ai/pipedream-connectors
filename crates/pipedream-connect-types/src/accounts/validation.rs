@@ -20,7 +20,7 @@ pub struct ValidateTokenResponse {
     #[serde(default)]
     pub oauth_app_id: Option<String>,
     /// Whether Pipedream selected a Workday official client.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub oauth_app_workday_official: Option<bool>,
     /// Project app name.
     #[serde(default)]

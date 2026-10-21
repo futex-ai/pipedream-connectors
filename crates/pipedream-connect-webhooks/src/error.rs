@@ -3,7 +3,7 @@
 use thiserror::Error;
 
 /// Errors returned while decoding a connection event or trigger delivery.
-#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+#[derive(Debug, Error)]
 pub enum PayloadError {
     /// The raw body is larger than the limit supplied by the caller.
     #[error("[pipedream-connect-webhooks/payload] body exceeds the configured limit")]
@@ -14,6 +14,13 @@ pub enum PayloadError {
     /// The body is not valid JSON.
     #[error("[pipedream-connect-webhooks/payload] invalid JSON body")]
     InvalidJson,
+    /// A raw JSON value could not be parsed or decoded as the requested type.
+    #[error("[pipedream-connect-webhooks/payload] JSON value conversion failed")]
+    Json {
+        /// The original JSON parsing or decoding error.
+        #[source]
+        source: serde_json::Error,
+    },
     /// The JSON does not satisfy the connection event contract.
     #[error("[pipedream-connect-webhooks/payload] invalid connection event")]
     InvalidConnectionEvent,
@@ -27,10 +34,11 @@ pub enum PayloadError {
 
 impl PayloadError {
     /// Returns the HTTP status that normally represents this payload failure.
-    pub const fn status_code(self) -> u16 {
+    pub const fn status_code(&self) -> u16 {
         match self {
             Self::BodyTooLarge { .. } => 413,
             Self::InvalidJson
+            | Self::Json { .. }
             | Self::InvalidConnectionEvent
             | Self::InvalidTriggerDelivery
             | Self::InvalidContextId => 400,

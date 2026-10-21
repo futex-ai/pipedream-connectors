@@ -6,9 +6,12 @@ boundaries it needs.
 
 ## Components
 
-The types library owns pure identifiers, request and response models, lossless
-JSON values, pagination metadata, credential wrappers, and public error data.
-It has no network, clock, sleeper, or async-runtime responsibility.
+The types library owns pure identifiers, request and response models, JSON
+values, pagination metadata, credential wrappers, and public error data.
+It has no network, clock, sleeper, or async-runtime responsibility. Its JSON
+values keep integers exactly within the `i64` and `u64` ranges. Larger integers
+and long decimals can round. These models preserve fields without retaining
+the original JSON number text.
 
 The client library owns authenticated Connect requests, resource operations,
 response bounds, status mapping, token providers, and optional GET retry
@@ -20,7 +23,10 @@ body limits, connection event decoding, and trigger delivery decoding. It
 shares the pure models and credential wrappers with the client boundary.
 It keeps session identifiers, event payloads, and unknown webhook fields as
 exact JSON text. It offers typed access without changing JSON number handling
-in applications that depend on the SDK.
+in applications that depend on the SDK. Typed access can round numbers when
+the selected type has less precision. Shared account models inside webhook
+payloads have the types library's number limits. Only raw webhook JSON fields
+retain exact number text.
 
 The CLI is a user-facing composition root. It reads configuration from flags
 or `PIPEDREAM_*` environment variables, constructs a client, runs read
@@ -81,8 +87,9 @@ decoding.
 
 The dispatcher maps HTTP statuses and structured execution errors before
 success decoding. Shared JSON decoding retains only safe error locations.
-The resource operation returns a typed lossless model, a byte-preserving proxy
-response, an accepted asynchronous result, or a public client error.
+The resource operation returns a typed model that preserves fields, a proxy
+response that preserves bytes, an accepted asynchronous result, or a public
+client error.
 
 A webhook host receives the raw HTTP body and signature header. It selects the
 trigger or project environment key, verifies the raw bytes, and then decodes a

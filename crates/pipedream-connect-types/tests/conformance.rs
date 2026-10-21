@@ -19,7 +19,7 @@ use conformance_extra::HasExtra;
 use samples::{Mode, assert_preserved};
 
 const FIXTURE: &str = "tests/fixtures/pipedream_openapi_swagger.json";
-type Decode = fn(&str, Value);
+type Decode = fn(&str, Value, Value);
 
 fn covered() -> Vec<(&'static str, Decode)> {
     vec![
@@ -87,7 +87,8 @@ fn every_response_union_map_null_and_optional_shape_decodes() {
         let schema = &schemas[name];
         for mode in [Mode::Full, Mode::Minimal, Mode::Nullable] {
             for sample in samples::samples(schema, schemas, mode, true) {
-                decode(name, sample);
+                let expected = samples::expected_response(&sample, schema, schemas);
+                decode(name, sample, expected);
             }
         }
     }
@@ -114,7 +115,10 @@ fn documented_response_examples_decode_directly() {
                             .into_iter()
                             .find(|(covered, _)| Some(*covered) == name)
                         {
-                            decode(name, value);
+                            let schemas = document["components"]["schemas"].as_object().unwrap();
+                            let expected =
+                                samples::expected_response(&value, &body["schema"], schemas);
+                            decode(name, value, expected);
                         } else {
                             let decoded: Value = serde_json::from_value(value.clone())
                                 .unwrap_or_else(|error| {
@@ -129,12 +133,12 @@ fn documented_response_examples_decode_directly() {
     }
 }
 
-fn decode<T: DeserializeOwned + Serialize + HasExtra>(name: &str, sample: Value) {
+fn decode<T: DeserializeOwned + Serialize + HasExtra>(name: &str, sample: Value, expected: Value) {
     let decoded: T = serde_json::from_value(sample.clone())
         .unwrap_or_else(|error| panic!("{name}: {error}\n{sample}"));
     decoded.check_extra();
     let encoded = serde_json::to_value(decoded).unwrap();
-    assert_preserved(&sample, &encoded, name);
+    assert_preserved(&expected, &encoded, name);
 }
 
 fn response_examples(body: &Value) -> Vec<Value> {
@@ -150,4 +154,30 @@ fn response_examples(body: &Value) -> Vec<Value> {
         );
     }
     values
+}
+
+#[test]
+fn absent_nonnullable_response_fields_do_not_become_null() {
+    let account: Account = serde_json::from_value(serde_json::json!({"id":"apn_sample"})).unwrap();
+    let encoded = serde_json::to_value(account).unwrap();
+    for field in [
+        "healthy",
+        "external_id",
+        "app",
+        "created_at",
+        "updated_at",
+        "authorized_scopes",
+        "expires_at",
+    ] {
+        assert!(
+            encoded.get(field).is_none(),
+            "fabricated {field}: {encoded}"
+        );
+    }
+    assert_eq!(encoded.get("name"), Some(&Value::Null));
+    let page: PageInfo = serde_json::from_value(serde_json::json!({})).unwrap();
+    let encoded = serde_json::to_value(page).unwrap();
+    assert!(encoded.get("count").is_none());
+    assert!(encoded.get("total_count").is_none());
+    assert_eq!(encoded.get("start_cursor"), Some(&Value::Null));
 }

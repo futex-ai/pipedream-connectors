@@ -21,7 +21,7 @@ pub enum ConfiguredPropValue {
     },
     /// A boolean value.
     Boolean(bool),
-    /// A lossless JSON number.
+    /// A JSON number with the precision supported by `serde_json::Number`.
     Number(Number),
     /// A SQL query value.
     Sql {

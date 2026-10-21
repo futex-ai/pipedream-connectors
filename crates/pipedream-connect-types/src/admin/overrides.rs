@@ -21,15 +21,15 @@ pub struct AppOverride {
     #[serde(default)]
     pub oauth_app_id: Option<OauthAppId>,
     /// Predefined custom fields.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cfmap: Option<BTreeMap<String, Value>>,
     /// Owner identifier.
     pub owner_id: String,
     /// Creation time.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<DateTime<Utc>>,
     /// Last update time.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<DateTime<Utc>>,
     /// Unknown provider fields.
     #[serde(flatten)]

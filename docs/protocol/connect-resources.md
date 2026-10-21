@@ -77,9 +77,12 @@ The OpenAPI document shows workflow endpoint IDs with a `p_` prefix, but the
 Connect docs describe endpoint URLs rather than a stable ID grammar.
 
 **Decision.** The listed six prefixes are enforced because the OpenAPI document
-specifies them. `p_` is accepted as an opaque workflow endpoint value until
-Pipedream publishes a stable workflow ID contract. A free-form grammar for all
-IDs was rejected because these values enter URL paths.
+specifies them. App override IDs use the common grammar even though the
+OpenAPI document shows `^ao_`. The SDK adds no prefix rule beyond the six
+listed prefixes without a user decision. `p_` is accepted as an opaque workflow
+endpoint value until Pipedream publishes a stable workflow ID contract.
+A free-form grammar for all IDs was rejected because these values enter URL
+paths.
 
 ## Cursor pagination
 

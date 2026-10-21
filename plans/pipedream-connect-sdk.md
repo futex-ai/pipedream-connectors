@@ -300,8 +300,10 @@ no user answer. Each records the alternative and the reason.
 - **Schema-generated conformance samples (2026-10-21).** The conformance
   test generates one JSON instance from every covered response schema,
   including required and optional fields, types, formats, enums, and a small
-  identifier-pattern table. It decodes each instance, checks documented
-  fields do not enter unknown-field maps, and checks a lossless round trip.
+  identifier-pattern table. Key-based samples also match existing identifier
+  types when a field schema omits their prefix. It decodes each instance.
+  It checks that documented fields do not enter unknown-field maps, and checks
+  a lossless round trip.
   It also decodes future `example` and `examples` response values. Rejected:
   testing only response examples, because the fetched OpenAPI document has no
   response examples.
@@ -352,8 +354,14 @@ no user answer. Each records the alternative and the reason.
   union branches, populated maps, nulls, and omitted optional fields.
   Assertions inspect nested extra maps and compare encoded request bodies
   and queries. Known prop-kind details remain in their lossless extra maps.
-  Rejected: one sample per union and sample-value patches that mask model
-  restrictions. Reason: all documented branches need direct checks.
+  Key-based identifier samples cover `project_id`, `oauth_app_id`,
+  `account_id`, `connect_token`, and app category IDs. Some field schemas omit
+  prefixes that the model types enforce. The `appcat_` prefix decision remains
+  open, and these samples retain the current model rule without settling it.
+  Rejected: one sample per union and identifiers derived only from schema
+  examples. Reason: all documented branches need checks, and prefix omissions
+  must not prevent tests of the other fields. These samples do not prove that
+  a model accepts every identifier its schema permits.
 - **Dispatch composition (2026-10-21).** `RequestDispatcher` owns the shared
   authenticated request flow. `PipedreamClient` constructs it from shared
   transport, clock, sleeper, and token-provider traits. Pure operation
@@ -427,6 +435,31 @@ no user answer. Each records the alternative and the reason.
   Rejected: omitting the required SDK option or putting it in an undocumented
   query parameter. The current OpenAPI schema and public run-action page
   omit this field. Real-project verification remains blocked on credentials.
+- **Second review, nullable response fields (2026-10-21).** Optional response
+  fields omit absent values when their schemas do not permit null. Nullable
+  fields keep explicit null output. Strict conformance comparisons build
+  expected null defaults from nullable schema fields only. Rejected: accepting
+  every extra null in the comparison. Reason: that masks null output that a
+  schema forbids.
+- **Second review, delivery decoding (2026-10-21).** One private helper parses
+  trigger deliveries and checks context IDs for both decoding paths. Named
+  decode methods hash exact body bytes. Direct serde decoding hashes the JSON
+  value text, which excludes outer whitespace. Invalid JSON retains its body
+  error. Invalid delivery shapes construct `InvalidTriggerDelivery`. Rejected:
+  a check only in the named methods or deleting the unused shape error.
+  Reason: both paths need validation, and callers can distinguish bad shapes.
+- **Second review, JSON errors and numbers (2026-10-21).** Raw JSON access
+  returns `PayloadError::Json` with the original serde error as its source.
+  Timer interface intervals use `serde_json::Number` to retain integer values.
+  Shared models keep exact integers only within the `i64` and `u64` ranges.
+  Larger integers and long decimals can round. Exact number text stays in raw
+  webhook fields. Rejected: public serde errors and floating-point intervals.
+  Reason: crate errors keep one boundary, and integer schedules must survive.
+- **Second review, request validation (2026-10-21).** Token builders, explicit
+  validation, and serde share one lifetime validator. Trigger event serde uses
+  the request constructor. Rejected: separate range checks for serde.
+  Reason: shared checks keep construction and deserialization aligned without
+  adding validation beyond the assigned range checks.
 
 ## Open decisions
 
@@ -639,6 +672,14 @@ Summary: the `pipedream-connect-types` crate, pure data with serde.
       Evidence: `.context/pipedream-connect-sdk/review-targeted-tests.txt` and
       `.context/pipedream-connect-sdk/review-gate.txt`.
 
+- [x] Second review fixes: response nullability, conformance samples, dead
+      timestamp adapter, number precision docs, timer intervals, and request
+      deserialization checks. Run targeted tests and the complete gate.
+      Validate Markdown and commit without a push for the orchestrator.
+      Evidence: `.context/review-m3-fix2/targeted-final.txt`,
+      `.context/review-m3-fix2/gate.txt`, and
+      `.context/review-m3-fix2/markdown-final.txt`.
+
 ## Milestone 4: Client core
 
 Summary: the `pipedream-connect` crate can authenticate and dispatch, with
@@ -800,6 +841,12 @@ Summary: the `pipedream-connect-webhooks` crate.
 - [x] Review fix round for Milestones 3 and 9: resolve review items 37 to 40,
       preserve raw webhook JSON, update the docs, run the gate, commit, and
       push. Leave the webhook body-limit default open.
+
+- [x] Second review fixes: exact body identity, shared context ID validation,
+      shape errors, and raw JSON crate errors. Update the README, run targeted
+      tests and the complete gate, and commit without a push.
+      Evidence: `.context/review-m3-fix2/targeted-final.txt` and
+      `.context/review-m3-fix2/gate.txt`.
 
 ## Milestone 10: CLI
 

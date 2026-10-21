@@ -55,16 +55,16 @@ pub struct App {
     #[serde(default)]
     pub custom_fields_json: Option<String>,
     /// App categories.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub categories: Option<Vec<String>>,
     /// Provider popularity ordering.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub featured_weight: Option<f64>,
     /// Named OAuth scope profiles.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scope_profiles: Option<Vec<ScopeProfile>>,
     /// App proxy capabilities, when returned.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connect: Option<ProxySupport>,
     /// Unknown provider fields.
     #[serde(flatten)]
@@ -75,10 +75,10 @@ pub struct App {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct AppCategory {
     /// Category identifier.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<AppCategoryId>,
     /// Human-readable category name.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// Public category description.
     #[serde(default)]

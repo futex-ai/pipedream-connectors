@@ -35,10 +35,10 @@ pub struct RunActionRequest {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct RunActionResponse {
     /// Values exported by action steps.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exports: Option<Value>,
     /// Execution observations.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub os: Option<Vec<Observation>>,
     /// Action return value.
     #[serde(default)]

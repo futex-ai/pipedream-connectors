@@ -88,3 +88,16 @@ fn encodes_plain_uris_and_the_documented_token_body() {
         })
     );
 }
+
+#[test]
+fn deserialization_checks_expiry_boundaries_and_keeps_the_default() {
+    for expiry in [0, 1, 14_400, 14_401] {
+        let decoded = serde_json::from_value::<CreateConnectTokenRequest>(json!({
+            "external_user_id": "user_1", "expires_in": expiry
+        }));
+        assert_eq!(decoded.is_ok(), (1..=14_400).contains(&expiry));
+    }
+    let decoded: CreateConnectTokenRequest =
+        serde_json::from_value(json!({"external_user_id": "user_1"})).unwrap();
+    assert_eq!(decoded, request());
+}

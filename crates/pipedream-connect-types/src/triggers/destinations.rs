@@ -12,7 +12,7 @@ pub struct TriggerWebhook {
     /// Destination URL.
     pub url: String,
     /// Signing key when returned.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signing_key: Option<SecretString>,
     /// Whether a signing key is configured.
     pub signing_key_set: bool,
@@ -27,7 +27,7 @@ pub struct TriggerWebhooks {
     /// Effective destination URLs.
     pub webhook_urls: Vec<String>,
     /// Destination metadata.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhooks: Option<Vec<TriggerWebhook>>,
     /// Unknown provider fields.
     #[serde(flatten)]

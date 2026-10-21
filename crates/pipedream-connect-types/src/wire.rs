@@ -24,10 +24,10 @@ pub struct ErrorResponse {
     /// Human-readable provider error.
     pub error: ErrorMessage,
     /// Provider error code.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub code: Option<String>,
     /// Provider error details.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub details: Option<Value>,
     /// Unknown provider fields.
     #[serde(flatten)]
