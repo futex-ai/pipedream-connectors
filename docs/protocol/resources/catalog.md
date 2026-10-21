@@ -32,8 +32,9 @@ configure and execute actions and registry triggers.
 
 ## Catalog queries
 
-App, category, component, action, and trigger list operations support cursor
-pagination.
+App, component, action, and trigger list operations support cursor pagination.
+
+The category list returns a bare array and does not accept query parameters.
 
 App lists MAY filter by query, category, sort key, sort direction, and whether
 components, actions, or triggers exist.
@@ -64,12 +65,10 @@ A configure or props operation MAY return 202 when the request is non-blocking.
 An action run accepts an action identity, external user identity, configured
 properties, and an optional stash reference.
 
-An action run MAY accept a blocking flag.
+An action run does not accept a blocking flag.
 
-A blocking action run returns its execution result when Pipedream returns 200.
-
-A non-blocking action run that returns 202 returns an accepted asynchronous
-result without decoding a result body.
+An action run that returns 202 returns an accepted asynchronous result without
+decoding a result body.
 
 A structured execution error preserves the provider attribution, name, and
 message fields described by the client error contract.

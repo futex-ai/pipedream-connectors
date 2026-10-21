@@ -12,11 +12,13 @@ use pipedream_connect_types::{
 use crate::client::RequestDispatcher;
 use crate::error::Result;
 
-use super::catalog::{CatalogGroup, check_component, get_request};
-use super::{execution, queries};
+use super::operation::{self, CatalogGroup};
 
 /// Registry actions operations, consumed through a shared trait object.
-#[cfg_attr(any(test, feature = "unimock"), unimock::unimock(api = ActionsApiMock))]
+#[cfg_attr(
+    any(test, feature = "unimock"),
+    unimock::unimock(api = ActionsApiMock)
+)]
 #[async_trait]
 pub trait ActionsApi: Send + Sync {
     /// Lists registry actions with their documented filters and cursor metadata.
@@ -31,7 +33,7 @@ pub trait ActionsApi: Send + Sync {
     async fn configure(&self, request: ConfigurePropRequest) -> Result<ConfigurePropResponse>;
     /// Reloads dynamic properties without dropping unknown property kinds.
     async fn reload_props(&self, request: ReloadPropsRequest) -> Result<ReloadPropsResponse>;
-    /// Runs an action once, with an explicit optional blocking flag and stash selector.
+    /// Runs an action once with an optional stash selector.
     async fn run(&self, request: RunActionRequest) -> Result<RunActionResponse>;
 }
 
@@ -51,10 +53,11 @@ impl Actions {
 #[async_trait]
 impl ActionsApi for Actions {
     async fn list(&self, request: ListRegistryRequest) -> Result<Page<Component>> {
-        self.dispatcher
-            .dispatch(queries::registry(CatalogGroup::Actions, request)?)
-            .await?
-            .json()
+        operation::json(
+            &self.dispatcher,
+            operation::list_registry(CatalogGroup::Actions, &request),
+        )
+        .await
     }
 
     async fn get(
@@ -62,33 +65,36 @@ impl ActionsApi for Actions {
         key: ComponentKey,
         request: GetComponentRequest,
     ) -> Result<GetComponentResponse> {
-        let response = self
-            .dispatcher
-            .dispatch(get_request(CatalogGroup::Actions, &key, request))
-            .await?
-            .json()?;
-        check_component(response, &key)
+        let response = operation::json(
+            &self.dispatcher,
+            Ok(operation::get_component(
+                CatalogGroup::Actions,
+                &key,
+                &request,
+            )),
+        )
+        .await?;
+        operation::check_component(response, &key)
     }
 
     async fn configure(&self, request: ConfigurePropRequest) -> Result<ConfigurePropResponse> {
-        self.dispatcher
-            .dispatch(execution::configure(CatalogGroup::Actions, &request)?)
-            .await?
-            .json()
+        operation::json(
+            &self.dispatcher,
+            operation::configure(CatalogGroup::Actions, &request),
+        )
+        .await
     }
 
     async fn reload_props(&self, request: ReloadPropsRequest) -> Result<ReloadPropsResponse> {
-        self.dispatcher
-            .dispatch(execution::reload(CatalogGroup::Actions, &request)?)
-            .await?
-            .json()
+        operation::json(
+            &self.dispatcher,
+            operation::reload(CatalogGroup::Actions, &request),
+        )
+        .await
     }
 
     async fn run(&self, request: RunActionRequest) -> Result<RunActionResponse> {
-        self.dispatcher
-            .dispatch(execution::run(&request)?)
-            .await?
-            .json()
+        operation::json(&self.dispatcher, operation::run(&request)).await
     }
 }
 

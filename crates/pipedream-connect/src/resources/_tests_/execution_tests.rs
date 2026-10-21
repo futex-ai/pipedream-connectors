@@ -105,29 +105,47 @@ async fn configure_and_reload_send_exact_bodies_and_keep_lossless_results() {
 #[tokio::test]
 async fn nonblocking_configure_and_reload_accept_202_without_decoding_a_result() {
     for resource in Resource::all() {
-        let mut reply = response(202, json!({}));
-        reply.body = b"accepted without JSON".to_vec();
-        let harness = Harness::new(vec![reply.clone(), reply]);
-        let (request, expected) = configure(Some(false));
-        assert!(matches!(
-            resource.configure(&harness.client, request).await,
-            Err(Error::Accepted)
-        ));
-        assert_post(
-            harness.request(1),
-            &format!("{}/configure", resource.path()),
-            &expected,
-        );
-        let (request, expected) = reload(Some(false));
-        assert!(matches!(
-            resource.reload(&harness.client, request).await,
-            Err(Error::Accepted)
-        ));
-        assert_post(
-            harness.request(2),
-            &format!("{}/props", resource.path()),
-            &expected,
-        );
+        for blocking in [None, Some(false), Some(true)] {
+            let mut reply = response(202, json!({}));
+            reply.body = b"accepted without JSON".to_vec();
+            let harness = Harness::new(vec![reply.clone(), reply]);
+            let (request, expected) = configure(blocking);
+            let result = resource.configure(&harness.client, request).await;
+            if blocking == Some(true) {
+                assert!(matches!(result, Err(Error::Internal(_))));
+            } else {
+                assert!(matches!(result, Err(Error::Accepted)));
+            }
+            assert_post(
+                harness.request(1),
+                &format!("{}/configure", resource.path()),
+                &expected,
+            );
+            let (request, expected) = reload(blocking);
+            let result = resource.reload(&harness.client, request).await;
+            if blocking == Some(true) {
+                assert!(matches!(result, Err(Error::Internal(_))));
+            } else {
+                assert!(matches!(result, Err(Error::Accepted)));
+            }
+            assert_post(
+                harness.request(2),
+                &format!("{}/props", resource.path()),
+                &expected,
+            );
+            harness.assert_requests(3);
+        }
+    }
+}
+
+#[tokio::test]
+async fn blocking_configure_and_reload_decode_a_202_body() {
+    for resource in Resource::all() {
+        let harness = Harness::new(vec![response(202, json!({})), response(202, json!({}))]);
+        let (request, _) = configure(Some(true));
+        assert!(resource.configure(&harness.client, request).await.is_ok());
+        let (request, _) = reload(Some(true));
+        assert!(resource.reload(&harness.client, request).await.is_ok());
         harness.assert_requests(3);
     }
 }
@@ -151,11 +169,16 @@ async fn configure_and_reload_return_structured_execution_failures() {
                     .unwrap_err(),
                 resource.reload(&harness.client, reload).await.unwrap_err(),
             ];
-            for error in errors {
+            for (error, expected_status) in errors.into_iter().zip([status, status]) {
                 assert!(!format!("{error:?} {error}").contains("provider-secret"));
-                let Error::ExecutionFailed(error) = error else {
+                let Error::ExecutionFailed {
+                    error,
+                    status: actual,
+                } = error
+                else {
                     panic!("expected structured execution error")
                 };
+                assert_eq!(actual, expected_status);
                 assert_eq!(error.message.as_deref(), Some("provider-secret"));
                 assert_eq!(
                     error.attribution.unwrap().origin,

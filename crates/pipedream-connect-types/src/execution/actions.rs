@@ -17,9 +17,6 @@ pub struct RunActionRequest {
     pub version: Option<String>,
     /// External user partition.
     pub external_user_id: ExternalUserId,
-    /// Whether to wait for completion.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub blocking: Option<bool>,
     /// Configured action values.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub configured_props: Option<ConfiguredProps>,

@@ -34,8 +34,8 @@ creation and retrieval return bare `Account` values.
 
 `ListRegistryRequest` carries the filters shared by actions and registry
 triggers. `ListComponentsRequest` also carries `component_type`.
-`RunActionRequest` carries an optional `blocking` flag for the SDK execution
-contract. Live verification of that flag is pending.
+`RunActionRequest` follows the Pipedream run-action schema and does not carry
+a blocking flag. A run that returns 202 is always accepted asynchronously.
 
 Only credentials use redacted wrappers. Account creation mappings and nested
 webhook signing keys stay redacted. Redirect and webhook URLs remain plain

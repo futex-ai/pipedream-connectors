@@ -5,10 +5,11 @@ use std::fmt;
 use http::{HeaderMap, Method};
 use pipedream_connect_types::PageRequest;
 use serde::Serialize;
+use serde_json::Value;
 use url::Url;
 
 use crate::config::ClientConfig;
-use crate::error::{Error, Result, WireFailure, validate};
+use crate::error::{Error, Result, WireFailure};
 use crate::json::encode;
 use crate::validation::Validate;
 
@@ -97,17 +98,42 @@ impl ApiRequest {
     }
 
     /// Validates and appends the cursor pagination query.
-    pub fn with_page(mut self, page: &PageRequest) -> Result<Self> {
-        validate(page.validate())?;
-        self.query
-            .push(("limit".to_owned(), page.limit.to_string()));
-        if let Some(cursor) = &page.after {
-            self.query
-                .push(("after".to_owned(), cursor.as_str().to_owned()));
-        }
-        if let Some(cursor) = &page.before {
-            self.query
-                .push(("before".to_owned(), cursor.as_str().to_owned()));
+    pub fn with_page(self, page: &PageRequest) -> Result<Self> {
+        self.with_query(page)
+    }
+
+    /// Validates a query model and encodes its serde fields as query pairs.
+    ///
+    /// Strings, booleans, numbers, and arrays of those values are supported.
+    /// Nested objects cannot be represented by the Connect query contract.
+    pub fn with_query<T: Serialize + Validate>(mut self, model: &T) -> Result<Self> {
+        model.validate()?;
+        let value = match serde_json::to_value(model) {
+            Ok(value) => value,
+            Err(_) => return Err(Error::internal(WireFailure::Encode)),
+        };
+        let Some(fields) = value.as_object() else {
+            return Err(Error::internal(WireFailure::QueryShape));
+        };
+        for (name, value) in fields {
+            match value {
+                Value::Null => {}
+                Value::Array(values) => {
+                    for value in values {
+                        if let Some(value) = query_scalar(value) {
+                            self.query.push((name.clone(), value));
+                        } else {
+                            return Err(Error::internal(WireFailure::QueryShape));
+                        }
+                    }
+                }
+                value => {
+                    let Some(value) = query_scalar(value) else {
+                        return Err(Error::internal(WireFailure::QueryShape));
+                    };
+                    self.query.push((name.clone(), value));
+                }
+            }
         }
         Ok(self)
     }
@@ -146,6 +172,15 @@ impl ApiRequest {
     pub fn with_response_mode(mut self, mode: ResponseMode) -> Self {
         self.mode = mode;
         self
+    }
+}
+
+fn query_scalar(value: &Value) -> Option<String> {
+    match value {
+        Value::String(value) => Some(value.clone()),
+        Value::Bool(value) => Some(value.to_string()),
+        Value::Number(value) => Some(value.to_string()),
+        Value::Null | Value::Array(_) | Value::Object(_) => None,
     }
 }
 

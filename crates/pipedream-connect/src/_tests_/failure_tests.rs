@@ -65,6 +65,19 @@ async fn known_statuses_keep_typed_categories_and_redacted_messages() {
 }
 
 #[tokio::test]
+async fn a_structured_error_without_execution_fields_keeps_http_status_mapping() {
+    let harness = Harness::script(
+        static_config(),
+        vec![Ok(response(400, json!({"error":{"message":"bad"}})))],
+    );
+    assert!(matches!(
+        harness.get().await,
+        Err(Error::Rejected { status: 400, .. })
+    ));
+    harness.assert_requests(1);
+}
+
+#[tokio::test]
 async fn malformed_and_non_json_errors_still_map_from_the_status() {
     for body in [
         b"upstream secret html".to_vec(),
@@ -167,9 +180,14 @@ async fn execution_attribution_and_provider_text_stay_available_as_data() {
                 .await
                 .unwrap_err();
             assert!(!format!("{error:?} {error}").contains("provider-secret"));
-            let Error::ExecutionFailed(execution) = error else {
+            let Error::ExecutionFailed {
+                error: execution,
+                status: actual,
+            } = error
+            else {
                 panic!("missing execution error")
             };
+            assert_eq!(actual, status);
             assert_eq!(execution.message.as_deref(), Some("provider-secret"));
             let attribution = execution.attribution.unwrap();
             assert_eq!(attribution.origin, expected);
@@ -255,6 +273,6 @@ async fn an_execution_error_object_cannot_be_an_empty_success() {
         .dispatch(request)
         .await
         .unwrap_err();
-    assert!(matches!(error, Error::ExecutionFailed(_)));
+    assert!(matches!(error, Error::ExecutionFailed { .. }));
     harness.assert_requests(1);
 }

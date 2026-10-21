@@ -9,7 +9,8 @@ use unimock::{MockFn, Unimock, matching};
 
 use crate::error::Error;
 use crate::pagination::{
-    BoundedPaginator, PageSourceMock, PaginationEnd, PaginationError, Paginator,
+    BoundedPaginator, FilteredPageSource, PageSource, PageSourceMock, PaginationEnd,
+    PaginationError, Paginator,
 };
 
 fn page(data: &[u32], start: Option<&str>, end: Option<&str>) -> Page<u32> {
@@ -146,4 +147,26 @@ async fn invalid_initial_pages_send_no_request_and_source_errors_propagate() {
             ..
         })
     ));
+}
+
+#[tokio::test]
+async fn filtered_page_source_changes_only_the_page() {
+    let captured = Arc::new(Mutex::new(Vec::new()));
+    let observed = captured.clone();
+    let filters = pipedream_connect_types::ListRegistryRequest {
+        query: Some("calendar".into()),
+        ..Default::default()
+    };
+    let source = FilteredPageSource::new(filters, move |request| {
+        observed.lock().unwrap().push(request.clone());
+        async move { Ok(page(&[], None, None)) }
+    });
+    source
+        .fetch(PageRequest::with_limit(7).unwrap())
+        .await
+        .unwrap();
+    let requests = captured.lock().unwrap();
+    assert_eq!(requests.len(), 1);
+    assert_eq!(requests[0].query.as_deref(), Some("calendar"));
+    assert_eq!(requests[0].page.limit, 7);
 }

@@ -38,13 +38,23 @@ pub(crate) fn repeat_failure(error: &Arc<Error>) -> Error {
         },
         Error::Unavailable { status } => Error::Unavailable { status: *status },
         Error::ResponseTooLarge { limit } => Error::ResponseTooLarge { limit: *limit },
-        Error::ExecutionFailed(execution) => Error::ExecutionFailed(execution.clone()),
+        Error::ExecutionFailed {
+            status,
+            error: execution,
+        } => Error::ExecutionFailed {
+            status: *status,
+            error: execution.clone(),
+        },
         Error::Accepted => Error::Accepted,
+        Error::InvalidRequest(InvalidRequest::Model(pipedream_connect_types::Error::Internal(
+            _,
+        ))) => Error::internal(error.clone()),
         Error::InvalidRequest(reason) => Error::InvalidRequest(repeat_invalid(reason, error)),
         Error::Internal(_) => Error::internal(error.clone()),
     }
 }
 
+#[track_caller]
 fn repeat_invalid(reason: &InvalidRequest, original: &Arc<Error>) -> InvalidRequest {
     match reason {
         InvalidRequest::Origin => InvalidRequest::Origin,

@@ -10,6 +10,24 @@ use super::apps::{Apps, AppsApi};
 use super::components::{Components, ComponentsApi};
 use super::triggers::{Triggers, TriggersApi};
 
+/// Factory for all resource groups backed by one Connect client.
+#[cfg_attr(
+    any(test, feature = "unimock"),
+    unimock::unimock(api = ConnectResourcesMock)
+)]
+pub trait ConnectResources: Send + Sync {
+    /// Returns app discovery operations.
+    fn apps(&self) -> Arc<dyn AppsApi + Send + Sync>;
+    /// Returns app category operations.
+    fn app_categories(&self) -> Arc<dyn AppCategoriesApi + Send + Sync>;
+    /// Returns generic registry component operations.
+    fn components(&self) -> Arc<dyn ComponentsApi + Send + Sync>;
+    /// Returns registry action operations.
+    fn actions(&self) -> Arc<dyn ActionsApi + Send + Sync>;
+    /// Returns registry trigger operations.
+    fn triggers(&self) -> Arc<dyn TriggersApi + Send + Sync>;
+}
+
 impl PipedreamClient {
     /// Returns app discovery operations sharing this client's token cache.
     pub fn apps(&self) -> Arc<dyn AppsApi + Send + Sync> {
@@ -34,5 +52,27 @@ impl PipedreamClient {
     /// Returns registry trigger discovery and configuration operations.
     pub fn triggers(&self) -> Arc<dyn TriggersApi + Send + Sync> {
         Arc::new(Triggers::new(self.dispatcher()))
+    }
+}
+
+impl ConnectResources for PipedreamClient {
+    fn apps(&self) -> Arc<dyn AppsApi + Send + Sync> {
+        PipedreamClient::apps(self)
+    }
+
+    fn app_categories(&self) -> Arc<dyn AppCategoriesApi + Send + Sync> {
+        PipedreamClient::app_categories(self)
+    }
+
+    fn components(&self) -> Arc<dyn ComponentsApi + Send + Sync> {
+        PipedreamClient::components(self)
+    }
+
+    fn actions(&self) -> Arc<dyn ActionsApi + Send + Sync> {
+        PipedreamClient::actions(self)
+    }
+
+    fn triggers(&self) -> Arc<dyn TriggersApi + Send + Sync> {
+        PipedreamClient::triggers(self)
     }
 }

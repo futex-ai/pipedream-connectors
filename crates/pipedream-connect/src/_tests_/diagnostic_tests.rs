@@ -13,8 +13,18 @@ use super::support::response;
 #[test]
 fn invalid_requests_show_the_safe_reason_and_preserve_the_source() {
     let error = error::Error::InvalidRequest(InvalidRequest::Origin);
-    assert!(error.to_string().contains("bare HTTPS origin"));
+    assert_eq!(
+        error.to_string(),
+        "[pipedream-connect/request] invalid request"
+    );
     assert!(error.source().is_some());
+    let mut chain = vec![error.to_string()];
+    let mut source = error.source();
+    while let Some(next) = source {
+        chain.push(next.to_string());
+        source = next.source();
+    }
+    assert_eq!(chain.len(), 2);
 }
 
 #[test]
@@ -26,8 +36,17 @@ fn model_validation_messages_include_the_safe_field_and_bounds() {
             maximum: 14_400,
         },
     ));
-    let message = error.to_string();
-    assert!(message.contains("expires_in must be between 1 and 14400"));
+    let mut chain = vec![error.to_string()];
+    let mut source = error.source();
+    while let Some(next) = source {
+        chain.push(next.to_string());
+        source = next.source();
+    }
+    assert!(
+        chain
+            .iter()
+            .any(|value| value.contains("expires_in must be between 1 and 14400"))
+    );
 }
 
 #[test]
@@ -54,7 +73,13 @@ fn typed_debug_exposes_safe_fields_and_hides_provider_text() {
             "extra":"secret"},"extra":"secret"
     }))
     .unwrap();
-    let debug = format!("{:?}", error::Error::ExecutionFailed(Box::new(execution)));
+    let debug = format!(
+        "{:?}",
+        error::Error::ExecutionFailed {
+            status: 200,
+            error: Box::new(execution),
+        }
+    );
     for safe in [
         "UpstreamApi",
         "network_calls_count: Some(2)",
@@ -86,7 +111,10 @@ fn unknown_execution_origin_and_provider_codes_stay_out_of_debug() {
         code: Some("secret-code".into()),
         message: Some("secret-message".into()),
     };
-    let execution = error::Error::ExecutionFailed(Box::new(execution));
+    let execution = error::Error::ExecutionFailed {
+        status: 400,
+        error: Box::new(execution),
+    };
     for error in [rejected, execution] {
         assert!(!format!("{error:?} {error}").contains("secret"));
     }

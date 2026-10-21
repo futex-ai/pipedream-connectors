@@ -32,3 +32,12 @@ fn shared_failures_keep_local_validation_errors_typed() {
         ))
     ));
 }
+
+#[test]
+fn nested_model_internal_failures_promote_to_client_internal() {
+    let source = serde_json::from_str::<u32>("not-json").unwrap_err();
+    let original = Arc::new(Error::InvalidRequest(InvalidRequest::Model(
+        pipedream_connect_types::Error::internal(source),
+    )));
+    assert!(matches!(repeat_failure(&original), Error::Internal(_)));
+}

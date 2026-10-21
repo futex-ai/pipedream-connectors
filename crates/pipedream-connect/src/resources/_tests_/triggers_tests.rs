@@ -33,7 +33,7 @@ async fn list_uses_registry_trigger_filters_without_a_component_type_query() {
         .unwrap();
     assert_get(
         harness.request(1),
-        "https://api.pipedream.com/v1/connect/proj_Test123/triggers?limit=17&after=cursor%2B1&q=new+%26+changed&app=google_calendar&registry=private",
+        "https://api.pipedream.com/v1/connect/proj_Test123/triggers?after=cursor%2B1&app=google_calendar&limit=17&q=new+%26+changed&registry=private",
     );
     assert!(matches!(
         result.data[0].configurable_props[0].kind,

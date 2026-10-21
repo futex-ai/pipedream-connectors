@@ -6,10 +6,16 @@ use std::env;
 
 use pipedream_connect::PipedreamClient;
 use pipedream_connect::config::ClientCredentials;
-use pipedream_connect_types::{AppSlug, Environment, ListRegistryRequest, ProjectId};
+use pipedream_connect_types::{
+    AppSlug, ComponentType, Environment, ListRegistryRequest, ProjectId,
+};
 
 #[tokio::test]
 async fn live_pipedream_google_calendar_registry() {
+    if env::var("PIPEDREAM_LIVE_TESTS").as_deref() != Ok("1") {
+        eprintln!("skipping live Pipedream registry smoke: set PIPEDREAM_LIVE_TESTS=1");
+        return;
+    }
     let names = [
         "PIPEDREAM_CLIENT_ID",
         "PIPEDREAM_CLIENT_SECRET",
@@ -68,6 +74,20 @@ async fn live_pipedream_google_calendar_registry() {
         !triggers.data.is_empty(),
         "Google Calendar has registry triggers"
     );
+    assert!(actions.data.iter().all(|component| {
+        !component.key.as_str().is_empty()
+            && component
+                .component_type
+                .as_ref()
+                .is_some_and(|kind| kind == &ComponentType::Action)
+    }));
+    assert!(triggers.data.iter().all(|component| {
+        !component.key.as_str().is_empty()
+            && component
+                .component_type
+                .as_ref()
+                .is_some_and(|kind| kind == &ComponentType::Trigger)
+    }));
     eprintln!(
         "read Google Calendar and listed {} actions and {} triggers",
         actions.data.len(),

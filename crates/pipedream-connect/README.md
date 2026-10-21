@@ -26,14 +26,14 @@ response limit is 10 MiB. The builder can change each limit.
 trait objects. Each group has a `unimock` mock under the `unimock` feature.
 Paged lists return `Page<T>` with provider metadata. App and component
 retrieval returns the complete `Data<T>` envelope and checks its identity.
-`app_categories()` provides checked category retrieval. Category listing
-waits for the response-shape decision in the SDK plan.
+`app_categories()` lists the bare category array and provides checked category
+retrieval.
 
 Configure, reload, and run calls use the shared execution error mapping.
-An explicit `blocking: Some(false)` maps a 202 to `Error::Accepted` without
-decoding a result body. These mutations never retry. The action request's
-optional `blocking` field follows the SDK plan. The current Pipedream
-run-action schema omits it. Live verification is pending.
+An omitted or explicit `blocking: Some(false)` maps a 202 from configure or
+reload to `Error::Accepted` without decoding a result body. Action runs never
+send a blocking flag, so every 202 from a run is `Error::Accepted`. These
+mutations never retry.
 
 `PipedreamClient::new(config, transport, clock, sleeper)` accepts shared trait
 objects. It has no implicit Tokio sleeper. The builder supplies a Tokio
@@ -59,7 +59,8 @@ valid `Retry-After` value. A value above the maximum stops retries and returns
 the mapped error. Fallback delays stay within the maximum. No method
 other than GET retries. Transport failures do not trigger a retry.
 
-`BoundedPaginator` uses an injected `PageSource` through `Paginator`. Its
+`BoundedPaginator` uses an injected `PageSource` through `Paginator`. The
+`FilteredPageSource` adapter fixes list filters and changes only the page. Its
 `paginate` method returns records, page count, a stop reason, and a resumption
 request when the page limit stops traversal. A page failure returns
 `PaginationError::Interrupted` with the prior records, completed page count,
@@ -136,14 +137,43 @@ The local-socket transport tests start a local HTTP server. They need no
 Pipedream credentials. Unit tests use mocked transport, time, and sleep.
 No unit test uses a real network or clock.
 
-Run the read-only registry smoke test with all three `PIPEDREAM_*` variables:
+Run the read-only registry smoke test with all three credentials and the
+explicit opt-in:
 
 ```sh
-cargo test -p pipedream-connect --test live_pipedream -- --nocapture
+PIPEDREAM_LIVE_TESTS=1 cargo test -p pipedream-connect --test live_pipedream -- --nocapture
 ```
 
 It reads Google Calendar and lists its actions and triggers in development.
-It prints the missing variable names and skips when credentials are absent.
+It prints the missing variable names and skips when credentials or the opt-in
+are absent.
+
+### Adding an operation
+
+Add the typed request and response models first. Add a resource trait method
+and a handle method. Put the pure request builder and identity check in
+`src/resources/operation.rs`. Use `ApiRequest::with_query` for query models
+and `with_json` for JSON bodies. Decode through the shared operation helper.
+For a paged list, wrap the fixed filters in `FilteredPageSource` and pass it
+to `BoundedPaginator`:
+
+```rust,no_run
+use std::sync::Arc;
+use pipedream_connect::pagination::{BoundedPaginator, FilteredPageSource, Paginator};
+use pipedream_connect_types::{Component, ListRegistryRequest, PageRequest};
+
+# async fn pages(client: pipedream_connect::PipedreamClient) -> Result<(), Box<dyn std::error::Error>> {
+let filters = ListRegistryRequest::default();
+let source = FilteredPageSource::new(filters, move |request| {
+    let actions = client.actions();
+    Box::pin(async move { actions.list(request).await })
+});
+let paginator = BoundedPaginator::new(Arc::new(source));
+let _pages = paginator.paginate(PageRequest::default(), std::num::NonZeroUsize::new(4).unwrap()).await?;
+# let _: Option<Component> = None;
+# Ok(())
+# }
+```
 
 ### Key Code
 
@@ -153,8 +183,7 @@ It prints the missing variable names and skips when credentials are absent.
 - `src/request.rs` defines operations and the shared URL builder.
 - `src/validation.rs` requires each JSON request model to own its validation.
 - `src/resources/` defines the resource traits, handles, and client accessors.
-- `src/resources/queries.rs` encodes documented filters without local defaults.
-- `src/resources/execution.rs` builds validated execution operations.
+- `src/resources/operation.rs` builds, dispatches, decodes, and checks resource operations.
 - `src/token.rs` defines static and single-flight OAuth token providers.
 - `src/transport.rs` defines the redacted HTTP boundary and safe JSON access.
 - `src/reqwest_transport.rs` streams bounded HTTP responses.

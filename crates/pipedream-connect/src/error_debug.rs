@@ -32,8 +32,9 @@ impl fmt::Debug for Error {
                 .debug_struct("Rejected")
                 .field("status", status)
                 .finish_non_exhaustive(),
-            Self::ExecutionFailed(error) => formatter
+            Self::ExecutionFailed { status, error } => formatter
                 .debug_struct("ExecutionFailed")
+                .field("status", status)
                 .field(
                     "attribution",
                     &error.attribution.as_ref().map(SafeAttribution),

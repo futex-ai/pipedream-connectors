@@ -40,6 +40,7 @@ Each skill description says when to read it.
 - Keep Rust files under `crates/` and `xtask/` at or below 300 lines.
 - Keep scratch output under `.context/`, which Git ignores.
 - Credential-gated live tests must skip cleanly when Pipedream variables are absent.
+- Live tests also require `PIPEDREAM_LIVE_TESTS=1`.
 
 ## Review focus
 

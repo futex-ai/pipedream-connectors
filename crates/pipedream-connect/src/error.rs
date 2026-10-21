@@ -67,7 +67,7 @@ impl fmt::Debug for InvalidRequest {
 #[derive(Error, internal_error::ErrorContract)]
 pub enum Error {
     /// Local input validation failed before authentication.
-    #[error("[pipedream-connect/request] invalid request: {0}")]
+    #[error("[pipedream-connect/request] invalid request")]
     InvalidRequest(#[source] InvalidRequest),
     /// The API rejected the bearer.
     #[error("[pipedream-connect/http] unauthorized")]
@@ -110,8 +110,13 @@ pub enum Error {
         message: Option<String>,
     },
     /// An execution failed with provider attribution.
-    #[error("[pipedream-connect/execution] execution failed")]
-    ExecutionFailed(Box<ExecutionError>),
+    #[error("[pipedream-connect/execution] execution failed with status {status}")]
+    ExecutionFailed {
+        /// HTTP status returned by Connect.
+        status: u16,
+        /// Structured provider execution details.
+        error: Box<ExecutionError>,
+    },
     /// A nonblocking execution was accepted for later completion.
     #[error("[pipedream-connect/execution] accepted")]
     Accepted,
@@ -159,6 +164,8 @@ pub(crate) enum WireFailure {
     Token,
     #[error("[pipedream-connect/request] URL construction failed")]
     Url,
+    #[error("[pipedream-connect/request] query model has a nested value")]
+    QueryShape,
     #[error("[pipedream-connect/resources] response identity does not match the request")]
     IdentityMismatch,
 }

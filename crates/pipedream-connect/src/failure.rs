@@ -4,16 +4,11 @@ use std::time::{Duration, SystemTime};
 
 use http::HeaderMap;
 use pipedream_connect_types::{ErrorResponse, ExecutionError};
-use serde::Deserialize;
+use serde_json::Value;
 
 use crate::error::{Error, Result};
 use crate::request::ResponseMode;
 use crate::transport::HttpResponse;
-
-#[derive(Deserialize)]
-struct ExecutionEnvelope {
-    error: ExecutionError,
-}
 
 pub(crate) fn ensure_status(
     response: &HttpResponse,
@@ -36,8 +31,11 @@ fn classify(
         mode,
         ResponseMode::Execution { .. } | ResponseMode::PassThrough
     ) {
-        if let Ok(envelope) = serde_json::from_slice::<ExecutionEnvelope>(&response.body) {
-            return Err(Error::ExecutionFailed(Box::new(envelope.error)));
+        if let Some(error) = execution_error(&response.body) {
+            return Err(Error::ExecutionFailed {
+                status,
+                error: Box::new(error),
+            });
         }
         if status == 202 && mode == (ResponseMode::Execution { nonblocking: true }) {
             return Err(Error::Accepted);
@@ -77,6 +75,15 @@ fn classify(
             message,
         },
     })
+}
+
+fn execution_error(body: &[u8]) -> Option<ExecutionError> {
+    let value: Value = serde_json::from_slice(body).ok()?;
+    let error = value.get("error")?.as_object()?;
+    if !error.contains_key("attribution") && !error.contains_key("name") {
+        return None;
+    }
+    serde_json::from_value(Value::Object(error.clone())).ok()
 }
 
 #[cfg(test)]

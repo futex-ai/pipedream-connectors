@@ -3,22 +3,23 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use http::Method;
 use pipedream_connect_types::{App, AppSlug, GetAppResponse, ListAppsRequest, Page};
 
 use crate::client::RequestDispatcher;
-use crate::error::{Error, Result, WireFailure};
-use crate::request::{ApiPath, ApiRequest};
+use crate::error::Result;
 
-use super::queries;
+use super::operation;
 
 /// App catalog operations, consumed through a shared trait object.
-#[cfg_attr(any(test,feature="unimock"),unimock::unimock(api=AppsApiMock))]
+#[cfg_attr(
+    any(test, feature = "unimock"),
+    unimock::unimock(api = AppsApiMock)
+)]
 #[async_trait]
 pub trait AppsApi: Send + Sync {
     /// Lists apps with every documented filter and provider cursor metadata.
     async fn list(&self, request: ListAppsRequest) -> Result<Page<App>>;
-    /// Retrieves an app by slug and verifies its returned slug.
+    /// Retrieves an app by slug or provider ID and verifies its returned identity.
     async fn get(&self, slug: AppSlug) -> Result<GetAppResponse>;
 }
 
@@ -38,19 +39,12 @@ impl Apps {
 #[async_trait]
 impl AppsApi for Apps {
     async fn list(&self, request: ListAppsRequest) -> Result<Page<App>> {
-        self.dispatcher
-            .dispatch(queries::apps(request)?)
-            .await?
-            .json()
+        operation::json(&self.dispatcher, operation::list_apps(&request)).await
     }
 
     async fn get(&self, slug: AppSlug) -> Result<GetAppResponse> {
-        let request = ApiRequest::new(Method::GET, ApiPath::connect(&["apps", slug.as_str()]));
-        let response: GetAppResponse = self.dispatcher.dispatch(request).await?.json()?;
-        if response.data.name_slug != slug {
-            return Err(Error::internal(WireFailure::IdentityMismatch));
-        }
-        Ok(response)
+        let response = operation::json(&self.dispatcher, Ok(operation::get_app(&slug))).await?;
+        operation::check_app(response, &slug)
     }
 }
 

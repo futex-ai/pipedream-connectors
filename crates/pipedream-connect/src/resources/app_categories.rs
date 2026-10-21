@@ -3,17 +3,22 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use http::Method;
-use pipedream_connect_types::{AppCategoryId, GetAppCategoryResponse};
+use pipedream_connect_types::{AppCategoryId, GetAppCategoryResponse, ListAppCategoriesResponse};
 
 use crate::client::RequestDispatcher;
-use crate::error::{Error, Result, WireFailure};
-use crate::request::{ApiPath, ApiRequest};
+use crate::error::Result;
+
+use super::operation;
 
 /// App category operations, consumed through a shared trait object.
-#[cfg_attr(any(test,feature="unimock"),unimock::unimock(api=AppCategoriesApiMock))]
+#[cfg_attr(
+    any(test, feature = "unimock"),
+    unimock::unimock(api = AppCategoriesApiMock)
+)]
 #[async_trait]
 pub trait AppCategoriesApi: Send + Sync {
+    /// Lists every app category without pagination or query parameters.
+    async fn list(&self) -> Result<ListAppCategoriesResponse>;
     /// Retrieves one category and verifies its returned identifier.
     async fn get(&self, id: AppCategoryId) -> Result<GetAppCategoryResponse>;
 }
@@ -33,16 +38,13 @@ impl AppCategories {
 
 #[async_trait]
 impl AppCategoriesApi for AppCategories {
+    async fn list(&self) -> Result<ListAppCategoriesResponse> {
+        operation::json(&self.dispatcher, Ok(operation::list_categories())).await
+    }
+
     async fn get(&self, id: AppCategoryId) -> Result<GetAppCategoryResponse> {
-        let request = ApiRequest::new(
-            Method::GET,
-            ApiPath::connect(&["app_categories", id.as_str()]),
-        );
-        let response: GetAppCategoryResponse = self.dispatcher.dispatch(request).await?.json()?;
-        if response.id.as_ref() != Some(&id) {
-            return Err(Error::internal(WireFailure::IdentityMismatch));
-        }
-        Ok(response)
+        let response = operation::json(&self.dispatcher, Ok(operation::get_category(&id))).await?;
+        operation::check_category(response, &id)
     }
 }
 

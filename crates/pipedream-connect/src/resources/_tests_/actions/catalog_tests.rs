@@ -33,7 +33,7 @@ async fn list_encodes_all_action_filters_without_a_component_type_query() {
         .unwrap();
     assert_get(
         harness.request(1),
-        "https://api.pipedream.com/v1/connect/proj_Test123/actions?limit=11&before=cursor%2B1&q=list+%26+read&app=google_calendar&registry=public",
+        "https://api.pipedream.com/v1/connect/proj_Test123/actions?app=google_calendar&before=cursor%2B1&limit=11&q=list+%26+read&registry=public",
     );
     assert_eq!(result.data.len(), 1);
     assert_eq!(

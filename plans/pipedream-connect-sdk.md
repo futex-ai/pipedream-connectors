@@ -435,6 +435,34 @@ no user answer. Each records the alternative and the reason.
   Rejected: omitting the required SDK option or putting it in an undocumented
   query parameter. The current OpenAPI schema and public run-action page
   omit this field. Real-project verification remains blocked on credentials.
+- **Review fix, action run contract (2026-10-21).** Action runs follow the
+  OpenAPI request model and do not send a blocking flag. Every action-run 202
+  is accepted. Rejected: retaining the SDK-only flag, because the public
+  operation does not define it and would receive an undocumented body field.
+- **Review fix, category listing (2026-10-21).** Category listing returns a
+  bare `Vec<AppCategory>` without query parameters. Rejected: wrapping it in
+  `Page<AppCategory>`, because the OpenAPI response and public page define a
+  bare array.
+- **Review fix, query encoding (2026-10-21).** One serde-driven encoder
+  validates every query model and emits scalar pairs or repeated array keys.
+  Nested objects fail as internal request-shape errors. Rejected: hand-written
+  field encoders, because they bypass model validation and drift between
+  operations.
+- **Review fix, execution status (2026-10-21).** `ExecutionFailed` carries
+  the HTTP status and only applies when `error` contains `attribution` or
+  `name`. Other error objects use normal status mapping. Rejected: treating
+  every object as execution data, because that loses 401, 404, and 429
+  categories and their retry metadata.
+- **Review fix, resource operation pattern (2026-10-21).** Resource builders,
+  JSON dispatch, and identity checks use one shared operation module. A
+  filtered page source adapts every paged list to `BoundedPaginator`, and
+  `ConnectResources` exposes all resource handles through one mockable factory.
+  Rejected: resource-local helpers, because later milestones would repeat the
+  same mechanics and drift.
+- **Review fix, live test opt-in (2026-10-21).** Credential-gated live tests
+  also require `PIPEDREAM_LIVE_TESTS=1`. Rejected: running whenever secrets
+  exist, because a complete gate must not make an external API call by
+  accident.
 - **Second review, nullable response fields (2026-10-21).** Optional response
   fields omit absent values when their schemas do not permit null. Nullable
   fields keep explicit null output. Strict conformance comparisons build
@@ -544,9 +572,10 @@ The public error contract of the client crate:
 - `RateLimited { retry_after, limit, remaining, reset }`: a 429 with the
   parsed headers.
 - `Rejected { status, code, message }`: any other 4xx.
-- `ExecutionFailed(Box<ExecutionError>)`: structured attribution from an action
-  or proxy run.
-- `Accepted`: a 202 from configure, props, or run when `blocking` is false.
+- `ExecutionFailed { status, error }`: structured attribution and HTTP status
+  from an action or proxy run.
+- `Accepted`: a 202 from configure or props without blocking, or any action
+  run 202.
 - `Unavailable { status }`: a 408, a 5xx, a timeout, or a transport
   failure. The request may have run.
 - `ResponseTooLarge { limit }`: the body passed the configured cap.
@@ -734,9 +763,9 @@ Summary: apps, components, actions, and registry triggers work against the
 real API.
 
 - [x] `AppsApi`: list with every filter, get by slug with an identity check.
-- [ ] `AppCategoriesApi`: list and get.
+- [x] `AppCategoriesApi`: list and get.
   - [x] Retrieve a category with an identity check.
-  - [ ] Resolve the category-list response-shape decision, then implement
+  - [x] Resolve the category-list response-shape decision, then implement
         and test the chosen contract.
 - [x] `ComponentsApi`: list with `component_type`, get with `version`,
       configure a prop, and reload props.
@@ -744,7 +773,7 @@ real API.
       `blocking`, `stash_id`, and the 202 contract.
 - [x] `TriggersApi` for registry triggers: list, get, configure, and reload
       props.
-- [ ] Unit tests per resource: query encoding, request bodies, response
+- [x] Unit tests per resource: query encoding, request bodies, response
       mapping, lossless unknown kinds, and error mapping.
 - [x] A credential-gated live test that reads the `google_calendar` app and
       lists its actions and triggers in a development project. It skips

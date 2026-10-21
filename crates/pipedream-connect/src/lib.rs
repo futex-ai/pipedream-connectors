@@ -24,6 +24,9 @@ pub mod transport;
 pub mod validation;
 
 pub use client::PipedreamClient;
+pub use resources::ConnectResources;
+#[cfg(any(test, feature = "unimock"))]
+pub use resources::ConnectResourcesMock;
 
 #[cfg(test)]
 #[path = "_tests_/mod.rs"]

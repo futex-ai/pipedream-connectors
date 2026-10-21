@@ -1,13 +1,14 @@
 //! Typed resource handles that share authentication, transport, and error mapping.
 
 mod accessors;
+pub use accessors::ConnectResources;
+#[cfg(any(test, feature = "unimock"))]
+pub use accessors::ConnectResourcesMock;
 pub mod actions;
 pub mod app_categories;
 pub mod apps;
-mod catalog;
 pub mod components;
-mod execution;
-mod queries;
+mod operation;
 pub mod triggers;
 
 #[cfg(test)]

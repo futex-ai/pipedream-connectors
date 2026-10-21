@@ -106,8 +106,10 @@ when Pipedream supplies that envelope.
 
 The `error` value MAY contain text or structured JSON.
 
-A 202 response from configure, props, or run is `Accepted` when the operation
-was requested without blocking.
+A 202 response from configure or props is `Accepted` when the operation was
+requested without blocking.
+
+A 202 response from an action run is always `Accepted`.
 
 A 401 response is `Unauthorized`.
 
@@ -120,8 +122,9 @@ A 429 response is `RateLimited`.
 A `RateLimited` error includes parsed `Retry-After`, `X-RateLimit-Limit`,
 `X-RateLimit-Remaining`, and `X-RateLimit-Reset` values when present.
 
-An execution response containing `{ "error": { "attribution", "name",
-"message" } }` is `ExecutionFailed` with the structured attribution.
+An execution response containing an `error` object with `attribution` or
+`name` is `ExecutionFailed` with the structured attribution and HTTP status.
+Other structured error objects use the normal HTTP status mapping.
 
 Proxy pass-through responses MUST preserve every status after the structured
 execution-error check.

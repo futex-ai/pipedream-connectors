@@ -1,7 +1,9 @@
 //! Bounded cursor traversal with an injectable page source.
 
 use std::fmt;
+use std::future::Future;
 use std::num::NonZeroUsize;
+use std::pin::Pin;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -9,6 +11,62 @@ use pipedream_connect_types::{self, Page, PageRequest};
 use thiserror::Error;
 
 use crate::error::{self, Result, validate};
+
+/// A paged list request whose filters can be reused for another page.
+pub trait PagedRequest: Clone + Send + Sync + 'static {
+    /// Replaces the cursor page while retaining every other filter.
+    fn set_page(&mut self, page: PageRequest);
+}
+
+impl PagedRequest for pipedream_connect_types::ListAppsRequest {
+    fn set_page(&mut self, page: PageRequest) {
+        self.page = page;
+    }
+}
+
+impl PagedRequest for pipedream_connect_types::ListComponentsRequest {
+    fn set_page(&mut self, page: PageRequest) {
+        self.page = page;
+    }
+}
+
+impl PagedRequest for pipedream_connect_types::ListRegistryRequest {
+    fn set_page(&mut self, page: PageRequest) {
+        self.page = page;
+    }
+}
+
+type PageFetch<T, R> =
+    dyn Fn(R) -> Pin<Box<dyn Future<Output = Result<Page<T>>> + Send>> + Send + Sync;
+
+/// Adapts a filtered resource list into the generic bounded paginator.
+pub struct FilteredPageSource<T, R: PagedRequest> {
+    filters: R,
+    fetch: Box<PageFetch<T, R>>,
+}
+
+impl<T, R: PagedRequest> FilteredPageSource<T, R> {
+    /// Keeps `filters` fixed and invokes `fetch` with only its page changed.
+    pub fn new<F, Fut>(filters: R, fetch: F) -> Self
+    where
+        F: Fn(R) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Result<Page<T>>> + Send + 'static,
+    {
+        Self {
+            filters,
+            fetch: Box::new(move |request| Box::pin(fetch(request))),
+        }
+    }
+}
+
+#[async_trait]
+impl<T: Send + Sync + 'static, R: PagedRequest> PageSource<T> for FilteredPageSource<T, R> {
+    async fn fetch(&self, page: PageRequest) -> Result<Page<T>> {
+        let mut request = self.filters.clone();
+        request.set_page(page);
+        (self.fetch)(request).await
+    }
+}
 
 /// One resource's page-fetching boundary.
 #[cfg_attr(any(test, feature = "unimock"), unimock::unimock(api = PageSourceMock))]

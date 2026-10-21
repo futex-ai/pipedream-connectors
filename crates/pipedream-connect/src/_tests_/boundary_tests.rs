@@ -7,12 +7,14 @@ use std::{future::Future, pin::pin};
 
 use http::{HeaderValue, Method};
 use pipedream_connect_types::{Cursor, PageRequest};
+use serde::Serialize;
 use serde_json::json;
 
 use crate::config::HttpOptions;
 use crate::error::Error;
 use crate::request::{ApiPath, ApiRequest};
 use crate::retry::RetryPolicy;
+use crate::validation::Validate;
 
 use super::support::{Harness, config, response, static_config, token};
 
@@ -70,11 +72,11 @@ async fn token_endpoint_statuses_are_typed_and_a_later_call_can_refresh() {
 #[tokio::test]
 async fn page_queries_keep_limit_and_each_cursor_direction() {
     for (after, before, expected) in [
-        (Some("next+cursor"), None, "limit=23&after=next%2Bcursor"),
+        (Some("next+cursor"), None, "after=next%2Bcursor&limit=23"),
         (
             None,
             Some("previous&cursor"),
-            "limit=23&before=previous%26cursor",
+            "before=previous%26cursor&limit=23",
         ),
     ] {
         let harness = Harness::script(static_config(), vec![Ok(response(200, json!({})))]);
@@ -92,6 +94,34 @@ async fn page_queries_keep_limit_and_each_cursor_direction() {
         );
         harness.assert_requests(1);
     }
+}
+
+#[derive(Serialize)]
+struct NestedQuery {
+    filter: NestedFilter,
+}
+
+#[derive(Serialize)]
+struct NestedFilter {
+    value: String,
+}
+
+impl Validate for NestedQuery {
+    fn validate(&self) -> crate::error::Result<()> {
+        Ok(())
+    }
+}
+
+#[test]
+fn query_encoding_rejects_nested_objects() {
+    let error = ApiRequest::new(Method::GET, ApiPath::connect(&["apps"]))
+        .with_query(&NestedQuery {
+            filter: NestedFilter {
+                value: "value".into(),
+            },
+        })
+        .unwrap_err();
+    assert!(matches!(error, Error::Internal(_)));
 }
 
 #[tokio::test]

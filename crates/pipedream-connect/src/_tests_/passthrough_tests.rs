@@ -58,7 +58,7 @@ async fn passthrough_checks_execution_envelopes_before_returning_the_response() 
         .with_response_mode(ResponseMode::PassThrough);
     assert!(matches!(
         harness.client.dispatcher().dispatch(request).await,
-        Err(Error::ExecutionFailed(_))
+        Err(Error::ExecutionFailed { .. })
     ));
     harness.assert_requests(1);
 }

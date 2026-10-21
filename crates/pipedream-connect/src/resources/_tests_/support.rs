@@ -53,12 +53,9 @@ pub(super) fn reload(blocking: Option<bool>) -> (ReloadPropsRequest, Value) {
     (serde_json::from_value(body.clone()).unwrap(), body)
 }
 
-pub(super) fn run(blocking: Option<bool>, stash: Value) -> (RunActionRequest, Value) {
-    let mut body = json!({"id":"google_calendar-list-events","version":"0.2.3","external_user_id":"customer_1",
+pub(super) fn run(stash: Value) -> (RunActionRequest, Value) {
+    let body = json!({"id":"google_calendar-list-events","version":"0.2.3","external_user_id":"customer_1",
         "configured_props":{"google_calendar":{"authProvisionId":"apn_Caller"},"calendar":"primary"},"dynamic_props_id":"dp_prior","stash_id":stash});
-    if let Some(blocking) = blocking {
-        body["blocking"] = json!(blocking);
-    }
     (serde_json::from_value(body.clone()).unwrap(), body)
 }
 
@@ -68,6 +65,12 @@ pub(super) fn assert_get(request: HttpRequest, url: &str) {
     assert!(request.body.is_none());
     assert_eq!(request.headers["x-pd-environment"], "development");
     assert_eq!(request.headers["authorization"], "Bearer access-secret");
+    assert_eq!(request.headers["accept"], "application/json");
+    assert_eq!(
+        request.headers["user-agent"],
+        concat!("pipedream-connect/", env!("CARGO_PKG_VERSION"))
+    );
+    assert!(!request.headers.contains_key("content-type"));
 }
 
 pub(super) fn assert_post(request: HttpRequest, path: &str, expected: &Value) {

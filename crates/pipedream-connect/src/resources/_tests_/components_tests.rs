@@ -31,7 +31,7 @@ async fn list_encodes_every_filter_and_keeps_unknown_component_and_prop_kinds() 
         .unwrap();
     assert_get(
         harness.request(1),
-        "https://api.pipedream.com/v1/connect/proj_Test123/components?limit=12&before=prior%2Bcursor&q=list+%26+read&app=google_calendar&registry=all&component_type=action",
+        "https://api.pipedream.com/v1/connect/proj_Test123/components?app=google_calendar&before=prior%2Bcursor&component_type=action&limit=12&q=list+%26+read&registry=all",
     );
     assert_eq!(result.data.len(), 1);
     assert_eq!(result.page_info.count, Some(1));
@@ -116,7 +116,7 @@ async fn default_and_future_enum_filters_use_the_model_wire_values() {
         .unwrap();
     assert_get(
         harness.request(2),
-        "https://api.pipedream.com/v1/connect/proj_Test123/components?limit=100&registry=future%2Bregistry&component_type=future_kind",
+        "https://api.pipedream.com/v1/connect/proj_Test123/components?component_type=future_kind&limit=100&registry=future%2Bregistry",
     );
     harness.assert_requests(3);
 }

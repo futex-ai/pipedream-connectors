@@ -44,9 +44,8 @@ fn operation_query_samples_match_encoded_models() {
                 "retrieveAccount" => encode::<GetAccountRequest>,
                 "listUserAccounts" => encode::<ListUserAccountsRequest>,
                 "listAppOverrides" => encode::<ListAppOverridesRequest>,
-                "listComponents" | "listActions" | "listTriggers" => {
-                    encode::<ListComponentsRequest>
-                }
+                "listComponents" => encode::<ListComponentsRequest>,
+                "listActions" | "listTriggers" => encode::<ListRegistryRequest>,
                 "retrieveComponent" | "retrieveAction" | "retrieveTrigger" => {
                     encode::<GetComponentRequest>
                 }
