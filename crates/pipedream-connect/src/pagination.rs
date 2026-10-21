@@ -42,6 +42,12 @@ impl PagedRequest for pipedream_connect_types::ListDeployedTriggersRequest {
     }
 }
 
+impl PagedRequest for pipedream_connect_types::ListAccountsRequest {
+    fn set_page(&mut self, page: PageRequest) {
+        self.page = page;
+    }
+}
+
 impl PagedRequest for pipedream_connect_types::ListProjectsRequest {
     fn set_page(&mut self, page: PageRequest) {
         self.page = page;
@@ -55,6 +61,12 @@ impl PagedRequest for pipedream_connect_types::ListOauthAppsRequest {
 }
 
 impl PagedRequest for pipedream_connect_types::ListAppOverridesRequest {
+    fn set_page(&mut self, page: PageRequest) {
+        self.page = page;
+    }
+}
+
+impl PagedRequest for pipedream_connect_types::ListUsersRequest {
     fn set_page(&mut self, page: PageRequest) {
         self.page = page;
     }
