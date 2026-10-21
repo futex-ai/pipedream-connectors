@@ -26,6 +26,7 @@ pub(crate) fn authenticated(
     mut headers: HeaderMap,
     json: bool,
     body: bool,
+    rate_limit: bool,
 ) -> Result<HeaderMap> {
     let mut authorization = header_value(&format!("Bearer {}", token.expose_secret()))?;
     authorization.set_sensitive(true);
@@ -47,7 +48,7 @@ pub(crate) fn authenticated(
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     }
     headers.remove("x-pd-rate-limit");
-    if let Some(token) = &config.rate_limit_token {
+    if rate_limit && let Some(token) = &config.rate_limit_token {
         let mut value = header_value(token.expose_secret())?;
         value.set_sensitive(true);
         headers.insert("x-pd-rate-limit", value);

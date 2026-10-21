@@ -11,7 +11,7 @@ use crate::config::{Authentication, ClientConfig};
 use crate::error::Result;
 use crate::failure::{check_limit, ensure_status, retry_after};
 use crate::headers::authenticated;
-use crate::request::{ApiRequest, ResponseMode, build_url};
+use crate::request::{ApiPath, ApiRequest, ResponseMode, build_url};
 use crate::runtime::{Clock, Sleeper};
 use crate::token::{AccessTokenProvider, ClientCredentialsProvider, StaticTokenProvider};
 use crate::transport::{HttpRequest, HttpResponse, HttpTransport};
@@ -76,6 +76,12 @@ impl PipedreamClient {
         self
     }
 
+    /// Selects a custom rate-limit token for this client's future requests.
+    pub fn with_rate_limit_token(mut self, token: SecretString) -> Result<Self> {
+        self.config = self.config.clone().with_rate_limit_token(token)?;
+        Ok(self)
+    }
+
     /// Returns a shared dispatcher. Clones share the OAuth cache.
     pub fn dispatcher(&self) -> Arc<dyn RequestDispatcher + Send + Sync> {
         Arc::new(self.clone())
@@ -105,6 +111,7 @@ impl RequestDispatcher for PipedreamClient {
                         | ResponseMode::Delete { .. }
                 ),
                 request.json_body,
+                !matches!(request.path, ApiPath::Absolute(_)),
             )?;
             let response = self
                 .transport

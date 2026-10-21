@@ -9,7 +9,7 @@ use serde_json::Value;
 use url::Url;
 
 use crate::config::ClientConfig;
-use crate::error::{Error, Result, WireFailure};
+use crate::error::{Error, InvalidRequest, Result, WireFailure};
 use crate::json::encode;
 use crate::validation::Validate;
 
@@ -23,6 +23,8 @@ pub enum ApiPath {
     Connect(Vec<String>),
     /// `/v1` followed by individual path segments.
     V1(Vec<String>),
+    /// An absolute HTTPS endpoint supplied by the caller.
+    Absolute(Url),
 }
 
 impl ApiPath {
@@ -34,6 +36,21 @@ impl ApiPath {
     /// Describes a Connect route without a project prefix.
     pub fn connect(segments: &[&str]) -> Self {
         Self::Connect(segments.iter().map(|value| (*value).to_owned()).collect())
+    }
+
+    /// Describes an absolute HTTPS endpoint for a pass-through operation.
+    pub fn absolute(value: &str) -> Result<Self> {
+        let url = match Url::parse(value) {
+            Ok(url) => url,
+            Err(_) => return Err(Error::InvalidRequest(InvalidRequest::Origin)),
+        };
+        validate_absolute_https(&url, value)?;
+        Ok(Self::Absolute(url))
+    }
+
+    /// Describes an absolute HTTPS endpoint for a pass-through operation.
+    pub fn absolute_https(value: &str) -> Result<Self> {
+        Self::absolute(value)
     }
 }
 
@@ -213,6 +230,14 @@ pub(crate) fn build_url(
         ApiPath::Project(segments) => (vec!["v1", "connect", config.project_id.as_str()], segments),
         ApiPath::Connect(segments) => (vec!["v1", "connect"], segments),
         ApiPath::V1(segments) => (vec!["v1"], segments),
+        ApiPath::Absolute(target) => {
+            validate_absolute_https(target, target.as_str())?;
+            let mut url = target.clone();
+            if !query.is_empty() {
+                url.query_pairs_mut().extend_pairs(query);
+            }
+            return Ok(url);
+        }
     };
     match url.path_segments_mut() {
         Ok(mut path) => {
@@ -225,4 +250,24 @@ pub(crate) fn build_url(
         url.query_pairs_mut().extend_pairs(query);
     }
     Ok(url)
+}
+
+fn validate_absolute_https(url: &Url, value: &str) -> Result<()> {
+    let authority_has_userinfo = value.split_once("://").is_some_and(|(_, rest)| {
+        rest.split('/')
+            .next()
+            .is_some_and(|authority| authority.contains('@'))
+    });
+    if value.trim() != value
+        || value.chars().any(char::is_control)
+        || url.scheme() != "https"
+        || url.host_str().is_none()
+        || authority_has_userinfo
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.fragment().is_some()
+    {
+        return Err(Error::InvalidRequest(InvalidRequest::Origin));
+    }
+    Ok(())
 }
