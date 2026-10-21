@@ -1,9 +1,7 @@
-<!-- markdownlint-disable MD041 -->
+# pipedream-connectors
 
 Status: The crates are under construction under the Pipedream Connect SDK
 plan.
-
-# pipedream-connectors
 
 This repository will provide a Rust SDK for the Pipedream Connect API. The
 SDK will manage server-side OAuth client credentials, typed Connect resources,
@@ -66,9 +64,14 @@ pipedream-cli triggers deploy --external-user-id user_1 \
   --props props.json --webhook-url https://example.com/hook
 ```
 
-The CLI will also cover component configuration, action runs, proxy requests,
-trigger updates and deletes, account operations, project administration, and
-webhook operations.
+The planned CLI commands are:
+
+- Read commands: `apps list`, `apps get`, `categories list`,
+  `components list`, `components get`, `actions list`, `accounts list`,
+  `accounts get`, `users list`, `triggers list`, `triggers get`,
+  `triggers events`, `project info`, `usage`, and `webhook get`.
+- Explicit smoke mutations: `tokens create`, `actions run`, `proxy <method>`,
+  `triggers deploy`, and `triggers delete`.
 
 ## Developer start
 

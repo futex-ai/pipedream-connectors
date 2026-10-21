@@ -16,7 +16,7 @@ control character.
 The client MUST send requests to the configured origin and the documented
 `/v1` paths.
 
-The default transport MUST NOT follow an HTTP redirect.
+The client MUST never follow an HTTP redirect.
 
 The default connection timeout is 10 seconds.
 
@@ -24,8 +24,8 @@ The default total request timeout is 60 seconds.
 
 The default response body limit is 10 MiB.
 
-Callers MAY configure the connection timeout, total timeout, response limit,
-and redirect behaviour.
+Callers MAY configure the connection timeout, total timeout, and response
+limit.
 
 **Decision.** The default origin is Pipedream's public HTTPS origin, and a
 caller may select another HTTPS origin for a compatible service. A plain HTTP
@@ -112,15 +112,16 @@ A 429 response is `RateLimited`.
 A `RateLimited` error includes parsed `Retry-After`, `X-RateLimit-Limit`,
 `X-RateLimit-Remaining`, and `X-RateLimit-Reset` values when present.
 
-Any other 4xx response is `Rejected` and includes its status, error code, and
-message when the response supplies them.
-
 An execution response containing `{ "error": { "attribution", "name",
 "message" } }` is `ExecutionFailed` with the structured attribution.
 
 A 408 response is `Unavailable`.
 
 A 5xx response is `Unavailable`.
+
+Any other 3xx or 4xx response is `Rejected` with its status, error code, and
+message when the response supplies them, unless an operation defines a
+redirect result, as the file stash download does.
 
 A timeout or transport failure is `Unavailable`.
 
@@ -167,10 +168,6 @@ The GET retry policy MUST honor a valid `Retry-After` value.
 The GET retry policy MUST cap every delay at its configured maximum.
 
 The GET retry policy MUST use an injected sleeper.
-
-The default retry attempt count and maximum delay remain an open protocol
-decision. The implementation MUST NOT add a default until that decision is
-recorded in the plan and accepted.
 
 **Decision.** Mutating requests have no automatic replay because Connect does
 not provide an idempotency key for these operations. GET retries are opt-in so

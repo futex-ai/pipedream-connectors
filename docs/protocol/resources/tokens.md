@@ -36,15 +36,12 @@ The token creation rate limit is 100 requests per minute per external user.
 
 Development mode permits at most 10 unique external users.
 
-## Account credential selection
+## Usage
 
-Account list and retrieve operations accept `include_credentials`.
+Usage records accept the time window and filters defined by the operation.
 
-The default is false.
-
-When true, Pipedream MAY return credentials for bring-your-own-OAuth apps.
-
-The client MUST keep those credentials redacted in debug output.
+Usage list responses use the common cursor contract when Pipedream returns
+page information.
 
 ## OAuth token operation
 
@@ -54,5 +51,3 @@ The OAuth response reports a one-hour bearer lifetime.
 
 The client follows the refresh and invalidation rules in the [client
 protocol](../connect-client.md).
-
-Usage list responses follow the common cursor contract.

@@ -65,12 +65,7 @@ environment.
 
 The client MUST redact the signing key and webhook URL in diagnostics.
 
-## Usage and file stash
-
-Usage records accept the time window and filters defined by the operation.
-
-Usage list responses use the common cursor contract when Pipedream returns
-page information.
+## File stash
 
 A file stash download returns bytes or a redirect location.
 

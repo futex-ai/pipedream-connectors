@@ -66,8 +66,5 @@ A signing-key regeneration operation replaces the selected destination key.
 
 The client MUST preserve returned signing keys as credential-class values.
 
-The client MUST use the trigger-level signing key when the delivered webhook
-came from a trigger destination.
-
-The project environment signing key is the fallback when no trigger-level key
-is configured.
+See [Signing-key selection](../webhooks.md#signing-key-selection) for how the
+receiving host selects the key and the verifier checks it.

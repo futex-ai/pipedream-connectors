@@ -56,8 +56,6 @@ The raw webhook body limit is configurable.
 
 The verifier MUST reject a body larger than the configured limit.
 
-The default raw webhook body limit remains an open protocol decision.
-
 The verifier MUST NOT include the signature header, signing key, or raw body in
 a signature error.
 
@@ -71,14 +69,17 @@ permit body changes or replayed future requests.
 A deployed trigger webhook has a trigger-level signing key when Pipedream
 returns one for that destination.
 
-The verifier MUST select the trigger-level key for a delivery sent to that
-destination.
+The receiving host MUST select the trigger-level key for a delivery sent to
+that destination.
 
-The verifier MUST select the project environment webhook signing key when the
-delivery has no trigger-level key.
+The receiving host MUST select the project environment webhook signing key
+when the delivery has no trigger-level key.
 
 The project environment key MUST match the `x-pd-environment` value used for
 the destination.
+
+The verifier MUST verify the signature with the signing key supplied by the
+receiving host.
 
 A missing key MUST fail verification.
 
@@ -108,8 +109,8 @@ policy permits `include_credentials`.
 An error payload contains `connect_token`, `environment`,
 `connect_session_id`, and an `error` message.
 
-The client MUST wrap the Connect token in either payload as a credential-class
-value.
+The webhook decoder MUST wrap the Connect token in either payload as a
+credential-class value.
 
 The client MUST preserve unknown fields in either connection payload.
 
