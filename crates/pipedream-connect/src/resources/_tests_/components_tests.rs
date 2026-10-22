@@ -1,11 +1,12 @@
 //! Component filters, version queries, identity checks, and lossless kinds.
 
+use std::error::Error as StdError;
+
 use pipedream_connect_types::{
     AppSlug, ComponentKey, ComponentStash, ComponentType, Cursor, GetComponentRequest,
     ListComponentsRequest, PageRequest, PropKind, RegistryKind,
 };
 use serde_json::json;
-use std::error::Error as StdError;
 
 use crate::error::Error;
 use crate::resources::test_support::{assert_get, component, page};

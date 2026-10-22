@@ -1,19 +1,20 @@
 //! App query filters, identity checks, and lossless response mapping.
 
+use std::error::Error as StdError;
+use std::num::NonZeroU32;
+use std::time::Duration;
+
 use http::HeaderValue;
 use pipedream_connect_types::{
     AppAuthType, AppCategoryId, AppSlug, AppSortKey, Cursor, ListAppsRequest, PageRequest,
     SortDirection,
 };
 use serde_json::json;
-use std::error::Error as StdError;
-use std::num::NonZeroU32;
-use std::time::Duration;
 
 use crate::error::Error;
 use crate::resources::test_support::{app, assert_get, page};
 use crate::retry::RetryPolicy;
-use crate::tests::support::{Harness, config, response};
+use crate::tests::support::{Harness, config, response, token};
 
 #[tokio::test]
 async fn list_encodes_every_filter_and_keeps_unknown_values_and_page_metadata() {
@@ -131,7 +132,7 @@ async fn get_uses_the_configured_get_retry_policy() {
             Duration::ZERO,
         )),
         vec![
-            Ok(crate::tests::support::token("access-secret", 3600)),
+            Ok(token("access-secret", 3600)),
             Ok(response(503, json!({"error":"temporary"}))),
             Ok(response(200, json!({"data":app()}))),
         ],

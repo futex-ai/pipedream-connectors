@@ -1,9 +1,9 @@
 //! Action bodies, stash union branches, nonblocking acceptance, and failures.
 
-use http::HeaderValue;
 use std::num::NonZeroU32;
 use std::time::Duration;
 
+use http::HeaderValue;
 use pipedream_connect_types::ErrorOrigin;
 use serde_json::json;
 

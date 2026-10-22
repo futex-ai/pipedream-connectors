@@ -1,8 +1,9 @@
 //! External-user list, account inventory, and deletion routes.
 
-use pipedream_connect_types::{ExternalUserId, ListUserAccountsRequest, ListUsersRequest};
+use pipedream_connect_types::{AppSlug, ExternalUserId, ListUserAccountsRequest, ListUsersRequest};
 use serde_json::json;
 
+use crate::error::Error;
 use crate::resources::test_support::page;
 use crate::tests::support::{Harness, response, static_config};
 
@@ -41,7 +42,7 @@ async fn users_list_accounts_and_delete_use_tenant_scoped_paths() {
         .list_accounts(
             ExternalUserId::new("user_1").unwrap(),
             ListUserAccountsRequest {
-                app: Some(pipedream_connect_types::AppSlug::new("google_calendar").unwrap()),
+                app: Some(AppSlug::new("google_calendar").unwrap()),
                 ..ListUserAccountsRequest::default()
             },
         )
@@ -82,10 +83,7 @@ async fn user_account_ownership_mismatches_are_not_found() {
                 },
             )
             .await;
-        assert!(matches!(
-            result,
-            Err(crate::error::Error::NotFound { message: None })
-        ));
+        assert!(matches!(result, Err(Error::NotFound { message: None })));
         harness.assert_requests(1);
     }
 }

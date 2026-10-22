@@ -1,11 +1,12 @@
 //! Action query encoding, identity checks, and early local validation.
 
+use std::error::Error as StdError;
+
 use pipedream_connect_types::{
     AppSlug, ComponentKey, Cursor, GetComponentRequest, ListRegistryRequest, PageRequest,
     RegistryKind,
 };
 use serde_json::json;
-use std::error::Error as StdError;
 
 use crate::error::Error;
 use crate::resources::test_support::{assert_get, component, page};

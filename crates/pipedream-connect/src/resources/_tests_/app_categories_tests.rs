@@ -1,8 +1,9 @@
 //! Bare category responses, exact routes, identity checks, and shared errors.
 
+use std::error::Error as StdError;
+
 use pipedream_connect_types::AppCategoryId;
 use serde_json::json;
-use std::error::Error as StdError;
 
 use crate::error::Error;
 use crate::resources::test_support::assert_get;

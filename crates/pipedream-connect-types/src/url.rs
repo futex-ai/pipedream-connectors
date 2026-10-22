@@ -18,9 +18,8 @@ pub fn parse_validated(value: &str, rules: UrlRules) -> Option<Url> {
     let url = Url::parse(value).ok()?;
     match rules {
         UrlRules::ApiOrigin => {
-            let bare_authority = value.split_once("://").is_some_and(|(_, rest)| {
-                let (authority, path) = rest.split_once('/').unwrap_or((rest, ""));
-                !authority.contains('@') && path.is_empty()
+            let bare_authority = authority(value).is_some_and(|(authority, remainder)| {
+                !authority.contains('@') && matches!(remainder, "" | "/")
             });
             if value.trim() != value
                 || value.chars().any(char::is_control)
@@ -38,11 +37,8 @@ pub fn parse_validated(value: &str, rules: UrlRules) -> Option<Url> {
             }
         }
         UrlRules::WorkflowEndpoint => {
-            let authority_has_userinfo = value.split_once("://").is_some_and(|(_, rest)| {
-                rest.split('/')
-                    .next()
-                    .is_some_and(|authority| authority.contains('@'))
-            });
+            let authority_has_userinfo =
+                authority(value).is_some_and(|(authority, _)| authority.contains('@'));
             if value.trim() != value
                 || value.chars().any(char::is_control)
                 || value.contains('\\')
@@ -64,3 +60,13 @@ pub fn parse_validated(value: &str, rules: UrlRules) -> Option<Url> {
     }
     Some(url)
 }
+
+fn authority(value: &str) -> Option<(&str, &str)> {
+    let (_, rest) = value.split_once("://")?;
+    let boundary = rest.find(['/', '?', '#']).unwrap_or(rest.len());
+    Some(rest.split_at(boundary))
+}
+
+#[cfg(test)]
+#[path = "_tests_/url_tests.rs"]
+mod url_tests;

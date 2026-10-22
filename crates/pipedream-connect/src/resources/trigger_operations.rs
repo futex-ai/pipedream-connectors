@@ -1,9 +1,5 @@
 //! Pure request builders and identity checks for trigger lifecycle operations.
 
-use crate::error::Result;
-use crate::request::{ApiPath, ApiRequest, ResponseMode};
-
-use super::operation::ensure_identity;
 use http::Method;
 use pipedream_connect_types::{
     DeleteTriggerRequest, DeployTriggerRequest, DeployedTriggerId, DeployedTriggerQuery, Emitter,
@@ -12,6 +8,11 @@ use pipedream_connect_types::{
     UpdateTriggerWorkflowsRequest, WebhookId,
 };
 use serde_json::Value;
+
+use crate::error::Result;
+use crate::request::{ApiPath, ApiRequest, ResponseMode};
+
+use super::operation::ensure_identity;
 
 /// Builds a trigger deployment request.
 pub(super) fn deploy(request: &DeployTriggerRequest) -> Result<ApiRequest> {
