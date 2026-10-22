@@ -42,9 +42,9 @@ impl ApiPath {
     pub fn absolute(value: &str) -> Result<Self> {
         let url = match Url::parse(value) {
             Ok(url) => url,
-            Err(_) => return Err(Error::InvalidRequest(InvalidRequest::Origin)),
+            Err(_) => return Err(Error::InvalidRequest(InvalidRequest::WorkflowEndpoint)),
         };
-        validate_absolute_https(&url, value)?;
+        validate_absolute_https(value)?;
         Ok(Self::Absolute(url))
     }
 
@@ -192,7 +192,7 @@ impl ApiRequest {
 
     /// Adds typed HTTP headers. Dispatch replaces SDK-owned headers.
     pub fn with_headers(mut self, headers: HeaderMap) -> Self {
-        self.headers = headers;
+        self.headers.extend(headers);
         self
     }
 
@@ -237,7 +237,7 @@ pub(crate) fn build_url(
         ApiPath::Connect(segments) => (vec!["v1", "connect"], segments),
         ApiPath::V1(segments) => (vec!["v1"], segments),
         ApiPath::Absolute(target) => {
-            validate_absolute_https(target, target.as_str())?;
+            validate_absolute_https(target.as_str())?;
             let mut url = target.clone();
             if !query.is_empty() {
                 url.query_pairs_mut().extend_pairs(query);
@@ -258,10 +258,9 @@ pub(crate) fn build_url(
     Ok(url)
 }
 
-fn validate_absolute_https(url: &Url, value: &str) -> Result<()> {
-    let _ = url;
+fn validate_absolute_https(value: &str) -> Result<()> {
     if parse_validated(value, UrlRules::WorkflowEndpoint).is_none() {
-        return Err(Error::InvalidRequest(InvalidRequest::Origin));
+        return Err(Error::InvalidRequest(InvalidRequest::WorkflowEndpoint));
     }
     Ok(())
 }

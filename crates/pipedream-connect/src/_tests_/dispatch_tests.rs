@@ -102,6 +102,49 @@ async fn static_bearer_uses_no_oauth_and_sdk_headers_replace_caller_values() {
 }
 
 #[tokio::test]
+async fn repeated_with_headers_calls_merge_and_replace_only_repeated_names() {
+    let harness = Harness::script(static_config(), vec![Ok(response(200, json!({})))]);
+    let mut first = HeaderMap::new();
+    first.insert("x-first", HeaderValue::from_static("one"));
+    first.insert("x-overlap", HeaderValue::from_static("old"));
+    let mut second = HeaderMap::new();
+    second.insert("x-second", HeaderValue::from_static("two"));
+    second.insert("x-overlap", HeaderValue::from_static("new"));
+    let request = ApiRequest::new(Method::GET, ApiPath::connect(&["apps"]))
+        .with_headers(first)
+        .with_headers(second);
+    harness.client.dispatcher().dispatch(request).await.unwrap();
+    let sent = harness.request(0);
+    assert_eq!(sent.headers["x-first"], "one");
+    assert_eq!(sent.headers["x-second"], "two");
+    assert_eq!(sent.headers["x-overlap"], "new");
+    harness.assert_requests(1);
+}
+
+#[tokio::test]
+async fn absolute_target_validation_reports_a_workflow_endpoint_error() {
+    let error = ApiPath::absolute("not a URL").unwrap_err();
+    assert!(matches!(
+        error,
+        Error::InvalidRequest(InvalidRequest::WorkflowEndpoint)
+    ));
+
+    let harness = Harness::script(static_config(), vec![]);
+    let path = ApiPath::Absolute(Url::parse("https://user:pass@example.com/path").unwrap());
+    let error = harness
+        .client
+        .dispatcher()
+        .dispatch(ApiRequest::new(Method::GET, path))
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        Error::InvalidRequest(InvalidRequest::WorkflowEndpoint)
+    ));
+    harness.assert_requests(0);
+}
+
+#[tokio::test]
 async fn path_parameters_cannot_inject_routes_and_dot_segments_are_skipped() {
     let harness = Harness::script(
         static_config(),
