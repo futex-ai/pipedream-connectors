@@ -75,8 +75,8 @@ The client MUST send every other caller header to Connect with the
 The client MUST reject a restricted header before it requests a bearer.
 
 **Decision.** The host controls the allowed upstream data, and the client
-preserves the upstream response losslessly. The Firna safe-header allow-list
-was rejected because it silently drops provider-specific headers. Caller
+preserves the upstream response losslessly. A safe-header allow-list was
+rejected because it silently drops provider-specific headers. Caller
 `x-pd-*` names are rejected because they are reserved for Connect metadata.
 
 ## Rate-limit token
@@ -121,8 +121,8 @@ The workflow endpoint MUST use HTTPS.
 The workflow endpoint MUST NOT contain user information, a fragment, a
 control character, or a backslash.
 
-These URL rules keep the Connect bearer encrypted and prevent it from being
-sent to a caller-controlled origin.
+These URL rules keep the Connect bearer encrypted and stop URL tricks from
+changing the host. The SDK sends the bearer to the host that the caller names.
 
 Workflow invocation MUST return every status, response header, and body byte
 unchanged.

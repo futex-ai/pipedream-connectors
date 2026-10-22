@@ -23,7 +23,9 @@ Each skill description says when to read it.
   and effort, the terms, the background, the problem, the impact if no
   action is taken, lettered options, and a recommended option. Do the
   independent work first, then stop and wait.
-- End each task with a report of changes, checks, and open items.
+- End every task with a final report: what changed and the commit, each
+  decision and its outcome, the checks that ran, anything skipped, and the
+  outstanding decisions or review items that still need the user.
 
 ## Commands
 
@@ -32,14 +34,15 @@ Each skill description says when to read it.
 - Early check: `cargo fmt --all -- --check` and `cargo clippy --workspace
   --all-targets --all-features -- -D warnings`
 - Complete gate: `cargo xtask check`
+- Rust file-length lint: `cargo xtask rust-file-length-lint --all`
 - CLI smoke without credentials: `cargo test -p pipedream-cli --test cli_smoke`
+- Markdown lint: `npx --yes markdownlint-cli2 <files>`
 - Format: `cargo fmt --all`
 
 ## Repository rules
 
-- Use the pinned Rust 1.95.0 toolchain in `rust-toolchain.toml`.
+- Use the pinned toolchain in `rust-toolchain.toml`.
 - Keep Rust files under `crates/` and `xtask/` at or below 300 lines.
-- Keep scratch output under `.context/`, which Git ignores.
 - Credential-gated live tests must skip cleanly when Pipedream variables are absent.
 - Live tests also require `PIPEDREAM_LIVE_TESTS=1`.
 

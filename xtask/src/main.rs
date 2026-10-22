@@ -22,7 +22,6 @@ fn main() {
         std::process::exit(1);
     }
 }
-
 fn run() -> Result<()> {
     let cli = Cli::parse();
     let root = workspace_root()?;
@@ -35,7 +34,3 @@ fn run() -> Result<()> {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "_tests_/main_tests.rs"]
-mod main_tests;

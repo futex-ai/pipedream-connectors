@@ -44,8 +44,8 @@ A delete operation MAY ignore webhook delivery errors when requested.
 A delete operation for an already missing deployment returns success when the
 request enables missing-resource tolerance.
 
-Every deployed-trigger operation MUST include both the project and deployed
-trigger identity.
+Every deployed-trigger operation except the list operation MUST include both
+the project and deployed trigger identity.
 
 Every deployed-trigger operation MUST send the `external_user_id` query value.
 

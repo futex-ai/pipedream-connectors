@@ -2,11 +2,8 @@
 
 Status: Typed models, webhooks, the client core, registry and execution
 resources, managed auth and proxy resources, trigger lifecycle resources, and
-administration resources are available.
-
-Category listing returns a bare category array. The `pipedream-cli` command
-line runs registry, execution, managed auth, proxy, trigger, and
-administration commands.
+administration resources are available. The `pipedream-cli` command line runs
+registry, execution, managed auth, proxy, trigger, and administration commands.
 
 This repository provides a Rust SDK for the Pipedream Connect API. The SDK
 manages server-side OAuth client credentials, typed Connect resources, cursor
@@ -51,12 +48,7 @@ proxy calls.
 
 The client uses `https://api.pipedream.com` by default. It also manages
 projects, OAuth clients, app overrides, project webhooks, usage, rate-limit
-tokens, File Stash downloads, and workflow invocation. Set
-`PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, `PIPEDREAM_PROJECT_ID`, and
-`PIPEDREAM_LIVE_TESTS=1` for registry smoke commands. Set
-`PIPEDREAM_EXTERNAL_USER_ID` and `PIPEDREAM_CONNECTED_ACCOUNT_ID` for the
-trigger lifecycle smoke. The live checks skip when a required variable is
-absent.
+tokens, File Stash downloads, and workflow invocation.
 
 ## CLI
 
@@ -89,15 +81,23 @@ command reference.
 ## Developer start
 
 The workspace and `xtask` gate are available. The library crates are ready for
-local development. To work on the repository:
+local development. The gate needs no Pipedream variables. To work on the
+repository:
 
 1. Install the pinned Rust toolchain.
-2. Copy the required Pipedream variables into the shell environment.
-3. Run `cargo xtask check`.
-4. Run the credential-gated live checks when a development project exists.
-5. Run `cargo test -p pipedream-cli --test cli_smoke` for the CLI smoke
+2. Run `cargo xtask check`.
+3. Run the credential-gated live checks when a development project exists:
+
+   ```sh
+   PIPEDREAM_LIVE_TESTS=1 cargo test -p pipedream-connect \
+     --test live_pipedream -- --nocapture
+   ```
+
+   Set `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, `PIPEDREAM_PROJECT_ID`,
+   `PIPEDREAM_EXTERNAL_USER_ID`, and `PIPEDREAM_CONNECTED_ACCOUNT_ID` first.
+4. Run `cargo test -p pipedream-cli --test cli_smoke` for the CLI smoke
    without credentials.
-6. Run `npx --yes markdownlint-cli2` on changed Markdown files.
+5. Run `npx --yes markdownlint-cli2` on changed Markdown files.
 
 Do not commit credentials. Keep scratch output under `.context/`.
 

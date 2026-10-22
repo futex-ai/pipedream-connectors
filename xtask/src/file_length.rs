@@ -109,3 +109,7 @@ fn display_path(root: &Path, path: &Path) -> String {
         .display()
         .to_string()
 }
+
+#[cfg(test)]
+#[path = "_tests_/file_length_tests.rs"]
+mod file_length_tests;

@@ -53,3 +53,7 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
         .with_environment("RUSTDOCFLAGS", "-D warnings"),
     ]
 }
+
+#[cfg(test)]
+#[path = "_tests_/check_tests.rs"]
+mod check_tests;

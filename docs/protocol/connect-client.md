@@ -1,8 +1,8 @@
 # Connect client protocol
 
 This document defines the server-side HTTP contract for Pipedream Connect.
-The client talks to the Pipedream API origin and keeps credentials on the
-server.
+The client sends Connect API requests to the Pipedream API origin and keeps
+credentials on the server.
 
 ## Origin and transport
 
@@ -13,8 +13,9 @@ The configured API origin MUST use HTTPS.
 The client MUST reject an origin with a username, password, fragment, or
 control character.
 
-The client MUST send requests to the configured origin and the documented
-`/v1` paths.
+The client MUST send Connect API requests to the configured origin and the
+documented `/v1` paths. Workflow invocation is the exception: it sends the
+bearer to the caller-named workflow endpoint.
 
 The client MUST never follow an HTTP redirect.
 
