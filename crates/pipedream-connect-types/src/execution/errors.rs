@@ -37,17 +37,14 @@ impl<'de> Deserialize<'de> for ExecutionAttribution {
     where
         D: Deserializer<'de>,
     {
-        let mut object = object(deserializer, "execution attribution")?;
+        let mut object = object(deserializer, "execution attribution must be an object")?;
         let mut extra = UnknownFields::new();
         let origin = match object.remove("origin") {
             Some(value) => match serde_json::from_value(value.clone()) {
                 Ok(origin) => origin,
-                Err(_) => {
-                    extra.insert("origin".into(), value);
-                    unknown_origin()
-                }
+                Err(error) => return Err(serde::de::Error::custom(error)),
             },
-            None => unknown_origin(),
+            None => return Err(serde::de::Error::missing_field("origin")),
         };
         let network_calls_count = take_optional(&mut object, &mut extra, "network_calls_count");
         let last_call = take_optional(&mut object, &mut extra, "last_call");
@@ -104,7 +101,7 @@ impl<'de> Deserialize<'de> for NetworkCall {
     where
         D: Deserializer<'de>,
     {
-        let mut object = object(deserializer, "network call")?;
+        let mut object = object(deserializer, "network call must be an object")?;
         let mut extra = UnknownFields::new();
         let client = take_optional(&mut object, &mut extra, "client");
         let method = take_optional(&mut object, &mut extra, "method");
@@ -157,7 +154,7 @@ impl<'de> Deserialize<'de> for ExecutionError {
     where
         D: Deserializer<'de>,
     {
-        let mut object = object(deserializer, "execution error")?;
+        let mut object = object(deserializer, "execution error must be an object")?;
         let mut extra = UnknownFields::new();
         let attribution = take_optional(&mut object, &mut extra, "attribution");
         let name = take_optional(&mut object, &mut extra, "name");
@@ -186,15 +183,16 @@ impl Serialize for ExecutionError {
     }
 }
 
-fn object<'de, D>(deserializer: D, name: &str) -> std::result::Result<Map<String, Value>, D::Error>
+fn object<'de, D>(
+    deserializer: D,
+    message: &'static str,
+) -> std::result::Result<Map<String, Value>, D::Error>
 where
     D: Deserializer<'de>,
 {
     match Value::deserialize(deserializer)? {
         Value::Object(object) => Ok(object),
-        _ => Err(serde::de::Error::custom(format!(
-            "{name} must be an object"
-        ))),
+        _ => Err(serde::de::Error::custom(message)),
     }
 }
 
@@ -236,7 +234,10 @@ fn insert_value<T: Serialize, E: serde::ser::Error>(
     key: &str,
     value: &T,
 ) -> std::result::Result<(), E> {
-    let value = serde_json::to_value(value).map_err(E::custom)?;
+    let value = match serde_json::to_value(value) {
+        Ok(value) => value,
+        Err(error) => return Err(E::custom(error)),
+    };
     object.insert(key.to_owned(), value);
     Ok(())
 }
@@ -245,8 +246,4 @@ fn insert_extra(object: &mut Map<String, Value>, extra: &UnknownFields) {
     for (key, value) in extra {
         object.entry(key.clone()).or_insert_with(|| value.clone());
     }
-}
-
-fn unknown_origin() -> ErrorOrigin {
-    ErrorOrigin::Other("unknown".into())
 }

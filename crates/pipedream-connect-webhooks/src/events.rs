@@ -68,9 +68,10 @@ impl ConnectionEvent {
     /// Checks the body limit before decoding a connection event.
     pub fn decode_with_limit(raw_body: &[u8], body_limit: usize) -> Result<Self, PayloadError> {
         let raw = parse_bounded(raw_body, body_limit)?;
-        let event: Self = raw
-            .decode()
-            .map_err(|_| PayloadError::InvalidConnectionEvent)?;
+        let event: Self = match raw.decode() {
+            Ok(event) => event,
+            Err(_) => return Err(PayloadError::InvalidConnectionEvent),
+        };
         event.validate()
     }
 
