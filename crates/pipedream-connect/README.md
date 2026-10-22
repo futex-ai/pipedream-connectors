@@ -190,6 +190,13 @@ The local-socket transport tests start a local HTTP server. They need no
 Pipedream credentials. Unit tests use mocked transport, time, and sleep.
 No unit test uses a real network or clock.
 
+The `openapi_coverage` integration test reads the vendored OpenAPI fixture and
+the protocol operation tables. It checks that the tables contain each covered
+operation exactly once. It then calls every client resource method through a
+recording transport and compares the method, full URL, path template, key
+headers, and exact body with a golden wire row. The OAuth token row uses the
+client-credentials provider so the test also covers the token request.
+
 Run the registry and trigger smoke tests with the explicit opt-in:
 
 ```sh

@@ -1029,7 +1029,7 @@ Summary: the remaining Connect operations.
       without following it.
 - [x] `WorkflowsApi::invoke_for_external_user` against a workflow endpoint
       URL with the external user and environment headers.
-- [ ] A coverage test that reads the vendored OpenAPI document and asserts
+- [x] A coverage test that reads the vendored OpenAPI document and asserts
       that every `operationId` appears in the SDK coverage table.
 - [x] Unit tests per resource. Update the READMEs.
 - [x] Run the gate, commit, and hand off. The assigned worktree branch must
