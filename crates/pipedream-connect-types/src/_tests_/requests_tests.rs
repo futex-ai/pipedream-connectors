@@ -27,6 +27,11 @@ fn every_request_encodes_its_documented_body_or_query() {
             json!({"app_slug":"github","cfmap_json":"{\"api_key\":\"value\"}","connect_token":"ctok_0123456789abcdef0123456789abcdef","name":"Account","account_id":"apn_sample"}),
         ),
         (
+            "CreateAccountQuery",
+            golden::<CreateAccountQuery>,
+            json!({"external_user_id":"user","oauth_app_id":"oa_sample"}),
+        ),
+        (
             "ListAccountsRequest",
             golden::<ListAccountsRequest>,
             json!({"limit":1,"after":"cursor","external_user_id":"user","app":"github","oauth_app_id":"oa_sample","include_credentials":true}),

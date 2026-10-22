@@ -61,6 +61,8 @@ The following prefixes and patterns are part of the contract.
 | Project | `proj_[0-9A-Za-z]+` | OpenAPI pattern and Connect examples |
 | Account | `apn_[a-zA-Z0-9]+` | OpenAPI pattern and Connect proxy examples |
 | Deployed component | `dc_[a-zA-Z0-9]+` | OpenAPI pattern; official docs do not show a value |
+| HTTP interface emitter | `hi_[a-zA-Z0-9]+` | OpenAPI response pattern |
+| Timer interface emitter | `ti_[a-zA-Z0-9]+` | OpenAPI response pattern |
 | OAuth app | `oa_[0-9A-Za-z]+` | OpenAPI pattern and webhook examples |
 | App category | `appcat_[a-zA-Z0-9]+` | OpenAPI pattern; official docs do not show a value |
 | Connect token | `ctok_[0-9a-f]{32}` | OpenAPI pattern and Connect Link examples |

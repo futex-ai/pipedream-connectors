@@ -64,6 +64,28 @@ async fn passthrough_checks_execution_envelopes_before_returning_the_response() 
 }
 
 #[tokio::test]
+async fn passthrough_keeps_success_envelopes_and_non_execution_errors_lossless() {
+    for (status, body) in [
+        (200, json!({"error":{"name":"provider_error"}})),
+        (400, json!({"error":{"name":"strapi_error"}})),
+    ] {
+        let mut reply = response(status, body.clone());
+        reply
+            .headers
+            .insert("x-upstream", HeaderValue::from_static("keep"));
+        let expected = reply.clone();
+        let harness = Harness::script(static_config(), vec![Ok(reply)]);
+        let request = ApiRequest::new(Method::GET, ApiPath::project(&["proxy"]))
+            .with_response_mode(ResponseMode::PassThrough);
+        let actual = harness.client.dispatcher().dispatch(request).await.unwrap();
+        assert_eq!(actual.status, expected.status);
+        assert_eq!(actual.headers, expected.headers);
+        assert_eq!(actual.body, expected.body);
+        harness.assert_requests(1);
+    }
+}
+
+#[tokio::test]
 async fn passthrough_invalidates_a_401_bearer_without_replay() {
     let harness = Harness::script(
         config(),

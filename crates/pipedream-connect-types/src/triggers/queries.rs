@@ -58,6 +58,9 @@ pub struct DeleteTriggerRequest {
     /// Ignore hook errors.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ignore_hook_errors: Option<bool>,
+    /// Treat a missing deployment as a successful delete.
+    #[serde(skip)]
+    pub missing_ok: bool,
 }
 
 /// External user query shared by deployed-trigger operations.

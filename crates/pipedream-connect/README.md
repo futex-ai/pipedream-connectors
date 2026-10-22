@@ -36,8 +36,8 @@ response envelopes and check returned identities where the API provides the
 requested identity. `app_categories()` lists the bare category array and
 provides checked category retrieval. Deployed trigger calls keep the project
 and external user scope. Delete can treat a missing deployment as success when
-`ignore_hook_errors` is true. Trigger callback URLs accept HTTPS and loopback
-HTTP. Signing keys stay wrapped in `SecretString`.
+its missing-resource choice is enabled. Signing keys stay wrapped in
+`SecretString`.
 
 Configure, reload, and run calls use the shared execution error mapping.
 An omitted or explicit `blocking: Some(false)` maps a 202 from configure or
@@ -162,9 +162,11 @@ results. `ResponseMode::Redirect` returns a redirect response without
 following its location. Select these modes only for operations whose
 contracts define them.
 
-`ResponseMode::PassThrough` checks structured execution errors, then returns
-every status, header, and body byte. It never retries. A 401 still invalidates
-the bearer. The client cannot distinguish an upstream 401 from a Connect 401.
+`ResponseMode::PassThrough` checks only non-2xx execution envelopes with
+`attribution`, then returns every status, header, and body byte. It never
+retries. A 401 still invalidates the bearer. The client cannot distinguish an
+upstream 401 from a Connect 401. Workflow calls use a raw pass-through mode
+that performs no execution check.
 
 The URL library skips literal `.` and `..` segments. Their identifier policy
 is still an open plan decision. Slash, percent, question mark, and hash
@@ -195,8 +197,9 @@ PIPEDREAM_LIVE_TESTS=1 cargo test -p pipedream-connect \
   --test live_pipedream -- --nocapture
 ```
 
-It reads Google Calendar and lists its actions and triggers in development.
-The trigger smoke also deploys and deletes a timer-free trigger. It requires
+The registry smoke reads Google Calendar and lists its actions and triggers.
+The trigger lifecycle smoke deploys, lists, and deletes one trigger. It always
+cleans up a trigger created by the test. It requires
 `PIPEDREAM_EXTERNAL_USER_ID` and `PIPEDREAM_CONNECTED_ACCOUNT_ID`. Both tests
 print missing variable names and skip when credentials or the opt-in are
 absent.
@@ -204,8 +207,9 @@ absent.
 ### Adding an operation
 
 Add the typed request and response models first. Add a resource trait method
-and a handle method. Put the pure request builder and identity check in
-`src/resources/operation.rs`. Use `ApiRequest::with_query` for query models
+and a handle method. Put shared dispatch, no-content, and identity helpers in
+`src/resources/operation.rs`. Put each area's pure route builders in its
+per-area operation module. Use `ApiRequest::with_query` for query models
 and `with_json` for JSON bodies. Decode through the shared operation helper.
 For a paged list, wrap the fixed filters in `FilteredPageSource` and pass it
 to `BoundedPaginator`:

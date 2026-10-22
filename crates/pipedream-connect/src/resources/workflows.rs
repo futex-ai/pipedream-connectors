@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use http::Method;
-use pipedream_connect_types::ExternalUserId;
+use pipedream_connect_types::{ExternalUserId, WorkflowRequest};
 
 use crate::client::RequestDispatcher;
 use crate::error::{Error, InvalidRequest, Result};
@@ -26,7 +26,7 @@ pub trait WorkflowsApi: Send + Sync {
         endpoint: String,
         external_user_id: ExternalUserId,
         method: Method,
-        body: Vec<u8>,
+        request: WorkflowRequest,
     ) -> Result<HttpResponse>;
 }
 
@@ -50,7 +50,7 @@ impl WorkflowsApi for Workflows {
         endpoint: String,
         external_user_id: ExternalUserId,
         method: Method,
-        body: Vec<u8>,
+        request: WorkflowRequest,
     ) -> Result<HttpResponse> {
         if !matches!(
             method,
@@ -60,7 +60,7 @@ impl WorkflowsApi for Workflows {
         }
         operation::dispatch(
             &self.dispatcher,
-            admin_operations::invoke_workflow(&endpoint, method, &external_user_id, body),
+            admin_operations::invoke_workflow(&endpoint, method, &external_user_id, request),
         )
         .await
     }

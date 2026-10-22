@@ -1,10 +1,12 @@
 //! File Stash download operations without redirect following.
 
+use std::fmt;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use http::header::LOCATION;
 use pipedream_connect_types::DownloadFileStashRequest;
+use url::Url;
 
 use crate::client::RequestDispatcher;
 use crate::error::{Error, Result, WireFailure};
@@ -13,12 +15,31 @@ use super::admin_operations;
 use super::operation;
 
 /// A file download returned directly or as a presigned redirect location.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum FileStashDownload {
     /// File contents returned in the response body.
     Bytes(Vec<u8>),
     /// Presigned location returned by a redirect response.
     Redirect(String),
+}
+
+impl fmt::Debug for FileStashDownload {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = formatter.debug_struct("FileStashDownload");
+        match self {
+            Self::Bytes(bytes) => debug.field("bytes", &bytes.len()),
+            Self::Redirect(location) => {
+                let safe_location = Url::parse(location)
+                    .map(|mut url| {
+                        url.set_query(None);
+                        url.to_string()
+                    })
+                    .unwrap_or_else(|_| "[REDACTED]".to_owned());
+                debug.field("url", &safe_location)
+            }
+        };
+        debug.finish()
+    }
 }
 
 /// File Stash operations, consumed through a shared trait object.

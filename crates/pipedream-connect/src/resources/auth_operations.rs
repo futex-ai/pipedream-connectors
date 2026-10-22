@@ -2,11 +2,11 @@
 
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use http::{HeaderMap, HeaderName, HeaderValue, Method};
+use http::{HeaderMap, HeaderName, Method};
 use pipedream_connect_types::{
-    Account, AccountId, AccountRef, AppSlug, CreateAccountRequest, CreateConnectTokenRequest,
-    GetAccountRequest, ListAccountsRequest, ListUserAccountsRequest, ListUsersRequest,
-    ValidateTokenRequest,
+    Account, AccountId, AccountRef, AppSlug, CreateAccountQuery, CreateAccountRequest,
+    CreateConnectTokenRequest, ExternalUserId, GetAccountRequest, ListAccountsRequest,
+    ListUserAccountsRequest, ListUsersRequest, ProjectId, ValidateTokenRequest,
 };
 use serde::Serialize;
 use url::Url;
@@ -18,8 +18,13 @@ use crate::validation::Validate;
 use super::proxy::ProxyRequest;
 
 /// Builds a Connect token creation request.
-pub(super) fn create_token(request: &CreateConnectTokenRequest) -> Result<ApiRequest> {
-    ApiRequest::new(Method::POST, ApiPath::project(&["tokens"])).with_json(request)
+pub(super) fn create_token(
+    request: &CreateConnectTokenRequest,
+    project_id: &ProjectId,
+) -> Result<ApiRequest> {
+    let mut request = request.clone();
+    request.project_id = Some(project_id.clone());
+    ApiRequest::new(Method::POST, ApiPath::project(&["tokens"])).with_json(&request)
 }
 
 /// Builds a Connect token validation request.
@@ -61,8 +66,13 @@ pub(super) fn get_owned_account(
 }
 
 /// Builds an account creation request.
-pub(super) fn create_account(request: &CreateAccountRequest) -> Result<ApiRequest> {
-    ApiRequest::new(Method::POST, ApiPath::project(&["accounts"])).with_json(request)
+pub(super) fn create_account(
+    request: &CreateAccountRequest,
+    query: &CreateAccountQuery,
+) -> Result<ApiRequest> {
+    ApiRequest::new(Method::POST, ApiPath::project(&["accounts"]))
+        .with_query(query)?
+        .with_json(request)
 }
 
 /// Builds an account deletion request.
@@ -114,7 +124,7 @@ pub(super) fn list_user_accounts(
 }
 
 /// Builds a proxy request after validating its target and caller headers.
-pub(super) fn proxy(request: &ProxyRequest) -> Result<ApiRequest> {
+pub(super) fn proxy(request: ProxyRequest) -> Result<ApiRequest> {
     validate_target(&request.target)?;
     let target = URL_SAFE_NO_PAD.encode(request.target.as_bytes());
     let headers = proxy_headers(&request.headers)?;
@@ -129,8 +139,8 @@ pub(super) fn proxy(request: &ProxyRequest) -> Result<ApiRequest> {
     .with_query(&query)?
     .with_headers(headers)
     .with_response_mode(ResponseMode::PassThrough);
-    Ok(match &request.body {
-        Some(body) => operation.with_bytes(body.clone()),
+    Ok(match request.body {
+        Some(body) => operation.with_bytes(body),
         None => operation,
     })
 }
@@ -167,20 +177,28 @@ pub(super) fn check_account(response: Account, requested: &AccountId) -> Result<
     }
 }
 
-/// Checks both account and external-user ownership.
-pub(super) fn check_account_owner(response: Account, account: &AccountRef) -> Result<Account> {
-    if response.id == account.account_id
-        && response
-            .external_id
-            .as_ref()
-            .is_some_and(|external_id| external_id == &account.external_user_id)
+/// Checks every returned account against one external-user partition.
+pub(super) fn check_owned_accounts(
+    accounts: &[Account],
+    external_user_id: &ExternalUserId,
+    account_id: Option<&AccountId>,
+) -> Result<()> {
+    if accounts
+        .iter()
+        .any(|account| account.external_id.as_ref() != Some(external_user_id))
     {
-        Ok(response)
-    } else {
-        Err(Error::internal(WireFailure::IdentityMismatch))
+        return Err(Error::NotFound { message: None });
     }
+    if account_id.is_some_and(|id| !accounts.iter().any(|account| &account.id == id)) {
+        return Err(Error::NotFound { message: None });
+    }
+    Ok(())
 }
 
+/// Validates an absolute HTTPS target or a single relative path.
+///
+/// Absolute targets keep their host and reject credentials and fragments.
+/// Relative targets must start with one slash and cannot contain a fragment.
 fn validate_target(target: &str) -> Result<()> {
     if target.is_empty() || target.trim() != target || target.chars().any(char::is_control) {
         return Err(Error::InvalidRequest(InvalidRequest::ProxyTarget));
@@ -202,6 +220,10 @@ fn validate_target(target: &str) -> Result<()> {
     Err(Error::InvalidRequest(InvalidRequest::ProxyTarget))
 }
 
+/// Admits caller headers and prefixes them for Connect forwarding.
+///
+/// Reserved names are rejected before authentication. Repeated values keep
+/// their original order and sensitivity flag.
 fn proxy_headers(headers: &HeaderMap) -> Result<HeaderMap> {
     let mut forwarded = HeaderMap::new();
     for name in headers.keys() {
@@ -210,12 +232,12 @@ fn proxy_headers(headers: &HeaderMap) -> Result<HeaderMap> {
             return Err(Error::InvalidRequest(InvalidRequest::ProxyHeader));
         }
         let forwarded_name = format!("x-pd-proxy-{lower}");
-        let forwarded_name = HeaderName::from_bytes(forwarded_name.as_bytes())
-            .map_err(|_| Error::InvalidRequest(InvalidRequest::ProxyHeader))?;
+        let forwarded_name = match HeaderName::from_bytes(forwarded_name.as_bytes()) {
+            Ok(value) => value,
+            Err(_) => return Err(Error::InvalidRequest(InvalidRequest::ProxyHeader)),
+        };
         for value in headers.get_all(name).iter() {
-            let value = HeaderValue::from_bytes(value.as_bytes())
-                .map_err(|_| Error::InvalidRequest(InvalidRequest::ProxyHeader))?;
-            forwarded.append(forwarded_name.clone(), value);
+            forwarded.append(forwarded_name.clone(), value.clone());
         }
     }
     Ok(forwarded)

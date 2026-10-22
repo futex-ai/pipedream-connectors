@@ -1,7 +1,7 @@
 //! Managed Connect token request validation and wire contracts.
 
 use pipedream_connect_types::{
-    AccountId, ConnectToken, CreateConnectTokenRequest, ExternalUserId, OauthAppId,
+    AccountId, AppSlug, ConnectToken, CreateConnectTokenRequest, ExternalUserId, OauthAppId,
     ValidateTokenRequest,
 };
 use serde_json::json;
@@ -46,6 +46,7 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
         serde_json::from_slice::<serde_json::Value>(request.body.as_ref().unwrap()).unwrap(),
         json!({
             "external_user_id":"user_1",
+            "project_id":"proj_Test123",
             "expires_in":14400,
             "success_redirect_uri":"https://example.com/success",
             "error_redirect_uri":"https://example.com/error",
@@ -62,6 +63,13 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
         invalid,
         pipedream_connect_types::Error::InvalidHttpsUrl { .. }
     ));
+    let hash_route = CreateConnectTokenRequest::new(ExternalUserId::new("user_1").unwrap())
+        .with_success_redirect_uri("https://example.com/#/done")
+        .unwrap();
+    assert_eq!(
+        hash_route.success_redirect_uri.as_deref(),
+        Some("https://example.com/#/done")
+    );
     let harness = Harness::script(config(), vec![]);
     let mut request = CreateConnectTokenRequest::new(ExternalUserId::new("user_1").unwrap());
     request.expires_in = 14_401;
@@ -89,7 +97,7 @@ async fn validate_encodes_the_connect_token_and_all_optional_filters() {
         .validate(
             ConnectToken::new("ctok_0123456789abcdef0123456789abcdef").unwrap(),
             ValidateTokenRequest {
-                app_id: "google_calendar".into(),
+                app_id: AppSlug::new("google_calendar").unwrap(),
                 account_id: Some(AccountId::new("apn_Account1").unwrap()),
                 oauth_app_id: Some(OauthAppId::new("oa_App1").unwrap()),
             },

@@ -3,7 +3,7 @@
 use std::fmt;
 
 use http::{HeaderMap, Method};
-use pipedream_connect_types::PageRequest;
+use pipedream_connect_types::{PageRequest, UrlRules, parse_validated};
 use serde::Serialize;
 use serde_json::Value;
 use url::Url;
@@ -48,9 +48,13 @@ impl ApiPath {
         Ok(Self::Absolute(url))
     }
 
-    /// Describes an absolute HTTPS endpoint for a pass-through operation.
-    pub fn absolute_https(value: &str) -> Result<Self> {
-        Self::absolute(value)
+    /// Describes an absolute HTTPS workflow endpoint.
+    pub fn workflow_endpoint(value: &str) -> Result<Self> {
+        let url = match parse_validated(value, UrlRules::WorkflowEndpoint) {
+            Some(url) => url,
+            None => return Err(Error::InvalidRequest(InvalidRequest::WorkflowEndpoint)),
+        };
+        Ok(Self::Absolute(url))
     }
 }
 
@@ -85,6 +89,8 @@ pub enum ResponseMode {
     ///
     /// Never retries. A 401 still invalidates its bearer without replay.
     PassThrough,
+    /// Return every workflow status, header, and body without interpretation.
+    WorkflowPassThrough,
 }
 
 /// A validated operation ready for authenticated dispatch.
@@ -253,20 +259,8 @@ pub(crate) fn build_url(
 }
 
 fn validate_absolute_https(url: &Url, value: &str) -> Result<()> {
-    let authority_has_userinfo = value.split_once("://").is_some_and(|(_, rest)| {
-        rest.split('/')
-            .next()
-            .is_some_and(|authority| authority.contains('@'))
-    });
-    if value.trim() != value
-        || value.chars().any(char::is_control)
-        || url.scheme() != "https"
-        || url.host_str().is_none()
-        || authority_has_userinfo
-        || !url.username().is_empty()
-        || url.password().is_some()
-        || url.fragment().is_some()
-    {
+    let _ = url;
+    if parse_validated(value, UrlRules::WorkflowEndpoint).is_none() {
         return Err(Error::InvalidRequest(InvalidRequest::Origin));
     }
     Ok(())

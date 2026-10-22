@@ -2,11 +2,10 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
-use url::Url;
 
 use crate::{
     ConnectToken, Error, ExternalUserId, ProjectId, Result, SecretString, UnknownFields, UrlField,
-    ValidationField,
+    UrlRules, ValidationField, parse_validated,
 };
 
 /// Hosted Connect token creation request.
@@ -105,21 +104,10 @@ impl CreateConnectTokenRequest {
             (UrlField::ErrorRedirectUri, &self.error_redirect_uri),
             (UrlField::WebhookUri, &self.webhook_uri),
         ] {
-            if let Some(value) = value {
-                let parsed = match Url::parse(value) {
-                    Ok(parsed) => parsed,
-                    Err(_) => return Err(Error::InvalidHttpsUrl { field }),
-                };
-                if value.trim() != value
-                    || value.chars().any(char::is_control)
-                    || parsed.scheme() != "https"
-                    || parsed.host_str().is_none()
-                    || !parsed.username().is_empty()
-                    || parsed.password().is_some()
-                    || parsed.fragment().is_some()
-                {
-                    return Err(Error::InvalidHttpsUrl { field });
-                }
+            if let Some(value) = value
+                && parse_validated(value, UrlRules::HttpsHost).is_none()
+            {
+                return Err(Error::InvalidHttpsUrl { field });
             }
         }
         Ok(())

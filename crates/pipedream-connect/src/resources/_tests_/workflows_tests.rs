@@ -1,7 +1,7 @@
 //! Workflow endpoint validation and pass-through tests.
 
 use http::{HeaderValue, Method, StatusCode};
-use pipedream_connect_types::{ExternalUserId, SecretString};
+use pipedream_connect_types::{ExternalUserId, SecretString, WorkflowRequest};
 use serde_json::json;
 
 use crate::error::Error;
@@ -26,7 +26,10 @@ async fn workflow_invocation_sends_endpoint_headers_and_bytes() {
             "https://workflow.example/endpoint?one=1".into(),
             ExternalUserId::new("user_1").unwrap(),
             Method::POST,
-            b"{\"message\":\"hello\"}".to_vec(),
+            WorkflowRequest {
+                body: Some(b"{\"message\":\"hello\"}".to_vec()),
+                content_type: Some("application/json".into()),
+            },
         )
         .await
         .unwrap();
@@ -63,7 +66,7 @@ async fn workflow_endpoint_is_validated_before_token_acquisition() {
                 endpoint.into(),
                 ExternalUserId::new("user_1").unwrap(),
                 Method::POST,
-                Vec::new(),
+                WorkflowRequest::default(),
             )
             .await
             .unwrap_err();
@@ -82,7 +85,7 @@ async fn workflow_rejects_methods_outside_the_documented_set() {
             "https://workflow.example/endpoint".into(),
             ExternalUserId::new("user_1").unwrap(),
             Method::HEAD,
-            Vec::new(),
+            WorkflowRequest::default(),
         )
         .await
         .unwrap_err();

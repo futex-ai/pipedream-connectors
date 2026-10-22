@@ -92,8 +92,10 @@ identifier!(
 identifier!(
     DeployedTriggerId,
     DeployedTrigger,
-    "A deployed trigger identifier with the documented `dc_` prefix.",
-    |value: &str| prefixed_alphanumeric(value, "dc_")
+    "A deployed trigger identifier with a documented `dc_`, `hi_`, or `ti_` prefix.",
+    |value: &str| ["dc_", "hi_", "ti_"]
+        .iter()
+        .any(|prefix| prefixed_alphanumeric(value, prefix))
 );
 identifier!(
     OauthAppId,

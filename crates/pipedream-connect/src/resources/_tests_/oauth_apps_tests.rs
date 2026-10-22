@@ -19,7 +19,10 @@ async fn oauth_app_operations_encode_routes_and_keep_secret_debug_redacted() {
             Ok(response(200, json!({"data":[],"page_info":{"count":0}}))),
             Ok(response(201, app())),
             Ok(response(200, app())),
-            Ok(response(200, app())),
+            Ok(response(
+                200,
+                json!({"id":"oa_Other","client_id":"client","owner_id":"proj_Test123"}),
+            )),
             Ok(response(204, json!(null))),
         ],
     );

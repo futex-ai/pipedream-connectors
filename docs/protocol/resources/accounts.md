@@ -54,6 +54,11 @@ Account creation and retrieval return a bare account object.
 Account creation accepts an external user, app or OAuth app, configuration
 mapping, and an optional Connect token as defined by the operation.
 
+Account creation MAY send `external_user_id` and `oauth_app_id` query values.
+
+Account retrieval and deletion send `external_user_id` when the operation
+uses an `AccountRef` ownership check.
+
 Deleting an account removes only the selected account.
 
 Deleting accounts by app removes the selected app's accounts in the project

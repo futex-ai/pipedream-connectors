@@ -140,7 +140,10 @@ impl PipedreamClient {
 
     /// Returns managed Connect token operations sharing this client's token cache.
     pub fn tokens(&self) -> Arc<dyn TokensApi + Send + Sync> {
-        Arc::new(Tokens::new(self.dispatcher()))
+        Arc::new(Tokens::new(
+            self.dispatcher(),
+            self.config().project_id().clone(),
+        ))
     }
 
     /// Returns connected account operations sharing this client's token cache.

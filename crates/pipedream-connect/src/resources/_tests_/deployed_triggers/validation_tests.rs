@@ -27,33 +27,34 @@ async fn event_history_rejects_an_out_of_range_limit_before_authentication() {
 }
 
 #[tokio::test]
-async fn invalid_callback_urls_fail_before_authentication() {
-    let harness = Harness::script(config(), vec![]);
+async fn callback_urls_keep_provider_defined_admission_rules() {
+    let harness = Harness::new(vec![
+        response(200, json!({"data": deployed_trigger("dc_Trigger123")})),
+        response(
+            200,
+            json!({"webhook_urls":["http://public.example/events"]}),
+        ),
+    ]);
     let request = serde_json::from_value(json!({
         "id": "google_calendar-new-event",
         "external_user_id": "customer_1",
         "webhook_url": "http://public.example/events"
     }))
     .expect("valid model shape");
-    assert!(matches!(
-        harness.client.triggers().deploy(request).await,
-        Err(Error::InvalidRequest(_))
-    ));
-    assert!(matches!(
-        harness
-            .client
-            .deployed_triggers()
-            .set_webhooks(
-                trigger_id(),
-                query(),
-                UpdateTriggerWebhooksRequest {
-                    webhook_urls: vec!["https://user:secret@example.com".into()]
-                },
-            )
-            .await,
-        Err(Error::InvalidRequest(_))
-    ));
-    harness.assert_requests(0);
+    harness.client.triggers().deploy(request).await.unwrap();
+    harness
+        .client
+        .deployed_triggers()
+        .set_webhooks(
+            trigger_id(),
+            query(),
+            UpdateTriggerWebhooksRequest {
+                webhook_urls: vec!["http://public.example/events".into()],
+            },
+        )
+        .await
+        .unwrap();
+    harness.assert_requests(3);
 }
 
 #[tokio::test]

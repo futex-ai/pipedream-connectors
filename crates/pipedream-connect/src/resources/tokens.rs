@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use pipedream_connect_types::{
-    ConnectToken, ConnectTokenResponse, CreateConnectTokenRequest, ValidateTokenRequest,
+    ConnectToken, ConnectTokenResponse, CreateConnectTokenRequest, ProjectId, ValidateTokenRequest,
     ValidateTokenResponse,
 };
 
@@ -34,19 +34,30 @@ pub trait TokensApi: Send + Sync {
 #[derive(Clone)]
 pub struct Tokens {
     dispatcher: Arc<dyn RequestDispatcher + Send + Sync>,
+    project_id: ProjectId,
 }
 
 impl Tokens {
     /// Injects shared dispatch without sending a request.
-    pub fn new(dispatcher: Arc<dyn RequestDispatcher + Send + Sync>) -> Self {
-        Self { dispatcher }
+    pub fn new(
+        dispatcher: Arc<dyn RequestDispatcher + Send + Sync>,
+        project_id: ProjectId,
+    ) -> Self {
+        Self {
+            dispatcher,
+            project_id,
+        }
     }
 }
 
 #[async_trait]
 impl TokensApi for Tokens {
     async fn create(&self, request: CreateConnectTokenRequest) -> Result<ConnectTokenResponse> {
-        operation::json(&self.dispatcher, auth_operations::create_token(&request)).await
+        operation::json(
+            &self.dispatcher,
+            auth_operations::create_token(&request, &self.project_id),
+        )
+        .await
     }
 
     async fn validate(
@@ -61,3 +72,7 @@ impl TokensApi for Tokens {
         .await
     }
 }
+
+#[cfg(test)]
+#[path = "_tests_/tokens_tests.rs"]
+mod tokens_tests;

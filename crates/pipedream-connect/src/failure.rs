@@ -30,11 +30,11 @@ fn classify(
     if mode == (ResponseMode::Delete { missing_ok: true }) && status == 404 {
         return Ok(());
     }
-    if matches!(
-        mode,
-        ResponseMode::Execution { .. } | ResponseMode::PassThrough
-    ) {
-        if let Some(error) = execution_error(&response.body) {
+    if matches!(mode, ResponseMode::Execution { .. })
+        || (mode == ResponseMode::PassThrough && !response.status.is_success())
+    {
+        let require_attribution = mode == ResponseMode::PassThrough;
+        if let Some(error) = execution_error(&response.body, require_attribution) {
             return Err(Error::ExecutionFailed {
                 status,
                 error: Box::new(error),
@@ -44,8 +44,10 @@ fn classify(
             return Err(Error::Accepted);
         }
     }
-    if mode == ResponseMode::PassThrough
-        || response.status.is_success()
+    if matches!(
+        mode,
+        ResponseMode::PassThrough | ResponseMode::WorkflowPassThrough
+    ) || response.status.is_success()
         || mode == ResponseMode::Redirect && response.status.is_redirection()
     {
         return Ok(());
@@ -80,10 +82,13 @@ fn classify(
     })
 }
 
-fn execution_error(body: &[u8]) -> Option<ExecutionError> {
+fn execution_error(body: &[u8], require_attribution: bool) -> Option<ExecutionError> {
     let value: Value = serde_json::from_slice(body).ok()?;
     let error = value.get("error")?.as_object()?;
-    if !error.contains_key("attribution") && !error.contains_key("name") {
+    if require_attribution && !error.contains_key("attribution") {
+        return None;
+    }
+    if !require_attribution && !error.contains_key("attribution") && !error.contains_key("name") {
         return None;
     }
     serde_json::from_value(Value::Object(error.clone())).ok()

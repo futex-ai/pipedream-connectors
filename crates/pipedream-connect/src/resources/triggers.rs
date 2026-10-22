@@ -99,7 +99,7 @@ impl TriggersApi for Triggers {
             super::trigger_operations::deploy(&request),
         )
         .await?;
-        super::trigger_operations::check_deployment(response, &request.id)
+        Ok(response)
     }
 }
 

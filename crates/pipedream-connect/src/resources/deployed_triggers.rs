@@ -12,7 +12,7 @@ use pipedream_connect_types::{
 };
 
 use crate::client::RequestDispatcher;
-use crate::error::{Error, Result, WireFailure};
+use crate::error::Result;
 
 use super::{operation, trigger_operations};
 
@@ -31,7 +31,7 @@ pub trait DeployedTriggersApi: Send + Sync {
         trigger_id: DeployedTriggerId,
         request: DeployedTriggerQuery,
     ) -> Result<GetTriggerResponse>;
-    /// Updates one deployed trigger and checks its identity when available.
+    /// Updates one deployed trigger and returns the provider response unchanged.
     async fn update(
         &self,
         trigger_id: DeployedTriggerId,
@@ -130,12 +130,11 @@ impl DeployedTriggersApi for DeployedTriggers {
         query: DeployedTriggerQuery,
         request: UpdateTriggerRequest,
     ) -> Result<GetTriggerResponse> {
-        let response: GetTriggerResponse = operation::json(
+        operation::json(
             &self.dispatcher,
             trigger_operations::update(&trigger_id, &query, &request),
         )
-        .await?;
-        trigger_operations::check_trigger(response, &trigger_id)
+        .await
     }
 
     async fn delete(
@@ -143,10 +142,11 @@ impl DeployedTriggersApi for DeployedTriggers {
         trigger_id: DeployedTriggerId,
         request: DeleteTriggerRequest,
     ) -> Result<()> {
-        self.dispatcher
-            .dispatch(trigger_operations::delete(&trigger_id, &request)?)
-            .await
-            .map(|_| ())
+        operation::no_content(
+            &self.dispatcher,
+            trigger_operations::delete(&trigger_id, &request),
+        )
+        .await
     }
 
     async fn list_events(
@@ -159,9 +159,6 @@ impl DeployedTriggersApi for DeployedTriggers {
             trigger_operations::events(&trigger_id, &request),
         )
         .await?;
-        if response.data.len() > usize::from(request.limit) {
-            return Err(Error::internal(WireFailure::Pagination));
-        }
         Ok(response)
     }
 

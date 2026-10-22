@@ -4,6 +4,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::{AppSlug, PageRequest};
 
+/// Optional body and content type for workflow invocation.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorkflowRequest {
+    /// Exact request bytes, when the workflow call has a body.
+    pub body: Option<Vec<u8>>,
+    /// Content type for the body, when supplied.
+    pub content_type: Option<String>,
+}
+
 /// Project list query.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct ListProjectsRequest {

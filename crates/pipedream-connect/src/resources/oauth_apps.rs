@@ -26,7 +26,7 @@ pub trait OauthAppsApi: Send + Sync {
     async fn create(&self, request: CreateOauthAppRequest) -> Result<OauthApp>;
     /// Retrieves a custom OAuth client and verifies its identifier.
     async fn get(&self, id: OauthAppId) -> Result<OauthApp>;
-    /// Updates a custom OAuth client and verifies its identifier.
+    /// Updates a custom OAuth client and returns the provider response unchanged.
     async fn update(&self, id: OauthAppId, request: UpdateOauthAppRequest) -> Result<OauthApp>;
     /// Deletes a custom OAuth client.
     async fn delete(&self, id: OauthAppId) -> Result<()>;
@@ -70,21 +70,19 @@ impl OauthAppsApi for OauthApps {
     }
 
     async fn update(&self, id: OauthAppId, request: UpdateOauthAppRequest) -> Result<OauthApp> {
-        let app = operation::json(
+        operation::json(
             &self.dispatcher,
             admin_operations::update_oauth_app(&id, &request),
         )
-        .await?;
-        admin_operations::check_oauth_app(app, &id)
+        .await
     }
 
     async fn delete(&self, id: OauthAppId) -> Result<()> {
-        operation::dispatch(
+        operation::no_content(
             &self.dispatcher,
             Ok(admin_operations::delete_oauth_app(&id)),
         )
         .await
-        .map(|_| ())
     }
 }
 

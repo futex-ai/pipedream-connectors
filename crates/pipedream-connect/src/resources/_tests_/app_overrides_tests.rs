@@ -20,7 +20,7 @@ async fn override_operations_encode_routes_and_updates() {
             Ok(response(200, json!({"data":[],"page_info":{"count":0}}))),
             Ok(response(201, override_value("ao_Test123"))),
             Ok(response(200, override_value("ao_Test123"))),
-            Ok(response(200, override_value("ao_Test123"))),
+            Ok(response(200, override_value("ao_Other"))),
             Ok(response(204, json!(null))),
         ],
     );

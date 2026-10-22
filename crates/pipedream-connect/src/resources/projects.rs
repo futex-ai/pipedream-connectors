@@ -27,7 +27,7 @@ pub trait ProjectsApi: Send + Sync {
     async fn create(&self, request: CreateProjectRequest) -> Result<Project>;
     /// Retrieves a project and verifies its returned identifier.
     async fn get(&self, project_id: ProjectId) -> Result<Project>;
-    /// Updates a project and verifies its returned identifier.
+    /// Updates a project and returns the provider response unchanged.
     async fn update(&self, project_id: ProjectId, request: UpdateProjectRequest)
     -> Result<Project>;
     /// Deletes a project.
@@ -79,21 +79,19 @@ impl ProjectsApi for Projects {
         project_id: ProjectId,
         request: UpdateProjectRequest,
     ) -> Result<Project> {
-        let project = operation::json(
+        operation::json(
             &self.dispatcher,
             admin_operations::update_project(&project_id, &request),
         )
-        .await?;
-        admin_operations::check_project(project, &project_id)
+        .await
     }
 
     async fn delete(&self, project_id: ProjectId) -> Result<()> {
-        operation::dispatch(
+        operation::no_content(
             &self.dispatcher,
             Ok(admin_operations::delete_project(&project_id)),
         )
         .await
-        .map(|_| ())
     }
 
     async fn update_logo(
@@ -101,12 +99,11 @@ impl ProjectsApi for Projects {
         project_id: ProjectId,
         request: UpdateProjectLogoRequest,
     ) -> Result<()> {
-        operation::dispatch(
+        operation::no_content(
             &self.dispatcher,
             admin_operations::update_project_logo(&project_id, &request),
         )
         .await
-        .map(|_| ())
     }
 
     async fn info(&self) -> Result<ProjectInfo> {

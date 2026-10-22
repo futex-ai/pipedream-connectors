@@ -17,7 +17,7 @@ async fn project_operations_use_the_documented_routes_and_bodies() {
             Ok(response(200, json!({"data":[],"page_info":{"count":0}}))),
             Ok(response(201, json!({"id":"proj_New123","name":"New"}))),
             Ok(response(200, json!({"id":"proj_Test123","name":"Current"}))),
-            Ok(response(200, json!({"id":"proj_Test123","name":"Updated"}))),
+            Ok(response(200, json!({"id":"proj_Other","name":"Updated"}))),
             Ok(response(204, json!(null))),
             Ok(response(200, json!(null))),
             Ok(response(200, json!({"apps":[]}))),

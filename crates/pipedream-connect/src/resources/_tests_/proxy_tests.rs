@@ -66,31 +66,31 @@ async fn proxy_exposes_all_documented_methods() {
     harness
         .client
         .proxy()
-        .get(ProxyRequest::get(account(), "/resource"))
+        .get(ProxyRequest::post(account(), "/resource"))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .post(ProxyRequest::post(account(), "/resource"))
+        .post(ProxyRequest::get(account(), "/resource"))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .put(ProxyRequest::put(account(), "/resource"))
+        .put(ProxyRequest::delete(account(), "/resource"))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .patch(ProxyRequest::patch(account(), "/resource"))
+        .patch(ProxyRequest::get(account(), "/resource"))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .delete(ProxyRequest::delete(account(), "/resource"))
+        .delete(ProxyRequest::post(account(), "/resource"))
         .await
         .unwrap();
     for (index, method) in [

@@ -130,7 +130,10 @@ impl RequestDispatcher for PipedreamClient {
             }
             check_limit(&response, self.config.http.response_limit)?;
             if request.method == Method::GET
-                && request.mode != ResponseMode::PassThrough
+                && !matches!(
+                    request.mode,
+                    ResponseMode::PassThrough | ResponseMode::WorkflowPassThrough
+                )
                 && let Some(policy) = &self.config.retry
                 && policy.retries(response.status.as_u16(), attempts)
                 && let Some(delay) = policy.delay(retry_after(&response.headers, self.clock.now()))
