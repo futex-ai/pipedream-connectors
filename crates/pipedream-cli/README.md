@@ -127,8 +127,10 @@ URL.
 `--oauth-app-id <ID>`, `--include-credentials`, and the page flags.
 `accounts get <ACCOUNT>` takes `--include-credentials`. With
 `--external-user-id <ID>`, it also checks that the account belongs to that
-user. Pipedream returns credentials only with `--include-credentials`, and the
-CLI prints them only with `--show-secrets`.
+user. An account of another user exits with code 4, like a missing account.
+`accounts list` with `--external-user-id <ID>` checks each listed account in
+the same way. Pipedream returns credentials only with `--include-credentials`,
+and the CLI prints them only with `--show-secrets`.
 
 `users list` takes `--query <TEXT>` and the page flags.
 
@@ -161,14 +163,17 @@ call succeeded. Check `status` in the output, as with `curl` without `--fail`.
 `triggers list` takes `--external-user-id <ID>`, which is required,
 `--emitter-type <email|http|source|timer>`, and the page flags.
 `triggers get`, `triggers delete`, and `triggers events` take the trigger ID
-and `--external-user-id <ID>`. `triggers delete` takes `--ignore-hook-errors`
-and prints `{"status": "deleted"}`. `triggers events` takes
-`--limit <COUNT>`, from 1 to 100. The default is 20, the Pipedream default.
+and `--external-user-id <ID>`. A trigger ID starts with `dc_`, `hi_`, or
+`ti_`. `triggers delete` takes `--ignore-hook-errors` and prints
+`{"status": "deleted"}`. With `--missing-ok`, it prints the same result when
+the trigger does not exist. Without it, a missing trigger exits with code 4.
+`triggers events` takes `--limit <COUNT>`, from 1 to 100. The default is 20,
+the Pipedream default.
 
 `triggers deploy <COMPONENT>` takes `--external-user-id <ID>`, which is
 required. It also takes `--props <FILE>`, `--version <VERSION>`,
-`--dynamic-props-id <ID>`, `--workflow-id <ID>`, and `--emit-on-deploy`.
-`--webhook-url <URL>` takes an HTTPS URL or an HTTP URL on `localhost`. The
+`--dynamic-props-id <ID>`, `--workflow-id <ID>`, `--webhook-url <URL>`, and
+`--emit-on-deploy`. The CLI sends the webhook URL to Pipedream as it is. The
 response holds webhook signing keys, which print only with `--show-secrets`.
 
 `project info` prints the apps enabled in the project environment.

@@ -187,6 +187,10 @@ fn invalid_requests_exit_two() {
             InvalidRequest::WorkflowMethod,
             "Pipedream workflows accept GET, POST, PUT, PATCH, and DELETE. Use one of them.",
         ),
+        (
+            InvalidRequest::WorkflowEndpoint,
+            "The workflow URL is not valid. Use an HTTPS URL without credentials or a fragment.",
+        ),
     ];
     for (reason, message) in cases {
         assert_eq!(

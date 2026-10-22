@@ -1,6 +1,5 @@
-//! Tests for `triggers list`, `get`, `delete`, and `events`.
+//! Tests for `triggers list`, `get`, and `events`.
 
-use pipedream_connect::error::Error;
 use pipedream_connect::resources::deployed_triggers::DeployedTriggersApiMock;
 use pipedream_connect_types::{
     Data, EmittedEvent, Emitter, EmitterType, ExternalUserId, ListTriggerEventsRequest, Page,
@@ -11,6 +10,8 @@ use unimock::{MockFn, matching};
 
 use crate::report::exit::Exit;
 use crate::test_support::{Env, connected, deployed_triggers_handle, printed, run};
+
+use super::trigger;
 
 const KEY: &str = "MARKER-webhook-signing-key";
 const HOOK_KEY: &str = "MARKER-destination-signing-key";
@@ -45,16 +46,6 @@ fn assert_redacted(stdout: &str) {
         "{stdout}"
     );
     assert_eq!(stdout.matches("\"[REDACTED]\"").count(), 2, "{stdout}");
-}
-
-fn trigger(command: &str) -> Vec<&str> {
-    vec![
-        "triggers",
-        command,
-        "dc_Trigger1",
-        "--external-user-id",
-        "user_1",
-    ]
 }
 
 #[tokio::test]
@@ -118,41 +109,6 @@ async fn triggers_get_redacts_signing_keys_unless_show_secrets() {
     }
 }
 
-#[tokio::test]
-async fn triggers_delete_prints_the_deleted_status() {
-    let clauses = (
-        connected(),
-        deployed_triggers_handle(),
-        DeployedTriggersApiMock::delete
-            .next_call(matching!((id, request) if id.as_str() == "dc_Trigger1"
-                && request.ignore_hook_errors == Some(true)))
-            .returns(Ok(())),
-    );
-    let mut args = trigger("delete");
-    args.push("--ignore-hook-errors");
-    let ran = run(&args, clauses).await;
-    assert_eq!(ran.exit, Exit::Success);
-    assert_eq!(ran.stdout, "{\n  \"status\": \"deleted\"\n}\n");
-}
-
-#[tokio::test]
-async fn an_unanswered_delete_warns_that_the_trigger_may_be_gone() {
-    let clauses = (
-        connected(),
-        deployed_triggers_handle(),
-        DeployedTriggersApiMock::delete
-            .next_call(matching!((_, request) if request.ignore_hook_errors.is_none()))
-            .returns(Err(Error::Unavailable { status: None })),
-    );
-    let ran = run(&trigger("delete"), clauses).await;
-    assert_eq!(ran.exit, Exit::Unavailable);
-    assert_eq!(
-        ran.stderr,
-        "error: The CLI could not reach Pipedream at https://api.pipedream.com. Pipedream may \
-         have deleted the trigger. Check it with triggers get.\n"
-    );
-}
-
 fn events_request(count: u16) -> ListTriggerEventsRequest {
     ListTriggerEventsRequest::new(ExternalUserId::new("user_1").unwrap(), count).unwrap()
 }
@@ -206,7 +162,7 @@ async fn trigger_commands_reject_invalid_input_before_any_request() {
                 "user_1",
             ],
             "error: <TRIGGER> is not a valid deployed trigger ID. Use an ID that starts with \
-             dc_.\n",
+             dc_, hi_, or ti_.\n",
         ),
     ];
     for (args, stderr) in cases {
@@ -214,4 +170,26 @@ async fn trigger_commands_reject_invalid_input_before_any_request() {
         assert_eq!(ran.exit, Exit::Usage, "{args:?}");
         assert_eq!(ran.stderr, stderr, "{args:?}");
     }
+}
+
+#[tokio::test]
+async fn a_timer_emitter_id_reaches_the_events_request() {
+    let clauses = (
+        connected(),
+        deployed_triggers_handle(),
+        DeployedTriggersApiMock::list_events
+            .next_call(matching!((id, _) if id.as_str() == "ti_Timer1"))
+            .returns(Ok(Data {
+                data: Vec::new(),
+                extra: UnknownFields::new(),
+            })),
+    );
+    let args = [
+        "triggers",
+        "events",
+        "ti_Timer1",
+        "--external-user-id",
+        "user_1",
+    ];
+    assert_eq!(run(&args, clauses).await.exit, Exit::Success);
 }

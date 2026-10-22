@@ -647,6 +647,16 @@ no user answer. Each records the alternative and the reason.
   following flag is never taken as a credential. A custom API origin gets one
   note before any request. Rejected: hyphen values for credentials, because
   `--client-secret --show-secrets` silently used the flag name as the secret.
+- **CLI adaptation to the SDK review fixes (2026-10-22).** `triggers delete`
+  takes `--missing-ok`, which sets the SDK choice that accepts a missing
+  deployment. Without the flag, a missing trigger exits 4. The CLI sends
+  `--webhook-url` to Pipedream unchanged, because the SDK removed its local
+  callback URL rule. Trigger IDs take the SDK prefixes `dc_`, `hi_`, and
+  `ti_`. An account of another external user exits 4 through the SDK
+  `NotFound` mapping. Rejected: accepting a missing trigger by default,
+  because a delete with a wrong ID would then succeed silently. Rejected: a
+  CLI copy of the removed URL rule, because the SDK no longer has that
+  policy.
 
 ## Open decisions
 
@@ -1101,6 +1111,10 @@ resource traits.
   - [x] Merge Milestones 6 to 8, add the remaining commands, rerun the gate,
         and commit. Evidence: `.context/cli/gate-phase2.txt`,
         `.context/cli/smoke-phase2.txt`, and `.context/cli/merge-audit.txt`
+        in the CLI worktree.
+  - [x] Merge the SDK review fix round, adapt the CLI to its changes, rerun
+        the gate, and commit. Evidence: `.context/cli/gate-phase3.txt`,
+        `.context/cli/smoke-phase3.txt`, and `.context/cli/merge2-audit.txt`
         in the CLI worktree.
   - [ ] Run every command against a development project. Blocked: the
         Pipedream credential variables are absent.

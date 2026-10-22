@@ -45,8 +45,6 @@ pub(crate) enum Argument {
     ErrorRedirectUri,
     /// The Connect webhook URI.
     WebhookUri,
-    /// The deployed trigger webhook URL.
-    WebhookUrl,
     /// The deployed trigger workflow.
     WorkflowId,
     /// The start of a usage window.
@@ -79,7 +77,6 @@ impl Argument {
             Self::SuccessRedirectUri => "--success-redirect-uri",
             Self::ErrorRedirectUri => "--error-redirect-uri",
             Self::WebhookUri => "--webhook-uri",
-            Self::WebhookUrl => "--webhook-url",
             Self::WorkflowId => "--workflow-id",
             Self::Start => "--start",
             Self::End => "--end",

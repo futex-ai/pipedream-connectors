@@ -35,7 +35,6 @@ pub(super) fn prepare(
         webhook_url: args.webhook_url,
         emit_on_deploy: args.emit_on_deploy,
     };
-    checked(request.validate(), Argument::WebhookUrl)?;
     request.configured_props = args
         .props
         .map(|path| read_props(inputs, &InputSource::from(path), Argument::Props))

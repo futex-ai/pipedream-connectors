@@ -122,34 +122,38 @@ async fn show_secrets_prints_the_new_signing_keys() {
 }
 
 #[tokio::test]
-async fn a_loopback_http_webhook_is_accepted() {
+async fn the_webhook_url_reaches_the_sdk_without_a_local_rule() {
     let clauses = (
         connected(),
         triggers_handle(),
         TriggersApiMock::deploy
             .next_call(matching!((request) if request.webhook_url.as_deref()
-                == Some("http://localhost:8080/hook")))
+                == Some("http://example.com/hook")))
             .returns(Ok(response())),
     );
     let ran = run(
-        &deploy(&["--webhook-url", "http://localhost:8080/hook"]),
+        &deploy(&["--webhook-url", "http://example.com/hook"]),
         clauses,
     )
     .await;
-    assert_eq!(ran.exit, Exit::Success);
+    assert_eq!(ran.exit, Exit::Success, "{}", ran.stderr);
 }
 
 #[tokio::test]
 async fn invalid_deployments_fail_before_reading_props_or_any_request() {
     let cases = [
         (
-            deploy(&[
-                "--webhook-url",
-                "ftp://example.com/hook",
+            vec![
+                "triggers",
+                "deploy",
+                "bad/key",
+                "--external-user-id",
+                "user_1",
                 "--props",
                 "props.json",
-            ]),
-            "error: --webhook-url must be an HTTPS URL or an HTTP URL on localhost.\n",
+            ],
+            "error: <COMPONENT> is not a valid component key. Use 1 to 250 visible ASCII \
+             characters without /, \\, ?, or #.\n",
         ),
         (
             deploy(&["--workflow-id", "p/abc", "--props", "props.json"]),

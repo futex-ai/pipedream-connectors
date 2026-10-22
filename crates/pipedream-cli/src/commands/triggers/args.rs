@@ -42,7 +42,7 @@ pub(crate) struct ListTriggersArgs {
 /// The deployed trigger and its owner.
 #[derive(Debug, Args)]
 pub(crate) struct TriggerArgs {
-    /// Deployed trigger ID, such as dc_abc123.
+    /// Deployed trigger ID, which starts with dc_, hi_, or ti_.
     #[arg(value_name = "TRIGGER")]
     pub(super) trigger: String,
     /// External user who owns the deployed trigger.
@@ -59,6 +59,9 @@ pub(crate) struct DeleteTriggerArgs {
     /// Delete the trigger even when its deactivation hooks fail.
     #[arg(long)]
     pub(super) ignore_hook_errors: bool,
+    /// Succeed when the trigger does not exist.
+    #[arg(long)]
+    pub(super) missing_ok: bool,
 }
 
 /// The arguments of `triggers events`.
@@ -90,7 +93,7 @@ pub(crate) struct DeployTriggerArgs {
     /// Dynamic props ID from an earlier props reload.
     #[arg(long, value_name = "ID")]
     pub(super) dynamic_props_id: Option<String>,
-    /// HTTPS URL, or HTTP URL on localhost, that receives the trigger events.
+    /// URL that receives the trigger events.
     #[arg(long, value_name = "URL")]
     pub(super) webhook_url: Option<String>,
     /// Workflow that receives the trigger events.

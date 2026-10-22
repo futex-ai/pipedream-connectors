@@ -66,6 +66,7 @@ pub(super) fn delete(args: DeleteTriggerArgs) -> Result<DeployedTask> {
     let request = DeleteTriggerRequest {
         external_user_id,
         ignore_hook_errors: args.ignore_hook_errors.then_some(true),
+        missing_ok: args.missing_ok,
     };
     Ok(DeployedTask::Delete(trigger, request))
 }
@@ -128,5 +129,5 @@ pub(crate) async fn run(
 }
 
 #[cfg(test)]
-#[path = "_tests_/deployed_tests.rs"]
+#[path = "_tests_/deployed/mod.rs"]
 mod deployed_tests;

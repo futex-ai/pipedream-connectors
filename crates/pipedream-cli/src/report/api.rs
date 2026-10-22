@@ -153,6 +153,10 @@ fn invalid_request(reason: &InvalidRequest) -> (&'static str, &'static str) {
             "Pipedream workflows accept GET, POST, PUT, PATCH, and DELETE.",
             "Use one of them.",
         ),
+        InvalidRequest::WorkflowEndpoint => (
+            "The workflow URL is not valid.",
+            "Use an HTTPS URL without credentials or a fragment.",
+        ),
         InvalidRequest::Origin
         | InvalidRequest::Credentials
         | InvalidRequest::Bearer

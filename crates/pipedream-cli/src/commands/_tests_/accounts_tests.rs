@@ -145,6 +145,56 @@ async fn accounts_get_reads_by_id_without_an_external_user() {
 }
 
 #[tokio::test]
+async fn an_account_of_another_external_user_is_not_found() {
+    let clauses = (
+        connected(),
+        accounts_handle(),
+        AccountsApiMock::get_owned
+            .next_call(matching!((account, _) if *account == owned()))
+            .returns(Err(Error::NotFound { message: None })),
+    );
+    let args = [
+        "accounts",
+        "get",
+        "apn_Account1",
+        "--external-user-id",
+        "user_1",
+    ];
+    let ran = run(&args, clauses).await;
+    assert_eq!(ran.exit, Exit::NotFound);
+    assert!(ran.stdout.is_empty());
+    assert_eq!(
+        ran.stderr,
+        "error: Pipedream did not find the account. Check the account ID and the external user \
+         ID.\n"
+    );
+}
+
+#[tokio::test]
+async fn a_listed_account_of_another_external_user_is_not_found() {
+    let clauses = (
+        connected(),
+        accounts_handle(),
+        AccountsApiMock::list
+            .next_call(matching!((request) if request.external_user_id
+                == Some(ExternalUserId::new("user_1").unwrap())))
+            .returns(Err(Error::NotFound { message: None })),
+    );
+    let ran = run(
+        &["accounts", "list", "--external-user-id", "user_1"],
+        clauses,
+    )
+    .await;
+    assert_eq!(ran.exit, Exit::NotFound);
+    assert!(ran.stdout.is_empty());
+    assert_eq!(
+        ran.stderr,
+        "error: Pipedream did not find the listed resource. Check the project ID and the \
+         filters.\n"
+    );
+}
+
+#[tokio::test]
 async fn accounts_commands_reject_invalid_input_before_any_request() {
     let cases = [
         (

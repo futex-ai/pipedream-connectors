@@ -99,9 +99,6 @@ pub(super) fn invalid_argument(
         pipedream_connect_types::Error::InvalidHttpsUrl { .. } => {
             format!("{argument} must be an HTTPS URL.")
         }
-        pipedream_connect_types::Error::InvalidTriggerWebhookUrl => {
-            format!("{argument} must be an HTTPS URL or an HTTP URL on localhost.")
-        }
         pipedream_connect_types::Error::ConflictingCursors => {
             "Pass --after or --before, not both.".to_owned()
         }
@@ -136,7 +133,7 @@ fn identifier_hint(kind: IdentifierKind) -> &'static str {
     match kind {
         IdentifierKind::Project => "Use an ID that starts with proj_.",
         IdentifierKind::Account => "Use an ID that starts with apn_.",
-        IdentifierKind::DeployedTrigger => "Use an ID that starts with dc_.",
+        IdentifierKind::DeployedTrigger => "Use an ID that starts with dc_, hi_, or ti_.",
         IdentifierKind::OauthApp => "Use an ID that starts with oa_.",
         IdentifierKind::AppCategory => "Use an ID that starts with appcat_.",
         IdentifierKind::ConnectToken => "Use a token that starts with ctok_.",
