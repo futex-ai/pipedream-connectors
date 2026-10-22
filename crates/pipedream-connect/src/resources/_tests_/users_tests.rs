@@ -40,13 +40,16 @@ async fn users_list_accounts_and_delete_use_tenant_scoped_paths() {
         .users()
         .list_accounts(
             ExternalUserId::new("user_1").unwrap(),
-            ListUserAccountsRequest::default(),
+            ListUserAccountsRequest {
+                app: Some(pipedream_connect_types::AppSlug::new("google_calendar").unwrap()),
+                ..ListUserAccountsRequest::default()
+            },
         )
         .await
         .unwrap();
     assert_eq!(
         harness.request(1).url.expose_secret(),
-        "https://api.pipedream.com/v1/connect/proj_Test123/users/user_1/accounts?include_credentials=false"
+        "https://api.pipedream.com/v1/connect/proj_Test123/users/user_1/accounts?app=google_calendar&include_credentials=false"
     );
     harness
         .client

@@ -143,6 +143,29 @@ async fn account_get_rejects_a_returned_identity_that_does_not_match() {
 }
 
 #[tokio::test]
+async fn account_list_preserves_before_and_oauth_app_queries() {
+    let harness = Harness::new(vec![response(200, page(account()))]);
+    harness
+        .client
+        .accounts()
+        .list(ListAccountsRequest {
+            page: pipedream_connect_types::PageRequest {
+                before: Some(pipedream_connect_types::Cursor::new("before_1").unwrap()),
+                ..pipedream_connect_types::PageRequest::default()
+            },
+            oauth_app_id: Some(pipedream_connect_types::OauthAppId::new("oa_App1").unwrap()),
+            ..ListAccountsRequest::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(
+        harness.request(1).url.expose_secret(),
+        "https://api.pipedream.com/v1/connect/proj_Test123/accounts?before=before_1&include_credentials=false&limit=100&oauth_app_id=oa_App1"
+    );
+    harness.assert_requests(2);
+}
+
+#[tokio::test]
 async fn owned_account_cleanup_checks_the_external_user_before_delete() {
     let harness = Harness::new(vec![response(200, account()), response(204, json!(null))]);
     let reference = pipedream_connect_types::AccountRef::new(
