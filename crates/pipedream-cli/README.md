@@ -11,7 +11,8 @@ Library users depend on `pipedream-connect` and `pipedream-connect-types`.
 - Validate every argument and input file before any request.
 - Run one Connect operation for each command through the resource traits.
 - Print one JSON document for each successful command, with credentials
-  redacted.
+  redacted. `tokens create` always prints the Connect token and the Connect
+  Link URL, because it exists to produce them.
 - Report each failure with one message and a documented exit code.
 
 ## What This Crate Does
@@ -157,8 +158,12 @@ which:
 }
 ```
 
-An upstream status of 400 or more still exits with code 0, because the proxy
+An upstream status of 400 or more usually exits with code 0, because the proxy
 call succeeded. Check `status` in the output, as with `curl` without `--fail`.
+The exception is an execution error from Pipedream: a status outside 2xx with
+a JSON body whose `error` object holds `attribution`. Then the command prints
+no result and exits with code 7. The error names where the call failed, such
+as the app API and its status.
 
 `triggers list` takes `--external-user-id <ID>`, which is required,
 `--emitter-type <email|http|source|timer>`, and the page flags.
@@ -196,7 +201,8 @@ Without `--all`, the command prints the page as the SDK models it: `data`,
 `page_info`, and the fields that the SDK does not model. The SDK model writes
 `null` for an absent field that the API documents as nullable. With `--all`,
 the command prints one document with the records of every page. It drops the
-`page_info` of each page:
+`page_info` of each page and the page fields that the SDK does not model. Each
+record keeps all its fields:
 
 ```json
 {
@@ -215,8 +221,10 @@ can contain repeated records. When a page fails, the command prints no
 records. For a failure that a retry can fix, the error names the flag that
 continues from the failed page.
 
-`categories list`, `triggers events`, and `usage` have no cursor flags.
-Pipedream returns all their records in one response.
+`categories list`, `triggers events`, and `usage` have no cursor flags. For
+`categories list` and `usage`, Pipedream returns all the records in one
+response. `triggers events` prints the recent events of the trigger, up to
+`--limit`. The default is 20.
 
 ### Output and redaction
 
@@ -224,7 +232,7 @@ A successful command writes one pretty-printed JSON document and a newline to
 standard output. Notes and errors go to standard error. The CLI encodes the
 complete document before it writes, so a failed command prints nothing on
 standard output. Pipedream fields that the SDK does not model stay in the
-output.
+output, except the page fields of an `--all` listing.
 
 The SDK types some values as credentials: account credentials and webhook
 signing keys. Each of them prints as `"[REDACTED]"`. Pass `--show-secrets` to
@@ -239,14 +247,14 @@ An action run that Pipedream accepts for later completion prints
 
 | Code | Meaning |
 | --- | --- |
-| 0 | The command printed its result, also for an upstream proxy error. |
+| 0 | The command printed its result, also for an upstream error status. |
 | 1 | The CLI could not complete the command or read the response. |
 | 2 | A flag, a variable, or an input is not valid. No request was sent. |
 | 3 | Pipedream rejected the credentials or denied access. |
 | 4 | Pipedream did not find the resource. |
 | 5 | Pipedream rate limited the request. |
 | 6 | Pipedream was unavailable or did not respond. The request may have run. |
-| 7 | Pipedream rejected the request, or the action failed. |
+| 7 | Pipedream rejected the request, or an action or proxy call failed. |
 
 ### Errors
 

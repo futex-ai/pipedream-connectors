@@ -64,7 +64,9 @@ The `pipedream-cli` command runs SDK operations and prints each result as
 JSON. It reads settings from flags or from the `PIPEDREAM_CLIENT_ID`,
 `PIPEDREAM_CLIENT_SECRET`, `PIPEDREAM_PROJECT_ID`, `PIPEDREAM_ENVIRONMENT`,
 and `PIPEDREAM_API_ORIGIN` variables. It redacts credentials unless the
-caller passes `--show-secrets`. Each failure has a documented exit code.
+caller passes `--show-secrets`. `tokens create` always prints the Connect
+token and the Connect Link URL, because it exists to produce them. Each
+failure has a documented exit code.
 
 ```sh
 export PIPEDREAM_ENVIRONMENT=development
