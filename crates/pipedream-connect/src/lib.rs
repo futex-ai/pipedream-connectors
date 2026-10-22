@@ -1,5 +1,4 @@
-//! Async authentication and dispatch for the Pipedream Connect API.
-
+#![doc = include_str!("../README.md")]
 #![warn(unreachable_pub)]
 
 #[cfg(feature = "reqwest")]

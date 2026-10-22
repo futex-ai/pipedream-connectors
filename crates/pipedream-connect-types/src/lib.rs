@@ -1,5 +1,4 @@
-//! Typed, lossless data models for the Pipedream Connect API.
-
+#![doc = include_str!("../README.md")]
 #![warn(unreachable_pub)]
 
 mod accounts;

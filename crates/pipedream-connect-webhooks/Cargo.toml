@@ -7,6 +7,8 @@ authors.workspace = true
 repository.workspace = true
 description = "Webhook signature verification and event models for Pipedream Connect."
 readme = "README.md"
+keywords = ["pipedream", "connect", "webhooks", "hmac", "signatures"]
+categories = ["api-bindings", "web-programming"]
 
 [features]
 default = []

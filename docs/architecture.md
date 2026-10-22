@@ -13,10 +13,17 @@ values keep integers exactly within the `i64` and `u64` ranges. Larger integers
 and long decimals can round. These models preserve fields without retaining
 the original JSON number text.
 
+Each library crate embeds its README in the crate-level documentation. The
+README Quick Start examples therefore compile as documentation tests.
+
 The client library owns authenticated Connect requests, resource operations,
 response bounds, status mapping, token providers, and optional GET retry
 policy. It depends on the types library and exposes transport boundaries rather
 than requiring one HTTP implementation.
+
+The client tests read the vendored OpenAPI fixture and the resource protocol
+tables. They call every covered operation through a recording transport and
+compare its route, headers, query, and body with a golden wire row.
 
 The webhooks library owns signature verification, replay-window checks, raw
 body limits, connection event decoding, and trigger delivery decoding. It

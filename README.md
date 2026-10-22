@@ -8,9 +8,9 @@ Category listing returns a bare category array. The `pipedream-cli` command
 line runs registry, execution, managed auth, proxy, trigger, and
 administration commands.
 
-This repository will provide a Rust SDK for the Pipedream Connect API. The
-SDK will manage server-side OAuth client credentials, typed Connect resources,
-cursor pages, authenticated proxy calls, and webhook verification.
+This repository provides a Rust SDK for the Pipedream Connect API. The SDK
+manages server-side OAuth client credentials, typed Connect resources, cursor
+pages, authenticated proxy calls, and webhook verification.
 
 The SDK uses three library crates:
 
@@ -86,8 +86,8 @@ command reference.
 
 ## Developer start
 
-The workspace and `xtask` gate are available. The library crates are under
-active development. To work on the repository:
+The workspace and `xtask` gate are available. The library crates are ready for
+local development. To work on the repository:
 
 1. Install the pinned Rust toolchain.
 2. Copy the required Pipedream variables into the shell environment.

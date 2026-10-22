@@ -1,5 +1,4 @@
-//! Signature verification and event models for Pipedream Connect webhooks.
-
+#![doc = include_str!("../README.md")]
 #![warn(unreachable_pub)]
 
 mod error;

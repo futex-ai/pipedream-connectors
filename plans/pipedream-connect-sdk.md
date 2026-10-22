@@ -1123,14 +1123,19 @@ resource traits.
 
 Summary: the SDK and the CLI are usable by a stranger.
 
-- [ ] Each library crate `lib.rs` includes its README as crate docs, so the
+- [x] Each library crate `lib.rs` includes its README as crate docs, so the
       Quick Start compiles as a doctest.
-- [ ] `cargo doc --no-deps` builds without warnings, and `Cargo.toml`
+- [x] `cargo doc --no-deps` builds without warnings, and `Cargo.toml`
       carries description, repository, keywords, and categories.
 - [ ] Run the complete smoke against a development project: every CLI
       command and both live tests. Save the output under
       `.context/pipedream-connect-sdk/smoke.md`.
-- [ ] Update the workspace README and the architecture doc for anything
+- [x] Run the credential-free smoke checks and save the output under
+      `.context/pipedream-connect-sdk/smoke.md`.
+- [ ] Run every CLI command and both live tests against a development project.
+      Blocked: the Pipedream credential and development-project variables are
+      absent.
+- [x] Update the workspace README and the architecture doc for anything
       learnt.
 - [ ] Run the gate, commit, and push.
 
