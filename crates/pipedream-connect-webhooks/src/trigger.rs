@@ -4,8 +4,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::error::{PayloadError, check_body_limit};
-use crate::raw_json::{RawFields, RawJson, optional};
+use crate::error::PayloadError;
+use crate::raw_json::{RawFields, RawJson, optional, parse_bounded};
 
 /// Trigger delivery context supplied by Pipedream.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
@@ -81,11 +81,7 @@ impl TriggerDelivery {
 
     /// Checks the body limit before decoding a trigger delivery.
     pub fn decode_with_limit(raw_body: &[u8], body_limit: usize) -> Result<Self, PayloadError> {
-        check_body_limit(raw_body, body_limit)?;
-        let raw = match serde_json::from_slice::<RawJson>(raw_body) {
-            Ok(raw) => raw,
-            Err(_) => return Err(PayloadError::InvalidJson),
-        };
+        let raw = parse_bounded(raw_body, body_limit)?;
         Self::decode_value(&raw, raw_body)
     }
 

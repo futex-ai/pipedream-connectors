@@ -6,19 +6,22 @@ use pipedream_connect_types::*;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 
-#[path = "_support/conformance_extra.rs"]
+#[path = "../_support/conformance_extra.rs"]
 mod conformance_extra;
-#[path = "_support/query_schemas.rs"]
-mod query_schemas;
-#[path = "_support/request_schemas.rs"]
-mod request_schemas;
-#[path = "_support/samples.rs"]
+#[path = "query_schemas_tests.rs"]
+mod query_schemas_tests;
+#[path = "request_schemas_tests.rs"]
+mod request_schemas_tests;
+#[path = "../_support/samples.rs"]
 mod samples;
 
 use conformance_extra::HasExtra;
 use samples::{Mode, assert_preserved};
 
-const FIXTURE: &str = "tests/fixtures/pipedream_openapi_swagger.json";
+const FIXTURE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/pipedream_openapi_swagger.json"
+);
 type Decode = fn(&str, Value, Value);
 
 fn covered() -> Vec<(&'static str, Decode)> {

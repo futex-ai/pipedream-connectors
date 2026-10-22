@@ -3,8 +3,8 @@
 use pipedream_connect_types::{Account, ConnectToken, Environment};
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::error::{PayloadError, check_body_limit};
-use crate::raw_json::{RawFields, RawJson, optional, required};
+use crate::error::PayloadError;
+use crate::raw_json::{RawFields, RawJson, optional, parse_bounded, required};
 
 /// The two connection event discriminator values defined by Connect.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -67,11 +67,10 @@ impl ConnectionEvent {
 
     /// Checks the body limit before decoding a connection event.
     pub fn decode_with_limit(raw_body: &[u8], body_limit: usize) -> Result<Self, PayloadError> {
-        check_body_limit(raw_body, body_limit)?;
-        let event: Self = match serde_json::from_slice(raw_body) {
-            Ok(event) => event,
-            Err(_) => return Err(PayloadError::InvalidJson),
-        };
+        let raw = parse_bounded(raw_body, body_limit)?;
+        let event: Self = raw
+            .decode()
+            .map_err(|_| PayloadError::InvalidConnectionEvent)?;
         event.validate()
     }
 

@@ -111,7 +111,7 @@ The main entry points are:
 - `crates/pipedream-connect-types/src/pagination.rs` for bounded cursor pages.
 - `crates/pipedream-connect-types/src/registry/` for app and component models.
 - `crates/pipedream-connect-types/src/props/` for lossless property models.
-- `crates/pipedream-connect-types/tests/conformance.rs` for schema-generated
+- `crates/pipedream-connect-types/tests/conformance/main.rs` for schema-generated
   OpenAPI conformance samples.
 - `crates/pipedream-connect` for client configuration, token providers,
   transport boundaries, resource operations, proxy calls, and errors.

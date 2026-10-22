@@ -13,7 +13,7 @@ mod registry;
 mod secret;
 mod shared;
 mod triggers;
-pub mod url;
+mod url;
 mod wire;
 
 pub use accounts::{

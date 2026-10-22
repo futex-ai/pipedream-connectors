@@ -12,7 +12,7 @@ pub struct UpdateTriggerWebhooksRequest {
 }
 
 impl UpdateTriggerWebhooksRequest {
-    /// Validates every replacement callback URL.
+    /// Accepts every replacement callback URL without local validation.
     pub fn validate(&self) -> Result<()> {
         Ok(())
     }

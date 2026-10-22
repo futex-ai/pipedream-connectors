@@ -116,7 +116,7 @@ fn validates_shape_and_body_limit_before_json_processing() {
     ));
     assert!(matches!(
         ConnectionEvent::decode(br#"{"event":"UNKNOWN"}"#),
-        Err(PayloadError::InvalidJson)
+        Err(PayloadError::InvalidConnectionEvent)
     ));
 }
 

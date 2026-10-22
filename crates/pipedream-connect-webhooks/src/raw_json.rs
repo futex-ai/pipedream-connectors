@@ -6,7 +6,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::value::RawValue;
 
-use crate::error::PayloadError;
+use crate::error::{PayloadError, check_body_limit};
 
 /// Valid JSON whose exact number spelling and object text remain available.
 #[derive(Clone, Deserialize, Serialize)]
@@ -50,6 +50,11 @@ impl PartialEq for RawJson {
 
 /// Unknown webhook object fields stored as exact JSON text.
 pub type RawFields = BTreeMap<String, RawJson>;
+
+pub(crate) fn parse_bounded(raw_body: &[u8], body_limit: usize) -> Result<RawJson, PayloadError> {
+    check_body_limit(raw_body, body_limit)?;
+    serde_json::from_slice(raw_body).map_err(|_| PayloadError::InvalidJson)
+}
 
 pub(crate) fn required<T, E>(object: &mut RawFields, key: &'static str) -> Result<T, E>
 where
