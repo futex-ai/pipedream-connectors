@@ -32,6 +32,7 @@ Each skill description says when to read it.
 - Early check: `cargo fmt --all -- --check` and `cargo clippy --workspace
   --all-targets --all-features -- -D warnings`
 - Complete gate: `cargo xtask check`
+- CLI smoke without credentials: `cargo test -p pipedream-cli --test cli_smoke`
 - Format: `cargo fmt --all`
 
 ## Repository rules

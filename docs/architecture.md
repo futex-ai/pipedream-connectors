@@ -31,7 +31,9 @@ retain exact number text.
 The CLI is a user-facing composition root. It reads configuration from flags
 or `PIPEDREAM_*` environment variables, constructs a client, runs read
 commands and explicit smoke mutations, and prints JSON results. It is not a
-published library.
+published library. Its commands depend only on the client's resource traits.
+It redacts credential-class values in its output unless the caller asks for
+them, and it maps each failure to a documented exit code.
 
 The `xtask` task runner owns the repository gate. It runs formatting, linting,
 tests, documentation checks, and the file-length check as one developer
