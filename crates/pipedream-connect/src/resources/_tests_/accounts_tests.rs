@@ -35,14 +35,19 @@ async fn account_operations_encode_filters_and_keep_credentials_redacted() {
         .list(ListAccountsRequest {
             external_user_id: Some(ExternalUserId::new("user_1").unwrap()),
             app: Some(AppSlug::new("google_calendar").unwrap()),
+            oauth_app_id: Some(pipedream_connect_types::OauthAppId::new("oa_App1").unwrap()),
+            page: pipedream_connect_types::PageRequest {
+                after: Some(pipedream_connect_types::Cursor::new("after_1").unwrap()),
+                before: None,
+                limit: 25,
+            },
             include_credentials: Some(true),
-            ..ListAccountsRequest::default()
         })
         .await
         .unwrap();
     assert_get(
         harness.request(1),
-        "https://api.pipedream.com/v1/connect/proj_Test123/accounts?app=google_calendar&external_user_id=user_1&include_credentials=true&limit=100",
+        "https://api.pipedream.com/v1/connect/proj_Test123/accounts?after=after_1&app=google_calendar&external_user_id=user_1&include_credentials=true&limit=25&oauth_app_id=oa_App1",
     );
     assert!(!format!("{page:?}").contains("account-secret"));
     let account_id = AccountId::new("apn_Account1").unwrap();
@@ -103,7 +108,10 @@ async fn account_operations_encode_filters_and_keep_credentials_redacted() {
         })
     );
     harness.client.accounts().delete(account_id).await.unwrap();
-    assert_eq!(harness.request(5).method, http::Method::DELETE);
+    assert_eq!(
+        harness.request(5).url.expose_secret(),
+        "https://api.pipedream.com/v1/connect/proj_Test123/accounts/apn_Account1"
+    );
     harness
         .client
         .accounts()

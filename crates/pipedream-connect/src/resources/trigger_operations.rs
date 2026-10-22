@@ -2,6 +2,8 @@
 
 use crate::error::Result;
 use crate::request::{ApiPath, ApiRequest, ResponseMode};
+
+use super::operation::ensure_identity;
 use http::Method;
 use pipedream_connect_types::{
     DeleteTriggerRequest, DeployTriggerRequest, DeployedTriggerId, DeployedTriggerQuery, Emitter,
@@ -134,7 +136,7 @@ pub(super) fn check_trigger(
             value.get("id").and_then(Value::as_str) != Some(requested.as_str())
         }
     };
-    super::operation::ensure_identity(response, !mismatch)
+    ensure_identity(response, !mismatch)
 }
 
 /// Checks a webhook response against its requested destination.
@@ -143,5 +145,5 @@ pub(super) fn check_webhook(
     requested: &WebhookId,
 ) -> Result<GetWebhookWithSigningKeyResponse> {
     let matches = &response.data.id == requested;
-    super::operation::ensure_identity(response, matches)
+    ensure_identity(response, matches)
 }

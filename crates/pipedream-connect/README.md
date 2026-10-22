@@ -172,9 +172,9 @@ The URL library skips literal `.` and `..` segments. Their identifier policy
 is still an open plan decision. Slash, percent, question mark, and hash
 characters are encoded inside each segment.
 
-Workflow invocations use `ResponseMode::PassThrough` and send the external
-user and environment headers to the HTTPS endpoint. File Stash downloads
-return bytes or a redirect location without following the redirect.
+Workflow invocations use the raw pass-through response mode and send the
+external user and environment headers to the HTTPS endpoint. File Stash
+downloads return bytes or a redirect location without following the redirect.
 
 ## Development
 

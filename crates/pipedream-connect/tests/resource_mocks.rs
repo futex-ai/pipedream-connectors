@@ -5,11 +5,24 @@
 use std::sync::Arc;
 
 use pipedream_connect::error::Error;
+use pipedream_connect::resources::accounts::AccountsApi;
 use pipedream_connect::resources::actions::{ActionsApi, ActionsApiMock};
 use pipedream_connect::resources::app_categories::{AppCategoriesApi, AppCategoriesApiMock};
+use pipedream_connect::resources::app_overrides::AppOverridesApi;
 use pipedream_connect::resources::apps::{AppsApi, AppsApiMock};
 use pipedream_connect::resources::components::{ComponentsApi, ComponentsApiMock};
+use pipedream_connect::resources::deployed_triggers::DeployedTriggersApi;
+use pipedream_connect::resources::file_stash::FileStashApi;
+use pipedream_connect::resources::oauth_apps::OauthAppsApi;
+use pipedream_connect::resources::project_webhooks::ProjectWebhooksApi;
+use pipedream_connect::resources::projects::ProjectsApi;
+use pipedream_connect::resources::proxy::ProxyApi;
+use pipedream_connect::resources::rate_limits::RateLimitsApi;
+use pipedream_connect::resources::tokens::TokensApi;
 use pipedream_connect::resources::triggers::{TriggersApi, TriggersApiMock};
+use pipedream_connect::resources::usage::UsageApi;
+use pipedream_connect::resources::users::UsersApi;
+use pipedream_connect::resources::workflows::WorkflowsApi;
 use pipedream_connect::resources::{ConnectResources, ConnectResourcesMock};
 use pipedream_connect_types::{
     AppCategoryId, AppSlug, ComponentKey, ConfigurePropRequest, GetComponentRequest,
@@ -20,6 +33,19 @@ use unimock::{MockFn, Unimock, matching};
 
 #[tokio::test]
 async fn all_resource_groups_export_usable_trait_object_mocks() {
+    let _: Arc<dyn AccountsApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn AppOverridesApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn DeployedTriggersApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn FileStashApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn OauthAppsApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn ProjectWebhooksApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn ProjectsApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn ProxyApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn RateLimitsApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn UsageApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn UsersApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn WorkflowsApi + Send + Sync> = Arc::new(Unimock::new(()));
+    let _: Arc<dyn TokensApi + Send + Sync> = Arc::new(Unimock::new(()));
     let apps: Arc<dyn AppsApi + Send + Sync> = Arc::new(Unimock::new((
         AppsApiMock::list
             .next_call(matching!(_))

@@ -73,7 +73,10 @@ async fn user_account_ownership_mismatches_are_not_found() {
             .users()
             .list_accounts(
                 ExternalUserId::new("user_1").unwrap(),
-                ListUserAccountsRequest::default(),
+                ListUserAccountsRequest {
+                    app: Some(pipedream_connect_types::AppSlug::new("google_calendar").unwrap()),
+                    ..ListUserAccountsRequest::default()
+                },
             )
             .await;
         assert!(matches!(

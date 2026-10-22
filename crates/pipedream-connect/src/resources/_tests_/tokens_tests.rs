@@ -18,6 +18,10 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
         .unwrap()
         .with_webhook_uri("https://example.com/webhook")
         .unwrap();
+    let mut request = request;
+    request.allowed_origins = vec!["https://app.example.com".into()];
+    request.scope = Some("connect:accounts:read".into());
+    request.allow_progressive_scopes = Some(true);
     let harness = Harness::script(
         static_config(),
         vec![Ok(response(
@@ -51,6 +55,9 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
             "success_redirect_uri":"https://example.com/success",
             "error_redirect_uri":"https://example.com/error",
             "webhook_uri":"https://example.com/webhook"
+            ,"allowed_origins":["https://app.example.com"]
+            ,"scope":"connect:accounts:read"
+            ,"allow_progressive_scopes":true
         })
     );
     harness.assert_requests(1);
@@ -72,6 +79,13 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
     );
     let harness = Harness::script(config(), vec![]);
     let mut request = CreateConnectTokenRequest::new(ExternalUserId::new("user_1").unwrap());
+    request.expires_in = 0;
+    let result = harness.client.tokens().create(request).await;
+    assert!(matches!(result, Err(Error::InvalidRequest(_))));
+    harness.assert_requests(0);
+
+    let harness = Harness::script(config(), vec![]);
+    let mut request = CreateConnectTokenRequest::new(ExternalUserId::new("user_1").unwrap());
     request.expires_in = 14_401;
     let result = harness.client.tokens().create(request).await;
     assert!(matches!(result, Err(Error::InvalidRequest(_))));
@@ -83,6 +97,40 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
     let result = harness.client.tokens().create(request).await;
     assert!(matches!(result, Err(Error::InvalidRequest(_))));
     harness.assert_requests(0);
+}
+
+#[tokio::test]
+async fn validate_returns_the_complete_response_shape() {
+    let harness = Harness::script(
+        static_config(),
+        vec![Ok(response(
+            200,
+            json!({
+                "success": true,
+                "error": null,
+                "project_id": "proj_Test123",
+                "project_environment": "development",
+                "project_app_name": "Demo",
+                "future": {"preserve": true}
+            }),
+        ))],
+    );
+    let result = harness
+        .client
+        .tokens()
+        .validate(
+            ConnectToken::new("ctok_0123456789abcdef0123456789abcdef").unwrap(),
+            ValidateTokenRequest {
+                app_id: AppSlug::new("google_calendar").unwrap(),
+                account_id: None,
+                oauth_app_id: None,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(result.project_id.as_ref().unwrap().as_str(), "proj_Test123");
+    assert_eq!(result.extra["future"], json!({"preserve": true}));
+    harness.assert_requests(1);
 }
 
 #[tokio::test]

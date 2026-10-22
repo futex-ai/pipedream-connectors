@@ -13,6 +13,8 @@ use pipedream_connect_types::{
 use crate::error::{Error, InvalidRequest, Result};
 use crate::request::{ApiPath, ApiRequest, ResponseMode};
 
+use super::operation::ensure_identity;
+
 /// Builds the project list request.
 pub(super) fn list_projects(request: &ListProjectsRequest) -> Result<ApiRequest> {
     ApiRequest::new(Method::GET, ApiPath::connect(&["projects"])).with_query(request)
@@ -34,7 +36,7 @@ pub(super) fn get_project(project_id: &ProjectId) -> ApiRequest {
 /// Checks a project response against its requested identifier.
 pub(super) fn check_project(project: Project, requested: &ProjectId) -> Result<Project> {
     let matches = &project.id == requested;
-    super::operation::ensure_identity(project, matches)
+    ensure_identity(project, matches)
 }
 
 /// Builds a project update request.
@@ -92,7 +94,7 @@ pub(super) fn get_oauth_app(id: &OauthAppId) -> ApiRequest {
 /// Checks a custom OAuth app response against its requested identifier.
 pub(super) fn check_oauth_app(app: OauthApp, requested: &OauthAppId) -> Result<OauthApp> {
     let matches = &app.id == requested;
-    super::operation::ensure_identity(app, matches)
+    ensure_identity(app, matches)
 }
 
 /// Builds a custom OAuth app update request.
@@ -135,7 +137,7 @@ pub(super) fn check_app_override(
     requested: &AppOverrideId,
 ) -> Result<AppOverride> {
     let matches = &value.id == requested;
-    super::operation::ensure_identity(value, matches)
+    ensure_identity(value, matches)
 }
 
 /// Builds an app override update request.
