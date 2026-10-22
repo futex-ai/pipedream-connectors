@@ -1137,14 +1137,14 @@ Summary: the SDK and the CLI are usable by a stranger.
       absent.
 - [x] Update the workspace README and the architecture doc for anything
       learnt.
-- [ ] Run the gate, commit, and push.
+- [x] Run the gate, commit, and push.
 
 ## Milestone 12: Verification, commit, and review
 
 Summary: the final checks and the review loop.
 
-- [ ] Run the targeted tests and the complete gate named in `AGENTS.md`.
-- [ ] Commit with Conventional Commits and push the branch.
+- [x] Run the targeted tests and the complete gate named in `AGENTS.md`.
+- [x] Commit with Conventional Commits and push the branch.
 - [ ] Review the complete local diff against `origin/main` with the
       `implementation-review` skill after the push. Report the findings,
       then apply the review-fix rule: fix the `Auto-fix: yes` findings,
