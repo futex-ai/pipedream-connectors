@@ -392,6 +392,10 @@ no user answer. Each records the alternative and the reason.
   admission follows the proven Firna boundary, and the public request model
   exposes no separate missing-resource flag.
 
+- **Superseded callback admission (2026-10-22).** The Milestone 6 to 8
+  fix round removed the callback URL scheme rule of the decision above,
+  because a new rejection needs a user decision. Callback URLs pass
+  unchanged. The rule is an open decision. Final review finding 10.
 - **Review fix round, failed refresh sharing (2026-10-21).** A generation
   identifies each completed refresh. Queued callers share its typed failure.
   Internal failures retain the shared original source. A later call can
