@@ -704,6 +704,50 @@ no user answer. Each records the alternative and the reason.
   build until someone classifies it, without a change to the types crate. No
   option is applied before the user answers.
 
+- **Workflow host allow-list (2026-10-22).** Workflow invocation sends the
+  project bearer to any HTTPS URL that the caller passes. The official
+  Pipedream SDK accepts only hosts under its workflow domain. **A.** Keep any
+  HTTPS host and document the risk. Effort: Small. **B.** Add a configurable
+  workflow domain list with `m.pipedream.net` as the default, checked before
+  the token call. Effort: Medium. **C.** B, and make absolute targets
+  constructible only inside the crate. Effort: Medium. **Recommendation:** C,
+  because it keeps the bearer on Pipedream hosts and removes the generic
+  path. Final review finding 1, severity High.
+- **Proxy target backslash and raw `@` (2026-10-22).** A relative proxy target
+  such as `/\evil.example/api` passes the origin check, and WHATWG URL
+  resolution turns it into another host. **A.** Keep the current rules.
+  Effort: Small. **B.** Reject a backslash anywhere in a proxy target and a
+  raw `@` in an absolute target's authority. Effort: Small. **C.** B, through
+  the shared URL rule helper. Effort: Large. **Recommendation:** B. Final
+  review finding 4.
+- **Cursor grammar (2026-10-21).** Cursors use the common identifier grammar:
+  at most 250 bytes and no `/`, `\`, `?`, or `#`. The Firna adapter accepted
+  visible ASCII up to 2 KiB. A real cursor outside the grammar fails the whole
+  page. **A.** Keep the common grammar. Effort: Small. **B.** Accept visible
+  ASCII up to 2 KiB for cursors, which go into query strings. Effort: Small.
+  **Recommendation:** B, because cursors are opaque and never enter a path.
+- **`appcat_` prefix (2026-10-21).** `AppCategoryId` requires `appcat_`. The
+  OpenAPI document gives `AppCategory.id` no pattern, and the retrieve path
+  uses `^appcar_`. **A.** Keep `appcat_`. Effort: Small. **B.** Use the common
+  grammar for category IDs. Effort: Small. **C.** Decide after one live
+  category list. Effort: Small. **Recommendation:** C, then A or B.
+- **Trigger callback URL rule (2026-10-22).** Milestone 7 added an HTTPS or
+  loopback-HTTP rule for trigger callback URLs without a user decision. The
+  fix round removed it, so callback URLs pass unchanged. **A.** No rule.
+  Effort: Small. **B.** Require HTTPS, as for Connect token URIs. Effort:
+  Small. **Recommendation:** B, because Pipedream cannot reach loopback URLs.
+- **202 for a blocking request (2026-10-21).** A 202 from configure or
+  reload is `Accepted` when `blocking` is omitted or false. A 202 for an
+  explicit `blocking: true` decodes its body. **A.** Keep it. Effort: Small.
+  **B.** Map every 202 in execution mode to `Accepted`. Effort: Medium.
+  **Recommendation:** B, because a 202 has no result body.
+- **Unknown-field redaction (2026-10-22).** `Emitter::Other` and the
+  unknown-field maps print raw JSON in `Debug`, so a credential field that
+  Pipedream adds later prints in diagnostics. **A.** Keep decision 5:
+  credential-class fields only. Effort: Small. **B.** Mask unknown fields
+  whose names look like secrets. Effort: Medium. **Recommendation:** B, with
+  a fixed name list. Final review finding 50.
+
 ## Public API sketch
 
 ```rust
@@ -1149,10 +1193,80 @@ Summary: the final checks and the review loop.
       `implementation-review` skill after the push. Report the findings,
       then apply the review-fix rule: fix the `Auto-fix: yes` findings,
       re-review once, and report the rest.
-  - Open findings go here by severity, High first, one line each: number,
-    title, severity, effort, and recommended option. Follow-ups for wider
-    fixes that the review did not apply, and problems outside the scope, go
-    here too, one line each.
+  - Finding 1: Workflow calls send the project bearer to any HTTPS host.
+    Severity High, effort Medium. Recommended: C, workflow domain allow-list and
+    crate-private absolute targets (open decision).
+  - Finding 3: 408 and 5xx retry stops drop the Retry-After delay. Severity
+    Medium, effort Large. Recommended: B, `Unavailable` carries `retry_after`.
+  - Finding 4: Relative proxy target with a backslash can bypass the origin
+    check. Severity Medium, effort Small. Recommended: B, reject backslashes
+    (open decision).
+  - Finding 5: Managed-auth live test cannot detect proxy failures. Severity
+    Medium, effort Small. Recommended: A, Google Calendar targets and outcome
+    assertions.
+  - Finding 6: Unit tests miss four resource rules. Severity Medium, effort
+    Small. Recommended: A, add the four tests.
+  - Finding 7: Accounts protocol omits the ownership outcomes. Severity Medium,
+    effort Small. Recommended: A, record the requirements.
+  - Finding 8: Connection webhooks have no documented signature. Severity
+    Medium, effort Small. Recommended: B, an unauthenticated-event requirement.
+  - Finding 9: Trigger context timestamp rule can reject deliveries. Severity
+    Medium, effort Small. Recommended: B, best-effort `ts` decoding.
+  - Finding 13: Oversize 401 through reqwest keeps the bearer. Severity Low,
+    effort Large. Recommended: B, status on `ResponseTooLarge`.
+  - Finding 14: Execution check parses every body twice. Severity Low, effort
+    Small. Recommended: A, decode only the `error` member.
+  - Finding 15: Dispatch copies every request body. Severity Low, effort Small.
+    Recommended: A, move the body when no retry follows.
+  - Finding 18: No gate builds the client without default features. Severity
+    Low, effort Small. Recommended: A, add no-default steps.
+  - Finding 21: Component retrieval keeps a hand-written query encoder. Severity
+    Low, effort Small. Recommended: A, use `with_query`.
+  - Finding 22: Protocol sentences promise optional inputs and cursors. Severity
+    Low, effort Small. Recommended: A, correct the three sentences.
+  - Finding 23: Serde path skips connection event checks. Severity Low, effort
+    Small. Recommended: B, one constructor for both paths.
+  - Finding 25: Serde round trip changes delivery identity. Severity Low, effort
+    Small. Recommended: A, document it.
+  - Finding 26: Webhook status mapping blames the sender for host faults.
+    Severity Low, effort Small. Recommended: A, map host faults to 500.
+  - Finding 27: Protocol does not define an invalid context ID. Severity Low,
+    effort Small. Recommended: A, record the rule.
+  - Finding 28: Webhook header cases and status mapping lack tests. Severity
+    Low, effort Small. Recommended: B, a requirement table test.
+  - Finding 29: A failed CLI result write hides a completed change. Severity
+    Low, effort Medium. Recommended: B, per-command text after a sent request.
+  - Finding 31: CLI error hints state a rule the input meets. Severity Low,
+    effort Small. Recommended: A, state the whole rule.
+  - Finding 32: A zero rate-limit wait prints "Wait 0 seconds". Severity Low,
+    effort Small. Recommended: B, a non-zero wait type.
+  - Finding 33: Integers in number fields re-encode as floats. Severity Low,
+    effort Medium. Recommended: B, `serde_json::Number` and integer samples.
+  - Finding 37: Unused public `ProjectWebhook` model. Severity Low, effort
+    Medium. Recommended: A, delete it.
+  - Finding 38: Unused chrono clock features. Severity Low, effort Small.
+    Recommended: A, disable chrono default features.
+  - Finding 39: Local gate rewrites a stale Cargo.lock. Severity Low, effort
+    Small. Recommended: A, `--locked` in the xtask alias.
+  - Finding 40: Gate failure path has no unit test. Severity Low, effort Small.
+    Recommended: A, unimock tests.
+  - Finding 41: CI repeats the gate instead of running it. Severity Low, effort
+    Small. Recommended: A, run `cargo xtask check` in CI.
+  - Finding 42: Protocol promises lossless values that models round. Severity
+    Low, effort Small. Recommended: A, state the number limit.
+  - Finding 48: Plan evidence lines name lost worktree files. Severity Low,
+    effort Small. Recommended: A, keep new evidence in the plan folder.
+  - Finding 49: Plan rewrote two checked TODOs. Severity Low, effort Small.
+    Recommended: A, restore the words and add correction TODOs.
+  - Finding 50: `Emitter::Other` and unknown-field maps print raw JSON in Debug.
+    Severity Low, effort Medium. Recommended: B, mask secret-like names (open
+    decision).
+  - Finding 52: `RateLimited` drops `x-pd-rate-limit-reset-in`. Severity Low,
+    effort Small. Recommended: parse it as a reset delay.
+  - Finding 53: The vendored OpenAPI snapshot is behind the live schema.
+    Severity Low, effort Medium. Recommended: refresh it in a separate change
+    and review the diff.
+  - The full report is `.context/pipedream-connect-sdk/final-review/report.md`.
 
 ## Post-merge follow-up (non-blocking)
 
