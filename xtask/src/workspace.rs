@@ -21,3 +21,7 @@ pub(crate) fn workspace_root_from(manifest_dir: Option<OsString>) -> Result<Path
         .map(PathBuf::from)
         .ok_or(Error::MissingWorkspaceParent { manifest_dir })
 }
+
+#[cfg(test)]
+#[path = "_tests_/workspace_tests.rs"]
+mod workspace_tests;

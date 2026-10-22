@@ -23,6 +23,12 @@ Run the complete local gate from the repository root:
 cargo xtask check
 ```
 
+Run the Rust file-length audit for every workspace file:
+
+```sh
+cargo xtask rust-file-length-lint --all
+```
+
 ## Development
 
 Run focused xtask tests while changing the command runner or file audit:

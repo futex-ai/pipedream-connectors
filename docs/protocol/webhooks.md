@@ -109,8 +109,8 @@ policy permits `include_credentials`.
 An error payload contains `connect_token`, `environment`,
 `connect_session_id`, and an `error` message.
 
-The webhook decoder MUST wrap the Connect token in either payload as a
-credential-class value.
+The decoder MUST wrap the Connect token in either payload as a credential-class
+value.
 
 The client MUST preserve unknown fields in either connection payload.
 

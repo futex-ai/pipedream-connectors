@@ -23,3 +23,7 @@ pub(crate) enum Command {
         all: bool,
     },
 }
+
+#[cfg(test)]
+#[path = "_tests_/cli_tests.rs"]
+mod cli_tests;

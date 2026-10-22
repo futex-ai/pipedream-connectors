@@ -1,47 +1,13 @@
-//! Unit tests for the xtask command plan and filesystem audit.
+//! Unit tests for the Rust file-length audit.
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use clap::Parser;
 use unimock::{MockFn, Unimock, matching};
 
-use crate::check;
-use crate::cli::{Cli, Command};
 use crate::command::{CommandOutcome, CommandRunnerMock, CommandSpec};
 use crate::file_access::FileAccessMock;
 use crate::file_length;
-use crate::workspace::workspace_root_from;
-
-#[test]
-fn parses_supported_commands() {
-    assert_eq!(
-        Cli::try_parse_from(["xtask", "check"]).unwrap().command,
-        Command::Check
-    );
-    assert_eq!(
-        Cli::try_parse_from(["xtask", "rust-file-length-lint", "--all"])
-            .unwrap()
-            .command,
-        Command::RustFileLengthLint { all: true }
-    );
-}
-
-#[test]
-fn check_plan_has_the_required_order_and_flags() {
-    let commands = check::commands();
-
-    assert_eq!(commands.len(), 4);
-    assert_eq!(commands[0].label(), "cargo fmt --all -- --check");
-    assert!(!commands[0].capture_output);
-    assert!(commands[1].args.contains(&"--locked".to_owned()));
-    assert_eq!(commands[2].args[0], "test");
-    assert_eq!(commands[3].args[0], "doc");
-    assert_eq!(
-        commands[3].environment,
-        vec![("RUSTDOCFLAGS".to_owned(), "-D warnings".to_owned())]
-    );
-}
 
 #[test]
 fn accepts_a_rust_file_at_the_limit() {
@@ -108,15 +74,6 @@ fn changed_file_audit_reads_both_git_lists() {
     assert_eq!(calls[0].program, "git");
     assert_eq!(calls[1].program, "git");
     assert!(calls.iter().all(|command| command.capture_output));
-}
-
-#[test]
-fn workspace_root_uses_manifest_parent() {
-    assert_eq!(
-        workspace_root_from(Some("/repo/xtask".into())).unwrap(),
-        PathBuf::from("/repo")
-    );
-    assert!(workspace_root_from(None).is_err());
 }
 
 fn unused_runner() -> Unimock {
