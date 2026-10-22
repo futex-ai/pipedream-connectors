@@ -13,6 +13,7 @@ async fn malformed_execution_fields_remain_execution_failures_and_stay_lossless(
     let cases = [
         (json!({"error":{"name":"Error","message":42}}), "message"),
         (json!({"error":{"attribution":{}}}), "origin"),
+        (json!({"error":{"attribution":{"origin":42}}}), "origin"),
         (
             json!({"error":{"attribution":{"origin":"upstream_api","network_calls_count":1.5}}}),
             "network_calls_count",
@@ -23,7 +24,7 @@ async fn malformed_execution_fields_remain_execution_failures_and_stay_lossless(
         ),
     ];
     for (body, failed_field) in cases {
-        let harness = Harness::script(static_config(), vec![Ok(response(200, body))]);
+        let harness = Harness::script(static_config(), vec![Ok(response(200, body.clone()))]);
         let request = ApiRequest::new(Method::POST, ApiPath::project(&["actions", "run"]))
             .with_response_mode(ResponseMode::Execution { nonblocking: false });
         let error = harness
@@ -38,7 +39,7 @@ async fn malformed_execution_fields_remain_execution_failures_and_stay_lossless(
         let encoded = serde_json::to_value(&*error).unwrap();
         match failed_field {
             "message" => assert_eq!(encoded[failed_field], 42),
-            "origin" => assert_eq!(encoded["attribution"][failed_field], "unknown"),
+            "origin" => assert_eq!(encoded["attribution"], body["error"]["attribution"]),
             "network_calls_count" => {
                 assert_eq!(encoded["attribution"][failed_field], 1.5)
             }

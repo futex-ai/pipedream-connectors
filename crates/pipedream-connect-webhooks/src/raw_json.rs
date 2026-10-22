@@ -53,7 +53,10 @@ pub type RawFields = BTreeMap<String, RawJson>;
 
 pub(crate) fn parse_bounded(raw_body: &[u8], body_limit: usize) -> Result<RawJson, PayloadError> {
     check_body_limit(raw_body, body_limit)?;
-    serde_json::from_slice(raw_body).map_err(|_| PayloadError::InvalidJson)
+    match serde_json::from_slice(raw_body) {
+        Ok(raw) => Ok(raw),
+        Err(_) => Err(PayloadError::InvalidJson),
+    }
 }
 
 pub(crate) fn required<T, E>(object: &mut RawFields, key: &'static str) -> Result<T, E>
