@@ -4,12 +4,12 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use pipedream_connect_types::{
-    Account, AccountId, AccountRef, AppSlug, CreateAccountRequest, GetAccountRequest,
-    ListAccountsRequest, Page,
+    Account, AccountId, AccountRef, AppSlug, CreateAccountQuery, CreateAccountRequest,
+    GetAccountRequest, ListAccountsRequest, Page,
 };
 
 use crate::client::RequestDispatcher;
-use crate::error::{Error, Result, WireFailure};
+use crate::error::Result;
 
 use super::{auth_operations, operation};
 
@@ -27,7 +27,11 @@ pub trait AccountsApi: Send + Sync {
     /// Retrieves one account and checks its external-user ownership.
     async fn get_owned(&self, account: AccountRef, request: GetAccountRequest) -> Result<Account>;
     /// Creates or reconnects an account from a Connect token.
-    async fn create(&self, request: CreateAccountRequest) -> Result<Account>;
+    async fn create(
+        &self,
+        request: CreateAccountRequest,
+        query: CreateAccountQuery,
+    ) -> Result<Account>;
     /// Deletes one account by its project-scoped identifier.
     async fn delete(&self, account_id: AccountId) -> Result<()>;
     /// Deletes one account after checking its external-user ownership.
@@ -56,11 +60,7 @@ impl AccountsApi for Accounts {
         let page: Page<Account> =
             operation::json(&self.dispatcher, auth_operations::list_accounts(&request)).await?;
         if let Some(external_user_id) = request.external_user_id {
-            for account in &page.data {
-                if account.external_id.as_ref() != Some(&external_user_id) {
-                    return Err(Error::internal(WireFailure::IdentityMismatch));
-                }
-            }
+            auth_operations::check_owned_accounts(&page.data, &external_user_id, None)?;
         }
         Ok(page)
     }
@@ -75,8 +75,16 @@ impl AccountsApi for Accounts {
         auth_operations::check_account(response, &account_id)
     }
 
-    async fn create(&self, request: CreateAccountRequest) -> Result<Account> {
-        operation::json(&self.dispatcher, auth_operations::create_account(&request)).await
+    async fn create(
+        &self,
+        request: CreateAccountRequest,
+        query: CreateAccountQuery,
+    ) -> Result<Account> {
+        operation::json(
+            &self.dispatcher,
+            auth_operations::create_account(&request, &query),
+        )
+        .await
     }
 
     async fn get_owned(
@@ -90,29 +98,41 @@ impl AccountsApi for Accounts {
             auth_operations::get_owned_account(&account, &request),
         )
         .await?;
-        auth_operations::check_account_owner(response, &account)
+        auth_operations::check_owned_accounts(
+            std::slice::from_ref(&response),
+            &account.external_user_id,
+            Some(&account.account_id),
+        )?;
+        Ok(response)
     }
 
     async fn delete(&self, account_id: AccountId) -> Result<()> {
-        self.dispatcher
-            .dispatch(auth_operations::delete_account(&account_id))
-            .await
-            .map(|_| ())
+        operation::no_content(
+            &self.dispatcher,
+            Ok(auth_operations::delete_account(&account_id)),
+        )
+        .await
     }
 
     async fn delete_owned(&self, account: AccountRef) -> Result<()> {
         self.get_owned(account.clone(), GetAccountRequest::default())
             .await?;
-        self.dispatcher
-            .dispatch(auth_operations::delete_owned_account(&account)?)
-            .await
-            .map(|_| ())
+        operation::no_content(
+            &self.dispatcher,
+            auth_operations::delete_owned_account(&account),
+        )
+        .await
     }
 
     async fn delete_by_app(&self, app: AppSlug) -> Result<()> {
-        self.dispatcher
-            .dispatch(auth_operations::delete_accounts_by_app(&app))
-            .await
-            .map(|_| ())
+        operation::no_content(
+            &self.dispatcher,
+            Ok(auth_operations::delete_accounts_by_app(&app)),
+        )
+        .await
     }
 }
+
+#[cfg(test)]
+#[path = "_tests_/accounts_tests.rs"]
+mod accounts_tests;

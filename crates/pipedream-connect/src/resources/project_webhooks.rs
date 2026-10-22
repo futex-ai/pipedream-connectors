@@ -62,12 +62,11 @@ impl ProjectWebhooksApi for ProjectWebhooks {
     }
 
     async fn delete(&self) -> Result<()> {
-        operation::dispatch(
+        operation::no_content(
             &self.dispatcher,
             Ok(admin_operations::delete_project_webhook()),
         )
         .await
-        .map(|_| ())
     }
 
     async fn regenerate_signing_key(&self) -> Result<GetWebhookWithSigningKeyResponse> {

@@ -1,16 +1,17 @@
 //! Pure request builders and identity checks for trigger lifecycle operations.
 
+use crate::error::Result;
+use crate::request::{ApiPath, ApiRequest, ResponseMode};
+
+use super::operation::ensure_identity;
 use http::Method;
 use pipedream_connect_types::{
-    Data, DeleteTriggerRequest, DeployTriggerRequest, DeployedTriggerId, DeployedTriggerQuery,
-    Emitter, GetTriggerResponse, GetWebhookWithSigningKeyResponse, ListDeployedTriggersRequest,
+    DeleteTriggerRequest, DeployTriggerRequest, DeployedTriggerId, DeployedTriggerQuery, Emitter,
+    GetTriggerResponse, GetWebhookWithSigningKeyResponse, ListDeployedTriggersRequest,
     ListTriggerEventsRequest, UpdateTriggerRequest, UpdateTriggerWebhooksRequest,
     UpdateTriggerWorkflowsRequest, WebhookId,
 };
 use serde_json::Value;
-
-use crate::error::{Error, Result, WireFailure};
-use crate::request::{ApiPath, ApiRequest, ResponseMode};
 
 /// Builds a trigger deployment request.
 pub(super) fn deploy(request: &DeployTriggerRequest) -> Result<ApiRequest> {
@@ -43,7 +44,7 @@ pub(super) fn delete(id: &DeployedTriggerId, request: &DeleteTriggerRequest) -> 
     Ok(path(Method::DELETE, id, &[])
         .with_query(request)?
         .with_response_mode(ResponseMode::Delete {
-            missing_ok: request.ignore_hook_errors.unwrap_or(false),
+            missing_ok: request.missing_ok,
         }))
 }
 
@@ -135,34 +136,7 @@ pub(super) fn check_trigger(
             value.get("id").and_then(Value::as_str) != Some(requested.as_str())
         }
     };
-    if mismatch {
-        Err(Error::internal(WireFailure::IdentityMismatch))
-    } else {
-        Ok(response)
-    }
-}
-
-/// Checks a deployment response against its requested component key.
-pub(super) fn check_deployment(
-    response: Data<Emitter>,
-    requested: &pipedream_connect_types::ComponentKey,
-) -> Result<Data<Emitter>> {
-    let mismatch = match &response.data {
-        Emitter::DeployedComponent(value) => value
-            .component_key
-            .as_ref()
-            .is_some_and(|key| key != requested),
-        Emitter::Other(value) => value
-            .get("component_key")
-            .and_then(Value::as_str)
-            .is_some_and(|key| key != requested.as_str()),
-        _ => false,
-    };
-    if mismatch {
-        Err(Error::internal(WireFailure::IdentityMismatch))
-    } else {
-        Ok(response)
-    }
+    ensure_identity(response, !mismatch)
 }
 
 /// Checks a webhook response against its requested destination.
@@ -170,9 +144,6 @@ pub(super) fn check_webhook(
     response: GetWebhookWithSigningKeyResponse,
     requested: &WebhookId,
 ) -> Result<GetWebhookWithSigningKeyResponse> {
-    if &response.data.id == requested {
-        Ok(response)
-    } else {
-        Err(Error::internal(WireFailure::IdentityMismatch))
-    }
+    let matches = &response.data.id == requested;
+    ensure_identity(response, matches)
 }

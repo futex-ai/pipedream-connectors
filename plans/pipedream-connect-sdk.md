@@ -534,6 +534,30 @@ no user answer. Each records the alternative and the reason.
   token returned by `RateLimitsApi` can be applied to a cloned client. Rejected:
   mutating a live client configuration in place, because client settings are
   immutable after construction.
+- **Review fixes for managed auth and proxy (2026-10-22).** Named proxy
+  methods overwrite a mismatched constructor method, and proxy bodies move
+  into the request without a second copy. Account ownership mismatches map to
+  `NotFound` and account creation carries typed query filters. Token bodies
+  always carry the configured project. Rejected: trusting caller method or
+  request project fields, because those values can change the operation route
+  or tenant.
+- **Review fixes for response modes (2026-10-22).** Proxy pass-through checks
+  only non-2xx bodies with `attribution`, while workflow pass-through returns
+  every status, header, and byte without an execution check. Rejected: one
+  shared execution check, because workflows and upstream proxy responses have
+  different lossless contracts.
+- **Review fixes for trigger lifecycle (2026-10-22).** Read identity checks
+  use one helper, while deploy and update responses remain unchanged. Missing
+  deployment tolerance is a separate delete choice from `ignore_hook_errors`.
+  Callback URLs keep their pre-Milestone-7 provider-defined behavior.
+  Rejected: checking mutation response identities or coupling missing deletes
+  to hook delivery, because the API can return a new identity and the flags
+  control different concerns.
+- **Review fixes for URL and diagnostic boundaries (2026-10-22).** API origin,
+  workflow, and token URI validation use one helper with explicit rule sets.
+  File Stash debug output reports byte counts and query-free redirect URLs.
+  Rejected: repeating URL predicates or printing presigned query values,
+  because duplicated rules drift and presigned queries are credentials.
 
 - **CLI settings (2026-10-21).** Each connection flag takes precedence over
   its `PIPEDREAM_*` variable. An injected reader resolves the variables after
@@ -648,17 +672,7 @@ no user answer. Each records the alternative and the reason.
   them. Effort: Large. **Recommendation:** A, because it prevents a route
   change with one identifier rule. No new rejection is applied before the
   user answers. This choice blocks final handling of these identifiers in
-  resource paths.
-
-- **Category list shape (2026-10-21).** The saved OpenAPI schema and the
-  current public category-list page return a bare array without query
-  parameters. The milestone guidance asks every list to take a typed request
-  and return `Page<T>`. **A.** Return `Vec<AppCategory>` from `list()` and
-  document this non-paged exception. Effort: Small. **B.** Take an empty typed
-  request and normalize the array into `Page<AppCategory>` with absent page
-  metadata. Effort: Medium. **Recommendation:** A, because it matches the
-  provider contract without fabricated page data. No list option is applied
-  before the user answers. This blocks category listing and its tests.
+    resource paths.
 
 - **CLI contract home (2026-10-21).** The CLI exit codes, settings, output,
   and redaction rules are requirements at the CLI boundary. They live in the
@@ -960,6 +974,9 @@ Summary: tokens, accounts, users, and the proxy work against the real API.
 - [x] Unit tests: ownership checks, `include_credentials` handling with
       redacted `Debug`, every blocked header, prefixing, target encoding,
       and upstream error statuses preserved.
+- [x] Credential-gated live tests cover token create and validation, account
+      listing, and proxy GET and POST. They use the live-test opt-in and a
+      short-lived token.
 - [x] Update the READMEs and the resources protocol doc only if a contract
       changed.
 - [x] Run the gate and commit. The assigned worktree does not push.
@@ -979,8 +996,8 @@ Summary: deploy and manage triggers for an external user.
 - [x] Unit tests: tenant scoping on every call, idempotent delete of a
       missing trigger, epoch-millisecond timestamps, signing-key redaction,
       and the emitter variants.
-- [x] A credential-gated live test that deploys a timer-free Google
-      Calendar trigger to a loopback webhook URL, lists it, and deletes it.
+- [x] A credential-gated live test that deploys a Google Calendar trigger to a
+      loopback webhook URL, lists it, and always deletes test-created triggers.
 - [x] Update the READMEs and the resources protocol doc only if a contract
       changed.
 - [x] Run the complete gate and commit the branch without pushing.

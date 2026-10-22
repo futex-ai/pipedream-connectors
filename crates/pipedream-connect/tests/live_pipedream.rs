@@ -7,9 +7,9 @@ use std::env;
 use pipedream_connect::PipedreamClient;
 use pipedream_connect::config::ClientCredentials;
 use pipedream_connect_types::{
-    AccountId, AppSlug, ComponentKey, ComponentType, ConfiguredProps, DeployTriggerRequest,
-    Environment, ExternalUserId, ListDeployedTriggersRequest, ListRegistryRequest, PageRequest,
-    ProjectId,
+    AccountId, AppSlug, ComponentKey, ComponentType, ConfiguredProps, DeleteTriggerRequest,
+    DeployTriggerRequest, DeployTriggerResponse, Emitter, Environment, ExternalUserId,
+    ListDeployedTriggersRequest, ListRegistryRequest, PageRequest, ProjectId,
 };
 
 #[tokio::test]
@@ -144,7 +144,7 @@ async fn live_pipedream_google_calendar_trigger_lifecycle() {
     let external_user_id = ExternalUserId::new(external_user_id).expect("valid external user ID");
     let account_id = AccountId::new(account_id).expect("valid connected account ID");
     let configured_props: ConfiguredProps = serde_json::from_value(serde_json::json!({
-        "google_calendar": {"authProvisionId": account_id.as_str()}
+        "googleCalendar": {"authProvisionId": account_id.as_str()}
     }))
     .expect("valid Google Calendar configured props");
     let deployed = client
@@ -160,13 +160,60 @@ async fn live_pipedream_google_calendar_trigger_lifecycle() {
             webhook_url: Some("http://127.0.0.1:50151/pipedream-trigger-smoke".into()),
             emit_on_deploy: Some(false),
         })
-        .await
-        .expect("deploy Google Calendar trigger");
-    let trigger_id = match deployed.data {
-        pipedream_connect_types::Emitter::DeployedComponent(trigger) => trigger.id,
-        other => panic!("expected deployed component emitter, got {other:?}"),
+        .await;
+    let trigger_id = match deployed {
+        Ok(DeployTriggerResponse {
+            data: Emitter::DeployedComponent(trigger),
+            ..
+        }) => trigger.id,
+        Ok(other) => {
+            cleanup_created_triggers(&client, &external_user_id).await;
+            panic!("expected deployed component emitter, got {other:?}");
+        }
+        Err(error) => {
+            cleanup_created_triggers(&client, &external_user_id).await;
+            panic!("deploy Google Calendar trigger: {error:?}");
+        }
     };
-    let listed = client
+    let lifecycle = async {
+        let listed = client
+            .deployed_triggers()
+            .list(ListDeployedTriggersRequest {
+                external_user_id: external_user_id.clone(),
+                page: PageRequest::default(),
+                emitter_type: None,
+            })
+            .await
+            .map_err(|error| format!("{error:?}"))?;
+        if !listed.data.iter().any(|emitter| {
+            matches!(emitter, Emitter::DeployedComponent(trigger) if trigger.id == trigger_id)
+        }) {
+            return Err("deployed trigger was not present in the list".to_owned());
+        }
+        Ok::<(), String>(())
+    }
+    .await;
+    let cleanup = client
+        .deployed_triggers()
+        .delete(
+            trigger_id,
+            DeleteTriggerRequest {
+                external_user_id: external_user_id.clone(),
+                ignore_hook_errors: Some(true),
+                missing_ok: true,
+            },
+        )
+        .await;
+    if let Err(error) = cleanup {
+        panic!("delete Google Calendar trigger: {error:?}");
+    }
+    if let Err(error) = lifecycle {
+        panic!("list Google Calendar trigger: {error}");
+    }
+}
+
+async fn cleanup_created_triggers(client: &PipedreamClient, external_user_id: &ExternalUserId) {
+    let Ok(listed) = client
         .deployed_triggers()
         .list(ListDeployedTriggersRequest {
             external_user_id: external_user_id.clone(),
@@ -174,22 +221,33 @@ async fn live_pipedream_google_calendar_trigger_lifecycle() {
             emitter_type: None,
         })
         .await
-        .expect("list deployed Google Calendar trigger");
-    assert!(listed.data.iter().any(|emitter| {
-        matches!(
-            emitter,
-            pipedream_connect_types::Emitter::DeployedComponent(trigger) if trigger.id == trigger_id
-        )
-    }));
-    client
-        .deployed_triggers()
-        .delete(
-            trigger_id,
-            pipedream_connect_types::DeleteTriggerRequest {
-                external_user_id,
-                ignore_hook_errors: Some(true),
-            },
-        )
-        .await
-        .expect("delete Google Calendar trigger");
+    else {
+        return;
+    };
+    for emitter in listed.data {
+        let Emitter::DeployedComponent(trigger) = emitter else {
+            continue;
+        };
+        let matches_test = trigger
+            .component_key
+            .as_ref()
+            .is_some_and(|key| key.as_str() == "google_calendar-new-or-updated-event-instant")
+            && trigger.webhook_urls.as_ref().is_some_and(|urls| {
+                urls.iter()
+                    .any(|url| url.contains("pipedream-trigger-smoke"))
+            });
+        if matches_test {
+            let _ = client
+                .deployed_triggers()
+                .delete(
+                    trigger.id,
+                    DeleteTriggerRequest {
+                        external_user_id: external_user_id.clone(),
+                        ignore_hook_errors: Some(true),
+                        missing_ok: true,
+                    },
+                )
+                .await;
+        }
+    }
 }

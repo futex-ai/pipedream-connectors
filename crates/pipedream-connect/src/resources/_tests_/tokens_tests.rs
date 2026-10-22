@@ -1,7 +1,7 @@
 //! Managed Connect token request validation and wire contracts.
 
 use pipedream_connect_types::{
-    AccountId, ConnectToken, CreateConnectTokenRequest, ExternalUserId, OauthAppId,
+    AccountId, AppSlug, ConnectToken, CreateConnectTokenRequest, ExternalUserId, OauthAppId,
     ValidateTokenRequest,
 };
 use serde_json::json;
@@ -18,6 +18,10 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
         .unwrap()
         .with_webhook_uri("https://example.com/webhook")
         .unwrap();
+    let mut request = request;
+    request.allowed_origins = vec!["https://app.example.com".into()];
+    request.scope = Some("connect:accounts:read".into());
+    request.allow_progressive_scopes = Some(true);
     let harness = Harness::script(
         static_config(),
         vec![Ok(response(
@@ -46,10 +50,14 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
         serde_json::from_slice::<serde_json::Value>(request.body.as_ref().unwrap()).unwrap(),
         json!({
             "external_user_id":"user_1",
+            "project_id":"proj_Test123",
             "expires_in":14400,
             "success_redirect_uri":"https://example.com/success",
             "error_redirect_uri":"https://example.com/error",
             "webhook_uri":"https://example.com/webhook"
+            ,"allowed_origins":["https://app.example.com"]
+            ,"scope":"connect:accounts:read"
+            ,"allow_progressive_scopes":true
         })
     );
     harness.assert_requests(1);
@@ -62,6 +70,20 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
         invalid,
         pipedream_connect_types::Error::InvalidHttpsUrl { .. }
     ));
+    let hash_route = CreateConnectTokenRequest::new(ExternalUserId::new("user_1").unwrap())
+        .with_success_redirect_uri("https://example.com/#/done")
+        .unwrap();
+    assert_eq!(
+        hash_route.success_redirect_uri.as_deref(),
+        Some("https://example.com/#/done")
+    );
+    let harness = Harness::script(config(), vec![]);
+    let mut request = CreateConnectTokenRequest::new(ExternalUserId::new("user_1").unwrap());
+    request.expires_in = 0;
+    let result = harness.client.tokens().create(request).await;
+    assert!(matches!(result, Err(Error::InvalidRequest(_))));
+    harness.assert_requests(0);
+
     let harness = Harness::script(config(), vec![]);
     let mut request = CreateConnectTokenRequest::new(ExternalUserId::new("user_1").unwrap());
     request.expires_in = 14_401;
@@ -78,6 +100,40 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
 }
 
 #[tokio::test]
+async fn validate_returns_the_complete_response_shape() {
+    let harness = Harness::script(
+        static_config(),
+        vec![Ok(response(
+            200,
+            json!({
+                "success": true,
+                "error": null,
+                "project_id": "proj_Test123",
+                "project_environment": "development",
+                "project_app_name": "Demo",
+                "future": {"preserve": true}
+            }),
+        ))],
+    );
+    let result = harness
+        .client
+        .tokens()
+        .validate(
+            ConnectToken::new("ctok_0123456789abcdef0123456789abcdef").unwrap(),
+            ValidateTokenRequest {
+                app_id: AppSlug::new("google_calendar").unwrap(),
+                account_id: None,
+                oauth_app_id: None,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(result.project_id.as_ref().unwrap().as_str(), "proj_Test123");
+    assert_eq!(result.extra["future"], json!({"preserve": true}));
+    harness.assert_requests(1);
+}
+
+#[tokio::test]
 async fn validate_encodes_the_connect_token_and_all_optional_filters() {
     let harness = Harness::script(
         static_config(),
@@ -89,7 +145,7 @@ async fn validate_encodes_the_connect_token_and_all_optional_filters() {
         .validate(
             ConnectToken::new("ctok_0123456789abcdef0123456789abcdef").unwrap(),
             ValidateTokenRequest {
-                app_id: "google_calendar".into(),
+                app_id: AppSlug::new("google_calendar").unwrap(),
                 account_id: Some(AccountId::new("apn_Account1").unwrap()),
                 oauth_app_id: Some(OauthAppId::new("oa_App1").unwrap()),
             },

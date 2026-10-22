@@ -4,8 +4,8 @@ use std::fmt;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use http::{HeaderMap, Method};
-pub use pipedream_connect_types::AccountRef;
+use http::{HeaderMap, HeaderName, HeaderValue, Method};
+use pipedream_connect_types::AccountRef;
 
 use crate::client::RequestDispatcher;
 use crate::error::Result;
@@ -103,7 +103,7 @@ impl ProxyRequest {
     }
 
     /// Appends one caller header without sending a request.
-    pub fn with_header(mut self, name: http::HeaderName, value: http::HeaderValue) -> Self {
+    pub fn with_header(mut self, name: HeaderName, value: HeaderValue) -> Self {
         self.headers.append(name, value);
         self
     }
@@ -165,6 +165,10 @@ impl Proxy {
     }
 }
 
+#[cfg(test)]
+#[path = "_tests_/proxy_tests.rs"]
+mod proxy_tests;
+
 #[async_trait]
 impl ProxyApi for Proxy {
     async fn send(&self, request: ProxyRequest) -> Result<ProxyResponse> {
@@ -172,22 +176,32 @@ impl ProxyApi for Proxy {
     }
 
     async fn get(&self, request: ProxyRequest) -> Result<ProxyResponse> {
+        let mut request = request;
+        request.method = ProxyMethod::Get;
         self.send_request(request).await
     }
 
     async fn post(&self, request: ProxyRequest) -> Result<ProxyResponse> {
+        let mut request = request;
+        request.method = ProxyMethod::Post;
         self.send_request(request).await
     }
 
     async fn put(&self, request: ProxyRequest) -> Result<ProxyResponse> {
+        let mut request = request;
+        request.method = ProxyMethod::Put;
         self.send_request(request).await
     }
 
     async fn patch(&self, request: ProxyRequest) -> Result<ProxyResponse> {
+        let mut request = request;
+        request.method = ProxyMethod::Patch;
         self.send_request(request).await
     }
 
     async fn delete(&self, request: ProxyRequest) -> Result<ProxyResponse> {
+        let mut request = request;
+        request.method = ProxyMethod::Delete;
         self.send_request(request).await
     }
 }
@@ -195,7 +209,7 @@ impl ProxyApi for Proxy {
 impl Proxy {
     async fn send_request(&self, request: ProxyRequest) -> Result<ProxyResponse> {
         self.dispatcher
-            .dispatch(auth_operations::proxy(&request)?)
+            .dispatch(auth_operations::proxy(request)?)
             .await
     }
 }

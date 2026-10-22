@@ -102,7 +102,7 @@ async fn crud_calls_keep_tenant_scope_and_delete_can_ignore_missing_deployments(
     let envelope = json!({"data": deployed_trigger("dc_Trigger123")});
     let harness = Harness::new(vec![
         response(200, envelope.clone()),
-        response(200, envelope),
+        response(200, json!({"data": deployed_trigger("dc_Other123")})),
         response(404, json!({"error": "missing"})),
         response(404, json!({"error": "missing"})),
     ]);
@@ -135,6 +135,7 @@ async fn crud_calls_keep_tenant_scope_and_delete_can_ignore_missing_deployments(
             DeleteTriggerRequest {
                 external_user_id: query().external_user_id.clone(),
                 ignore_hook_errors: Some(true),
+                missing_ok: true,
             },
         )
         .await
@@ -147,6 +148,7 @@ async fn crud_calls_keep_tenant_scope_and_delete_can_ignore_missing_deployments(
             DeleteTriggerRequest {
                 external_user_id: query().external_user_id,
                 ignore_hook_errors: Some(false),
+                missing_ok: false,
             },
         )
         .await;

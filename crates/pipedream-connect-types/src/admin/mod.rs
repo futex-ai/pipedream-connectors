@@ -16,7 +16,7 @@ pub use projects::{
 };
 pub use requests::{
     DownloadFileStashRequest, ListAppOverridesRequest, ListOauthAppsRequest, ListProjectsRequest,
-    ListUsageRequest,
+    ListUsageRequest, WorkflowRequest,
 };
 pub use tokens::{
     CreateOauthTokenRequest, CreateOauthTokenResponse, GrantType, OAuthTokenResponse,

@@ -36,3 +36,19 @@ async fn file_stash_returns_bytes_and_does_not_follow_redirects() {
     assert_eq!(harness.requests.lock().unwrap().len(), 2);
     harness.assert_requests(2);
 }
+
+#[test]
+fn file_stash_debug_hides_body_bytes_and_presigned_query() {
+    let bytes = format!("{:?}", FileStashDownload::Bytes(vec![1, 2, 3, 4]));
+    assert!(bytes.contains("4"));
+    assert!(!bytes.contains("1, 2, 3, 4"));
+    let redirect = format!(
+        "{:?}",
+        FileStashDownload::Redirect(
+            "https://signed.example/file?signature=secret&expires=10".into(),
+        )
+    );
+    assert!(redirect.contains("https://signed.example/file"));
+    assert!(!redirect.contains("signature"));
+    assert!(!redirect.contains("secret"));
+}

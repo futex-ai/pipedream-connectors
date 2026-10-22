@@ -3,12 +3,12 @@
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use http::{HeaderMap, HeaderValue, StatusCode};
-use pipedream_connect_types::{AccountId, AccountRef, ExternalUserId};
+use pipedream_connect_types::{AccountId, AccountRef, ExternalUserId, SecretString};
 use serde_json::json;
 
 use crate::error::Error;
 use crate::resources::proxy::ProxyRequest;
-use crate::tests::support::{Harness, response, static_config};
+use crate::tests::support::{Harness, config, response, static_config};
 
 fn account() -> AccountRef {
     AccountRef::new(
@@ -27,9 +27,15 @@ async fn proxy_encodes_the_exact_target_prefixes_headers_and_preserves_bytes() {
         .headers
         .append("x-upstream", HeaderValue::from_static("two"));
     result.body = vec![0, 1, 2, 255];
-    let harness = Harness::script(static_config(), vec![Ok(result)]);
+    let harness = Harness::script(
+        static_config()
+            .with_rate_limit_token(SecretString::new("rate-secret"))
+            .unwrap(),
+        vec![Ok(result)],
+    );
     let mut headers = HeaderMap::new();
-    headers.insert("x-custom", HeaderValue::from_static("header"));
+    headers.append("x-custom", HeaderValue::from_static("header"));
+    headers.append("x-custom", HeaderValue::from_static("second"));
     let request = ProxyRequest::post(account(), "https://example.com/a%2Fb?query=a+b&limit=1")
         .with_headers(headers)
         .with_body(vec![9, 8, 7]);
@@ -45,7 +51,17 @@ async fn proxy_encodes_the_exact_target_prefixes_headers_and_preserves_bytes() {
         b"https://example.com/a%2Fb?query=a+b&limit=1"
     );
     assert_eq!(sent.method, http::Method::POST);
-    assert_eq!(sent.headers["x-pd-proxy-x-custom"], "header");
+    assert_eq!(
+        sent.headers.get_all("x-pd-proxy-x-custom").iter().count(),
+        2
+    );
+    assert_eq!(
+        sent.url.expose_secret().split('?').nth(1),
+        Some("account_id=apn_Account1&external_user_id=user_1")
+    );
+    assert_eq!(sent.headers["authorization"], "Bearer static-secret");
+    assert_eq!(sent.headers["x-pd-environment"], "development");
+    assert_eq!(sent.headers["x-pd-rate-limit"], "rate-secret");
     assert_eq!(sent.body, Some(vec![9, 8, 7]));
     assert!(!sent.headers.contains_key("content-type"));
     harness.assert_requests(1);
@@ -66,31 +82,31 @@ async fn proxy_exposes_all_documented_methods() {
     harness
         .client
         .proxy()
-        .get(ProxyRequest::get(account(), "/resource"))
+        .get(ProxyRequest::post(account(), "/resource"))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .post(ProxyRequest::post(account(), "/resource"))
+        .post(ProxyRequest::get(account(), "/resource"))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .put(ProxyRequest::put(account(), "/resource"))
+        .put(ProxyRequest::delete(account(), "/resource"))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .patch(ProxyRequest::patch(account(), "/resource"))
+        .patch(ProxyRequest::get(account(), "/resource"))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .delete(ProxyRequest::delete(account(), "/resource"))
+        .delete(ProxyRequest::post(account(), "/resource"))
         .await
         .unwrap();
     for (index, method) in [
@@ -177,7 +193,7 @@ async fn invalid_proxy_targets_are_rejected_before_authentication() {
         "https://example.com/resource#fragment",
         "//example.com/resource",
     ] {
-        let harness = Harness::script(static_config(), vec![]);
+        let harness = Harness::script(config(), vec![]);
         let result = harness
             .client
             .proxy()

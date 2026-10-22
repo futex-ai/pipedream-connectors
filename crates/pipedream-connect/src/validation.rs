@@ -1,7 +1,7 @@
 //! Request-owned validation required by JSON dispatch construction.
 
 use pipedream_connect_types::{
-    AppSlug, ConfigurePropRequest, CreateAccountRequest, CreateAppOverrideRequest,
+    ConfigurePropRequest, CreateAccountQuery, CreateAccountRequest, CreateAppOverrideRequest,
     CreateConnectTokenRequest, CreateOauthAppRequest, CreateOauthTokenRequest,
     CreateProjectRequest, DeleteTriggerRequest, DeployTriggerRequest, DeployedTriggerQuery,
     DownloadFileStashRequest, GetAccountRequest, GetComponentRequest, ListAccountsRequest,
@@ -69,7 +69,6 @@ impl Validate for ListTriggerEventsRequest {
 
 impl Validate for ValidateTokenRequest {
     fn validate(&self) -> Result<()> {
-        validate(AppSlug::new(self.app_id.clone()))?;
         Ok(())
     }
 }
@@ -85,6 +84,7 @@ macro_rules! valid_by_construction {
 
 valid_by_construction!(
     ConfigurePropRequest,
+    CreateAccountQuery,
     CreateAccountRequest,
     CreateAppOverrideRequest,
     CreateOauthAppRequest,

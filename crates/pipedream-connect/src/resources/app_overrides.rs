@@ -27,7 +27,7 @@ pub trait AppOverridesApi: Send + Sync {
     async fn create(&self, request: CreateAppOverrideRequest) -> Result<AppOverride>;
     /// Retrieves an app override and verifies its identifier.
     async fn get(&self, id: AppOverrideId) -> Result<AppOverride>;
-    /// Updates an app override and verifies its identifier.
+    /// Updates an app override and returns the provider response unchanged.
     async fn update(
         &self,
         id: AppOverrideId,
@@ -82,21 +82,19 @@ impl AppOverridesApi for AppOverrides {
         id: AppOverrideId,
         request: UpdateAppOverrideRequest,
     ) -> Result<AppOverride> {
-        let value = operation::json(
+        operation::json(
             &self.dispatcher,
             admin_operations::update_app_override(&id, &request),
         )
-        .await?;
-        admin_operations::check_app_override(value, &id)
+        .await
     }
 
     async fn delete(&self, id: AppOverrideId) -> Result<()> {
-        operation::dispatch(
+        operation::no_content(
             &self.dispatcher,
             Ok(admin_operations::delete_app_override(&id)),
         )
         .await
-        .map(|_| ())
     }
 }
 

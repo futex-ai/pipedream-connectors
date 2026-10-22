@@ -26,7 +26,9 @@ The encoded target MUST occupy the `{url_64}` path segment.
 
 The request MUST include the external user ID and MAY include an account ID.
 
-The request body is an uninterpreted byte sequence.
+When supplied, the request body is an uninterpreted byte sequence.
+
+When supplied, the request MAY include its content type.
 
 The proxy MUST limit upstream execution to 30 seconds and returns 504 when the
 upstream exceeds that limit.
@@ -107,7 +109,20 @@ The request MUST send `X-PD-External-User-ID` with the external user ID.
 
 The request MUST send `X-PD-Environment` with `development` or `production`.
 
-The request body is an uninterpreted byte sequence.
+When supplied, the request body is an uninterpreted byte sequence.
+
+When supplied, the request MAY include its content type.
 
 The workflow operation is documented by Pipedream but is absent from the
 OpenAPI document.
+
+The workflow endpoint MUST use HTTPS.
+
+The workflow endpoint MUST NOT contain user information, a fragment, a
+control character, or a backslash.
+
+These URL rules keep the Connect bearer encrypted and prevent it from being
+sent to a caller-controlled origin.
+
+Workflow invocation MUST return every status, response header, and body byte
+unchanged.

@@ -30,19 +30,3 @@ pub mod workflows;
 #[cfg(test)]
 #[path = "_tests_/support.rs"]
 mod test_support;
-
-#[cfg(test)]
-#[path = "_tests_/accounts_tests.rs"]
-mod accounts_tests;
-
-#[cfg(test)]
-#[path = "_tests_/proxy_tests.rs"]
-mod proxy_tests;
-
-#[cfg(test)]
-#[path = "_tests_/tokens_tests.rs"]
-mod tokens_tests;
-
-#[cfg(test)]
-#[path = "_tests_/users_tests.rs"]
-mod users_tests;

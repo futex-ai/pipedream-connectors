@@ -14,12 +14,13 @@ mod registry;
 mod secret;
 mod shared;
 mod triggers;
+pub mod url;
 mod wire;
 
 pub use accounts::{
-    Account, AccountRef, ConnectTokenResponse, CreateAccountRequest, CreateConnectTokenRequest,
-    ExternalUser, GetAccountRequest, ListAccountsRequest, ListUserAccountsRequest,
-    ListUsersRequest, ValidateTokenRequest, ValidateTokenResponse,
+    Account, AccountRef, ConnectTokenResponse, CreateAccountQuery, CreateAccountRequest,
+    CreateConnectTokenRequest, ExternalUser, GetAccountRequest, ListAccountsRequest,
+    ListUserAccountsRequest, ListUsersRequest, ValidateTokenRequest, ValidateTokenResponse,
 };
 pub use admin::{
     AppOverride, CreateAppOverrideRequest, CreateOauthAppRequest, CreateOauthTokenRequest,
@@ -28,7 +29,7 @@ pub use admin::{
     OAuthTokenResponse, OauthApp, Project, ProjectInfo, ProjectInfoApp, ProjectWebhook,
     RateLimitRequest, RateLimitToken, SetWebhookRequest, UpdateAppOverrideRequest,
     UpdateOauthAppRequest, UpdateProjectLogoRequest, UpdateProjectRequest, UsageRecord, Webhook,
-    WebhookWithOptionalSigningKey, WebhookWithSigningKey,
+    WebhookWithOptionalSigningKey, WebhookWithSigningKey, WorkflowRequest,
 };
 pub use error::{Error, IdentifierKind, Result, UrlField, ValidationField};
 pub use execution::{
@@ -60,6 +61,7 @@ pub use triggers::{
     TimerInterface, TriggerWebhook, TriggerWebhooks, TriggerWorkflows, UpdateTriggerRequest,
     UpdateTriggerWebhooksRequest, UpdateTriggerWorkflowsRequest,
 };
+pub use url::{UrlRules, parse_validated};
 pub use wire::{
     ConnectUsageResponse, CreateAccountResponse, Data, ErrorMessage, ErrorResponse,
     GetAccountResponse, GetAccountsResponse, GetAppCategoryResponse, GetAppResponse,

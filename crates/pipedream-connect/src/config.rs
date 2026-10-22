@@ -3,7 +3,7 @@
 use std::time::Duration;
 
 use http::HeaderValue;
-use pipedream_connect_types::{Environment, ProjectId, SecretString};
+use pipedream_connect_types::{Environment, ProjectId, SecretString, UrlRules, parse_validated};
 use url::Url;
 
 use crate::error::{Error, InvalidRequest, Result};
@@ -167,28 +167,5 @@ pub(crate) fn validate_bearer(token: &SecretString) -> Result<()> {
 }
 
 fn parse_origin(value: &str) -> Result<Url> {
-    let invalid = || Error::InvalidRequest(InvalidRequest::Origin);
-    let url = match Url::parse(value) {
-        Ok(url) => url,
-        Err(_) => return Err(invalid()),
-    };
-    let bare = value.split_once("://").is_some_and(|(scheme, rest)| {
-        let (authority, path) = rest.split_once('/').unwrap_or((rest, ""));
-        scheme.eq_ignore_ascii_case("https") && !authority.contains('@') && path.is_empty()
-    });
-    if !bare
-        || value.trim() != value
-        || value.chars().any(char::is_control)
-        || value.contains('\\')
-        || url.scheme() != "https"
-        || url.host_str().is_none()
-        || !url.username().is_empty()
-        || url.password().is_some()
-        || url.path() != "/"
-        || url.query().is_some()
-        || url.fragment().is_some()
-    {
-        return Err(invalid());
-    }
-    Ok(url)
+    parse_validated(value, UrlRules::ApiOrigin).ok_or(Error::InvalidRequest(InvalidRequest::Origin))
 }

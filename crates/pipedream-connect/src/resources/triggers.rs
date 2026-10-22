@@ -13,6 +13,7 @@ use crate::client::RequestDispatcher;
 use crate::error::Result;
 
 use super::operation::{self, CatalogGroup};
+use super::trigger_operations;
 
 /// Registry triggers operations, consumed through a shared trait object.
 #[cfg_attr(
@@ -94,12 +95,9 @@ impl TriggersApi for Triggers {
     }
 
     async fn deploy(&self, request: DeployTriggerRequest) -> Result<DeployTriggerResponse> {
-        let response = operation::json(
-            &self.dispatcher,
-            super::trigger_operations::deploy(&request),
-        )
-        .await?;
-        super::trigger_operations::check_deployment(response, &request.id)
+        let response =
+            operation::json(&self.dispatcher, trigger_operations::deploy(&request)).await?;
+        Ok(response)
     }
 }
 

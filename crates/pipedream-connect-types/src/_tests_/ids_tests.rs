@@ -88,6 +88,8 @@ fn documented_prefixes_require_an_alphanumeric_suffix() {
     check!(ProjectId, "proj_");
     check!(AccountId, "apn_");
     check!(DeployedTriggerId, "dc_");
+    assert!(DeployedTriggerId::new("hi_Interface123").is_ok());
+    assert!(DeployedTriggerId::new("ti_Timer123").is_ok());
     check!(OauthAppId, "oa_");
     check!(AppCategoryId, "appcat_");
 }

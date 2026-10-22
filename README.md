@@ -1,10 +1,12 @@
 # pipedream-connectors
 
 Status: Typed models, webhooks, the client core, registry and execution
-resources, managed auth and proxy resources, trigger lifecycle resources,
-and administration resources are available. Category listing returns a
-bare category array. The `pipedream-cli` command line runs registry,
-execution, managed auth, proxy, trigger, and administration commands.
+resources, managed auth and proxy resources, trigger lifecycle resources, and
+administration resources are available.
+
+Category listing returns a bare category array. The `pipedream-cli` command
+line runs registry, execution, managed auth, proxy, trigger, and
+administration commands.
 
 This repository will provide a Rust SDK for the Pipedream Connect API. The
 SDK will manage server-side OAuth client credentials, typed Connect resources,

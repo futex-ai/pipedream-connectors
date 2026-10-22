@@ -3,7 +3,9 @@
 use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 
-use pipedream_connect_types::{Cursor, Page, PageRequest};
+use pipedream_connect_types::{
+    Cursor, ExternalUserId, ListAccountsRequest, ListUsersRequest, Page, PageRequest,
+};
 use serde_json::json;
 use unimock::{MockFn, Unimock, matching};
 
@@ -169,4 +171,39 @@ async fn filtered_page_source_changes_only_the_page() {
     assert_eq!(requests.len(), 1);
     assert_eq!(requests[0].query.as_deref(), Some("calendar"));
     assert_eq!(requests[0].page.limit, 7);
+}
+
+#[tokio::test]
+async fn filtered_page_source_preserves_account_and_user_filters() {
+    let account_source = FilteredPageSource::new(
+        ListAccountsRequest {
+            external_user_id: Some(ExternalUserId::new("user_1").unwrap()),
+            ..ListAccountsRequest::default()
+        },
+        |request| async move {
+            assert_eq!(request.external_user_id.unwrap().as_str(), "user_1");
+            assert_eq!(request.page.limit, 7);
+            Ok(page(&[], None, None))
+        },
+    );
+    account_source
+        .fetch(PageRequest::with_limit(7).unwrap())
+        .await
+        .unwrap();
+
+    let user_source = FilteredPageSource::new(
+        ListUsersRequest {
+            query: Some("calendar".into()),
+            ..ListUsersRequest::default()
+        },
+        |request| async move {
+            assert_eq!(request.query.as_deref(), Some("calendar"));
+            assert_eq!(request.page.limit, 9);
+            Ok(page(&[], None, None))
+        },
+    );
+    user_source
+        .fetch(PageRequest::with_limit(9).unwrap())
+        .await
+        .unwrap();
 }

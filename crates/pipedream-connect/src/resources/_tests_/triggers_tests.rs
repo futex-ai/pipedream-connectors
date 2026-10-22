@@ -55,6 +55,21 @@ async fn list_uses_registry_trigger_filters_without_a_component_type_query() {
 }
 
 #[tokio::test]
+async fn deploy_returns_provider_identity_without_post_mutation_check() {
+    let harness = Harness::new(vec![response(
+        200,
+        json!({"data":{"id":"dc_Trigger123","type":"FutureEmitter","component_key":"provider-renamed-component"}}),
+    )]);
+    let request = serde_json::from_value(json!({
+        "id": "google_calendar-new-event",
+        "external_user_id": "customer_1"
+    }))
+    .unwrap();
+    assert!(harness.client.triggers().deploy(request).await.is_ok());
+    harness.assert_requests(2);
+}
+
+#[tokio::test]
 async fn get_checks_keys_and_keeps_version_queries_and_unknown_envelope_fields() {
     let harness = Harness::new(vec![
         response(200, json!({"data":component(),"future_envelope":true})),

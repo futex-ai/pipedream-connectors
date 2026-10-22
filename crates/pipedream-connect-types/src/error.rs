@@ -136,11 +136,6 @@ pub enum Error {
         /// Field containing the URL.
         field: UrlField,
     },
-    /// A trigger callback must be HTTPS or loopback HTTP.
-    #[error(
-        "[pipedream-connect-types/validation] trigger webhook URL must be HTTPS or loopback HTTP"
-    )]
-    InvalidTriggerWebhookUrl,
     /// An internal serialization or conversion failure.
     #[error("[pipedream-connect-types/internal] internal model error")]
     Internal(#[from] InternalError),

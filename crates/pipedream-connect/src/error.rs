@@ -49,6 +49,9 @@ pub enum InvalidRequest {
     /// A workflow invocation uses an unsupported HTTP method.
     #[error("[pipedream-connect/request] unsupported workflow method")]
     WorkflowMethod,
+    /// A workflow endpoint is not an absolute HTTPS URL without credentials.
+    #[error("[pipedream-connect/request] invalid workflow endpoint")]
+    WorkflowEndpoint,
     /// A proxy target is not a supported HTTPS URL or relative path.
     #[error("[pipedream-connect/proxy] invalid proxy target")]
     ProxyTarget,
@@ -177,8 +180,6 @@ pub(crate) enum WireFailure {
     QueryShape,
     #[error("[pipedream-connect/resources] response identity does not match the request")]
     IdentityMismatch,
-    #[error("[pipedream-connect/resources] response exceeded the requested event count")]
-    Pagination,
     #[error("[pipedream-connect/resources] redirect response has no location")]
     MissingLocation,
 }

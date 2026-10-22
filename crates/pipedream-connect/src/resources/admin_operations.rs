@@ -3,15 +3,17 @@
 use http::header::CONTENT_TYPE;
 use http::{HeaderMap, HeaderValue, Method};
 use pipedream_connect_types::{
-    AppOverrideId, CreateAppOverrideRequest, CreateOauthAppRequest, CreateProjectRequest,
-    DownloadFileStashRequest, ExternalUserId, ListAppOverridesRequest, ListOauthAppsRequest,
-    ListProjectsRequest, ListUsageRequest, OauthAppId, Project, ProjectId, RateLimitRequest,
-    SetWebhookRequest, UpdateAppOverrideRequest, UpdateOauthAppRequest, UpdateProjectLogoRequest,
-    UpdateProjectRequest,
+    AppOverride, AppOverrideId, CreateAppOverrideRequest, CreateOauthAppRequest,
+    CreateProjectRequest, DownloadFileStashRequest, ExternalUserId, ListAppOverridesRequest,
+    ListOauthAppsRequest, ListProjectsRequest, ListUsageRequest, OauthApp, OauthAppId, Project,
+    ProjectId, RateLimitRequest, SetWebhookRequest, UpdateAppOverrideRequest,
+    UpdateOauthAppRequest, UpdateProjectLogoRequest, UpdateProjectRequest, WorkflowRequest,
 };
 
-use crate::error::{Error, InvalidRequest, Result, WireFailure};
+use crate::error::{Error, InvalidRequest, Result};
 use crate::request::{ApiPath, ApiRequest, ResponseMode};
+
+use super::operation::ensure_identity;
 
 /// Builds the project list request.
 pub(super) fn list_projects(request: &ListProjectsRequest) -> Result<ApiRequest> {
@@ -33,11 +35,8 @@ pub(super) fn get_project(project_id: &ProjectId) -> ApiRequest {
 
 /// Checks a project response against its requested identifier.
 pub(super) fn check_project(project: Project, requested: &ProjectId) -> Result<Project> {
-    if &project.id == requested {
-        Ok(project)
-    } else {
-        Err(Error::internal(WireFailure::IdentityMismatch))
-    }
+    let matches = &project.id == requested;
+    ensure_identity(project, matches)
 }
 
 /// Builds a project update request.
@@ -93,15 +92,9 @@ pub(super) fn get_oauth_app(id: &OauthAppId) -> ApiRequest {
 }
 
 /// Checks a custom OAuth app response against its requested identifier.
-pub(super) fn check_oauth_app(
-    app: pipedream_connect_types::OauthApp,
-    requested: &OauthAppId,
-) -> Result<pipedream_connect_types::OauthApp> {
-    if &app.id == requested {
-        Ok(app)
-    } else {
-        Err(Error::internal(WireFailure::IdentityMismatch))
-    }
+pub(super) fn check_oauth_app(app: OauthApp, requested: &OauthAppId) -> Result<OauthApp> {
+    let matches = &app.id == requested;
+    ensure_identity(app, matches)
 }
 
 /// Builds a custom OAuth app update request.
@@ -140,14 +133,11 @@ pub(super) fn get_app_override(id: &AppOverrideId) -> ApiRequest {
 
 /// Checks an app override response against its requested identifier.
 pub(super) fn check_app_override(
-    value: pipedream_connect_types::AppOverride,
+    value: AppOverride,
     requested: &AppOverrideId,
-) -> Result<pipedream_connect_types::AppOverride> {
-    if &value.id == requested {
-        Ok(value)
-    } else {
-        Err(Error::internal(WireFailure::IdentityMismatch))
-    }
+) -> Result<AppOverride> {
+    let matches = &value.id == requested;
+    ensure_identity(value, matches)
 }
 
 /// Builds an app override update request.
@@ -217,7 +207,7 @@ pub(super) fn invoke_workflow(
     endpoint: &str,
     method: Method,
     external_user_id: &ExternalUserId,
-    body: Vec<u8>,
+    request: WorkflowRequest,
 ) -> Result<ApiRequest> {
     let mut headers = HeaderMap::new();
     let value = match HeaderValue::from_str(external_user_id.as_str()) {
@@ -225,9 +215,18 @@ pub(super) fn invoke_workflow(
         Err(_) => return Err(Error::InvalidRequest(InvalidRequest::Header)),
     };
     headers.insert("x-pd-external-user-id", value);
-    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    Ok(ApiRequest::new(method, ApiPath::absolute_https(endpoint)?)
+    if let Some(content_type) = request.content_type {
+        let value = match HeaderValue::from_str(&content_type) {
+            Ok(value) => value,
+            Err(_) => return Err(Error::InvalidRequest(InvalidRequest::Header)),
+        };
+        headers.insert(CONTENT_TYPE, value);
+    }
+    let operation = ApiRequest::new(method, ApiPath::workflow_endpoint(endpoint)?)
         .with_headers(headers)
-        .with_bytes(body)
-        .with_response_mode(ResponseMode::PassThrough))
+        .with_response_mode(ResponseMode::WorkflowPassThrough);
+    Ok(match request.body {
+        Some(body) => operation.with_bytes(body),
+        None => operation,
+    })
 }

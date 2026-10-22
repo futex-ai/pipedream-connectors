@@ -7,7 +7,11 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use pipedream_connect_types::{self, Page, PageRequest};
+use pipedream_connect_types::{
+    Error as TypesError, ListAccountsRequest, ListAppOverridesRequest, ListAppsRequest,
+    ListComponentsRequest, ListDeployedTriggersRequest, ListOauthAppsRequest, ListProjectsRequest,
+    ListRegistryRequest, ListUsersRequest, Page, PageRequest,
+};
 use thiserror::Error;
 
 use crate::error::{self, Result, validate};
@@ -18,55 +22,55 @@ pub trait PagedRequest: Clone + Send + Sync + 'static {
     fn set_page(&mut self, page: PageRequest);
 }
 
-impl PagedRequest for pipedream_connect_types::ListAppsRequest {
+impl PagedRequest for ListAppsRequest {
     fn set_page(&mut self, page: PageRequest) {
         self.page = page;
     }
 }
 
-impl PagedRequest for pipedream_connect_types::ListComponentsRequest {
+impl PagedRequest for ListComponentsRequest {
     fn set_page(&mut self, page: PageRequest) {
         self.page = page;
     }
 }
 
-impl PagedRequest for pipedream_connect_types::ListRegistryRequest {
+impl PagedRequest for ListRegistryRequest {
     fn set_page(&mut self, page: PageRequest) {
         self.page = page;
     }
 }
 
-impl PagedRequest for pipedream_connect_types::ListDeployedTriggersRequest {
+impl PagedRequest for ListDeployedTriggersRequest {
     fn set_page(&mut self, page: PageRequest) {
         self.page = page;
     }
 }
 
-impl PagedRequest for pipedream_connect_types::ListAccountsRequest {
+impl PagedRequest for ListAccountsRequest {
     fn set_page(&mut self, page: PageRequest) {
         self.page = page;
     }
 }
 
-impl PagedRequest for pipedream_connect_types::ListProjectsRequest {
+impl PagedRequest for ListProjectsRequest {
     fn set_page(&mut self, page: PageRequest) {
         self.page = page;
     }
 }
 
-impl PagedRequest for pipedream_connect_types::ListOauthAppsRequest {
+impl PagedRequest for ListOauthAppsRequest {
     fn set_page(&mut self, page: PageRequest) {
         self.page = page;
     }
 }
 
-impl PagedRequest for pipedream_connect_types::ListAppOverridesRequest {
+impl PagedRequest for ListAppOverridesRequest {
     fn set_page(&mut self, page: PageRequest) {
         self.page = page;
     }
 }
 
-impl PagedRequest for pipedream_connect_types::ListUsersRequest {
+impl PagedRequest for ListUsersRequest {
     fn set_page(&mut self, page: PageRequest) {
         self.page = page;
     }
@@ -240,7 +244,7 @@ impl<T: Send + Sync + 'static> Paginator<T> for BoundedPaginator<T> {
                 request.next(&page.page_info)
             };
             let next = match next {
-                Err(pipedream_connect_types::Error::StuckCursor) => {
+                Err(TypesError::StuckCursor) => {
                     tracing::warn!("Pipedream pagination stopped on a repeated cursor");
                     result.end = PaginationEnd::StuckCursor;
                     return Ok(result);

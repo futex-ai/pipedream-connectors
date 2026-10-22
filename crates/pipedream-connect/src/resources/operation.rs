@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use http::Method;
 use pipedream_connect_types::{
-    AppCategoryId, AppSlug, ConfigurePropRequest, GetAppCategoryResponse, GetAppResponse,
-    GetComponentRequest, GetComponentResponse, ListAppsRequest, ListComponentsRequest,
-    ListRegistryRequest, ReloadPropsRequest, RunActionRequest,
+    AppCategoryId, AppSlug, ComponentKey, ConfigurePropRequest, GetAppCategoryResponse,
+    GetAppResponse, GetComponentRequest, GetComponentResponse, ListAppsRequest,
+    ListComponentsRequest, ListRegistryRequest, ReloadPropsRequest, RunActionRequest,
 };
 use serde::de::DeserializeOwned;
 
@@ -53,6 +53,23 @@ pub(super) async fn dispatch(
     dispatcher.dispatch(request?).await
 }
 
+/// Dispatches an operation that has no response body contract.
+pub(super) async fn no_content(
+    dispatcher: &Arc<dyn RequestDispatcher + Send + Sync>,
+    request: Result<ApiRequest>,
+) -> Result<()> {
+    dispatch(dispatcher, request).await.map(|_| ())
+}
+
+/// Returns a response after checking a read identity predicate.
+pub(super) fn ensure_identity<T>(value: T, matches: bool) -> Result<T> {
+    if matches {
+        Ok(value)
+    } else {
+        Err(Error::internal(WireFailure::IdentityMismatch))
+    }
+}
+
 /// Builds the app list request.
 pub(super) fn list_apps(request: &ListAppsRequest) -> Result<ApiRequest> {
     ApiRequest::new(Method::GET, ApiPath::connect(&["apps"])).with_query(request)
@@ -67,11 +84,7 @@ pub(super) fn get_app(slug: &AppSlug) -> ApiRequest {
 pub(super) fn check_app(response: GetAppResponse, requested: &AppSlug) -> Result<GetAppResponse> {
     let matches_slug = response.data.name_slug.as_str() == requested.as_str();
     let matches_id = response.data.id.as_deref() == Some(requested.as_str());
-    if matches_slug || matches_id {
-        Ok(response)
-    } else {
-        Err(Error::internal(WireFailure::IdentityMismatch))
-    }
+    ensure_identity(response, matches_slug || matches_id)
 }
 
 /// Builds the category list request.
@@ -92,11 +105,8 @@ pub(super) fn check_category(
     response: GetAppCategoryResponse,
     requested: &AppCategoryId,
 ) -> Result<GetAppCategoryResponse> {
-    if response.id.as_ref() == Some(requested) {
-        Ok(response)
-    } else {
-        Err(Error::internal(WireFailure::IdentityMismatch))
-    }
+    let matches = response.id.as_ref() == Some(requested);
+    ensure_identity(response, matches)
 }
 
 /// Builds a component list request.
@@ -119,7 +129,7 @@ pub(super) fn list_registry(
 /// Builds a versioned catalog retrieval request.
 pub(super) fn get_component(
     group: CatalogGroup,
-    key: &pipedream_connect_types::ComponentKey,
+    key: &ComponentKey,
     request: &GetComponentRequest,
 ) -> ApiRequest {
     let operation = ApiRequest::new(
@@ -135,13 +145,10 @@ pub(super) fn get_component(
 /// Checks a catalog response against its requested component key.
 pub(super) fn check_component(
     response: GetComponentResponse,
-    requested: &pipedream_connect_types::ComponentKey,
+    requested: &ComponentKey,
 ) -> Result<GetComponentResponse> {
-    if &response.data.key == requested {
-        Ok(response)
-    } else {
-        Err(Error::internal(WireFailure::IdentityMismatch))
-    }
+    let matches = &response.data.key == requested;
+    ensure_identity(response, matches)
 }
 
 /// Builds a property configuration request.

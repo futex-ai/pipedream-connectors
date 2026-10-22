@@ -126,8 +126,8 @@ An execution response containing an `error` object with `attribution` or
 `name` is `ExecutionFailed` with the structured attribution and HTTP status.
 Other structured error objects use the normal HTTP status mapping.
 
-Proxy pass-through responses MUST preserve every status after the structured
-execution-error check.
+Proxy pass-through responses MUST preserve every status after checking only
+non-2xx execution envelopes that contain `attribution`.
 
 Proxy pass-through requests MUST never retry.
 
