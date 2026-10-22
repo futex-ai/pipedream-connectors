@@ -98,16 +98,22 @@ A repeated cursor stops traversal without sending another request.
 Construct the default client without sending a request:
 
 ```rust,no_run
-use pipedream_connect::PipedreamClient;
-use pipedream_connect::config::ClientCredentials;
-use pipedream_connect_types::{Environment, ProjectId};
+#[cfg(feature = "reqwest")]
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use pipedream_connect::PipedreamClient;
+    use pipedream_connect::config::ClientCredentials;
+    use pipedream_connect_types::{Environment, ProjectId};
 
-let client = PipedreamClient::builder()
-    .project_id(ProjectId::new("proj_Example123")?)
-    .environment(Environment::Development)
-    .client_credentials(ClientCredentials::new("client-id", "client-secret")?)
-    .build()?;
-# Ok::<(), Box<dyn std::error::Error>>(())
+    let client = PipedreamClient::builder()
+        .project_id(ProjectId::new("proj_Example123")?)
+        .environment(Environment::Development)
+        .client_credentials(ClientCredentials::new("client-id", "client-secret")?)
+        .build()?;
+    let _ = client;
+    Ok(())
+}
+#[cfg(not(feature = "reqwest"))]
+fn main() {}
 ```
 
 Read an app and list its actions through the resource handles:
