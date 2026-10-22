@@ -242,3 +242,14 @@ fn trigger_event_limit_is_checked_during_deserialization() {
         assert_eq!(decoded.is_ok(), (1..=100).contains(&limit));
     }
 }
+
+#[test]
+fn workflow_request_debug_reports_body_size_without_body_bytes() {
+    let request = WorkflowRequest {
+        body: Some(vec![0, 1, 2, 255]),
+        content_type: Some("application/octet-stream".into()),
+    };
+    let debug = format!("{request:?}");
+    assert!(debug.contains("body_bytes: Some(4)"), "{debug}");
+    assert!(!debug.contains("0, 1, 2, 255"), "{debug}");
+}
