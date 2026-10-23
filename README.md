@@ -90,7 +90,7 @@ repository:
 
    ```sh
    PIPEDREAM_LIVE_TESTS=1 cargo test -p pipedream-connect \
-     --test live_pipedream -- --nocapture
+     --test live_pipedream --test live_managed_auth -- --nocapture
    ```
 
    Set `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, `PIPEDREAM_PROJECT_ID`,

@@ -1,4 +1,15 @@
-use super::*;
+//! Client calls for catalog and execution coverage.
+
+use pipedream_connect::PipedreamClient;
+use pipedream_connect_types::{
+    AppCategoryId, AppOverrideId, AppSlug, ComponentKey, CreateAccountQuery,
+    CreateAppOverrideRequest, ExternalUserId, GetAccountRequest, GetComponentRequest,
+    ListAccountsRequest, ListUserAccountsRequest, UpdateAppOverrideRequest,
+};
+
+use super::cases::{
+    account_id, account_request, configure_request, deploy_request, reload_request, run_request,
+};
 
 pub async fn invoke(client: &PipedreamClient, id: &str) -> bool {
     let user = || ExternalUserId::new("customer_1").expect("external user ID");

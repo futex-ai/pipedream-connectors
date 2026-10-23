@@ -1,3 +1,5 @@
+//! Request recording support for OpenAPI coverage.
+
 use std::sync::Mutex;
 
 use pipedream_connect::transport::HttpRequest;
@@ -35,6 +37,3 @@ impl Recorder {
         requests.remove(index)
     }
 }
-
-mod cases;
-pub use cases::invoke;

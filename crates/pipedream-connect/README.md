@@ -198,9 +198,11 @@ No unit test uses a real network or clock.
 
 The `openapi_coverage` integration test reads the vendored OpenAPI fixture and
 the protocol operation tables. It checks that the tables contain each covered
-operation exactly once. It then calls every client resource method through a
-recording transport and compares the method, full URL, path template, key
-headers, and exact body with a golden wire row. The OAuth token row uses the
+operation exactly once. It then calls the client method of each covered
+OpenAPI operation through a recording transport and compares the method, full
+URL, path template, key headers, and exact body with a golden wire row. The
+rate-limit tokens and workflow invocation operations have no OpenAPI
+operation, so this test does not cover them. The OAuth token row uses the
 client-credentials provider so the test also covers the token request.
 
 Run the registry and trigger smoke tests with the explicit opt-in:
