@@ -1193,10 +1193,11 @@ Summary: the final checks and the review loop.
 
 - [x] Run the targeted tests and the complete gate named in `AGENTS.md`.
 - [x] Commit with Conventional Commits and push the branch.
-- [ ] Review the complete local diff against `origin/main` with the
+- [x] Review the complete local diff against `origin/main` with the
       `implementation-review` skill after the push. Report the findings,
       then apply the review-fix rule: fix the `Auto-fix: yes` findings,
       re-review once, and report the rest.
+      Evidence: `.context/pipedream-connect-sdk/final-review/report.md`.
   - Finding 1: Workflow calls send the project bearer to any HTTPS host.
     Severity High, effort Medium. Recommended: C, workflow domain allow-list and
     crate-private absolute targets (open decision).
@@ -1270,6 +1271,31 @@ Summary: the final checks and the review loop.
   - Finding 53: The vendored OpenAPI snapshot is behind the live schema.
     Severity Low, effort Medium. Recommended: refresh it in a separate change
     and review the diff.
+  - Finding 55: No test checks `InvalidJson` after the webhook parse fix.
+    Severity Low, effort Small. Recommended: B, one decoder error table test.
+  - Finding 56: The OAuth coverage row skips the OpenAPI method and path.
+    Severity Low, effort Small. Recommended: B, check every row in one loop.
+  - Finding 63: Crate docs carry broken relative links in rustdoc. Severity Low,
+    effort Small. Recommended: A, absolute repository URLs after the merge.
+  - Finding 64: `with_headers` merges on `ApiRequest` but replaces on
+    `ProxyRequest`. Severity Low, effort Small. Recommended: B, merge on both.
+  - Finding 65: Several commit bodies hold literal `\n` text, and one title is
+    too long. Severity Low, effort Small. Recommended: A, keep the history.
+  - Follow-up decision: ban `Result::map_err` outside tests with a clippy
+    `disallowed-methods` entry. Effort Small. Covers findings 59 and 60.
+    Previous examples: b364bb2, 85d7679, a4c09f1.
+  - Follow-up decision: an xtask check that fails when `<name>.rs` sits beside
+    `<name>/`. Effort Medium. Covers findings 36, 47, and 61.
+  - Outside the scope: `AGENTS.md` intro paragraph differs from the template.
+    Separate branch.
+  - Outside the scope: `docs/protocol/webhooks.md` says the client preserves
+    unknown fields; the decoder does. Separate branch.
+  - Outside the scope: the client README never names
+    `tests/live_managed_auth.rs`. Separate branch.
+  - Outside the scope: `accounts_tests.rs` and `tokens_tests.rs` use inline
+    `pipedream_connect_types::` paths. Separate branch.
+  - Outside the scope: the library packages do not include the license file.
+    Separate branch.
   - The full report is `.context/pipedream-connect-sdk/final-review/report.md`.
 
 ## Post-merge follow-up (non-blocking)
