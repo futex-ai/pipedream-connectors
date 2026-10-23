@@ -1,4 +1,17 @@
-use super::*;
+//! Client calls for administration and managed-auth coverage.
+
+use pipedream_connect::PipedreamClient;
+use pipedream_connect_types::{
+    AppSlug, CreateConnectTokenRequest, CreateOauthAppRequest, CreateProjectRequest,
+    DeleteTriggerRequest, DeployedTriggerId, DeployedTriggerQuery, DownloadFileStashRequest,
+    ExternalUserId, ListDeployedTriggersRequest, ListTriggerEventsRequest, ListUsageRequest,
+    OauthAppId, PageRequest, SecretString, SetWebhookRequest, UpdateOauthAppRequest,
+    UpdateProjectLogoRequest, UpdateProjectRequest, UpdateTriggerRequest,
+    UpdateTriggerWebhooksRequest, UpdateTriggerWorkflowsRequest, ValidateTokenRequest, WebhookId,
+    WorkflowEndpoint,
+};
+
+use super::cases::{connect_token, project_id, proxy_request};
 
 pub async fn invoke(client: &PipedreamClient, id: &str) -> bool {
     let user = || ExternalUserId::new("customer_1").expect("external user ID");

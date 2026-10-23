@@ -1,3 +1,4 @@
+//! Golden request rows for OpenAPI coverage.
 use http::Method;
 use pipedream_connect::transport::HttpRequest;
 use url::Url;
