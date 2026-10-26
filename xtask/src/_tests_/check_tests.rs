@@ -80,9 +80,11 @@ fn clean_gate_runs_every_command_then_file_audits() {
             })),
     );
     let events_for_files = Arc::clone(&events);
+    let events_for_files_again = Arc::clone(&events);
     let events_for_layout = Arc::clone(&events);
+    let events_for_layout_again = Arc::clone(&events);
     let files = Unimock::new((
-        FileAccessMock::rust_files
+        FileAccessMock::read_dir
             .next_call(matching!(_))
             .answers_arc(Arc::new(move |_, _| {
                 events_for_files
@@ -91,10 +93,28 @@ fn clean_gate_runs_every_command_then_file_audits() {
                     .push("file-length".to_owned());
                 Ok(Vec::new())
             })),
-        FileAccessMock::rust_layout_violations
+        FileAccessMock::read_dir
+            .next_call(matching!(_))
+            .answers_arc(Arc::new(move |_, _| {
+                events_for_files_again
+                    .lock()
+                    .unwrap()
+                    .push("file-length".to_owned());
+                Ok(Vec::new())
+            })),
+        FileAccessMock::read_dir
             .next_call(matching!(_))
             .answers_arc(Arc::new(move |_, _| {
                 events_for_layout.lock().unwrap().push("layout".to_owned());
+                Ok(Vec::new())
+            })),
+        FileAccessMock::read_dir
+            .next_call(matching!(_))
+            .answers_arc(Arc::new(move |_, _| {
+                events_for_layout_again
+                    .lock()
+                    .unwrap()
+                    .push("layout".to_owned());
                 Ok(Vec::new())
             })),
     ));
@@ -105,7 +125,12 @@ fn clean_gate_runs_every_command_then_file_audits() {
     let expected_events = check::commands()
         .into_iter()
         .map(|command| format!("command: {}", command.label()))
-        .chain(["file-length".to_owned(), "layout".to_owned()])
+        .chain([
+            "file-length".to_owned(),
+            "file-length".to_owned(),
+            "layout".to_owned(),
+            "layout".to_owned(),
+        ])
         .collect::<Vec<_>>();
     assert_eq!(*events.lock().unwrap(), expected_events);
 }

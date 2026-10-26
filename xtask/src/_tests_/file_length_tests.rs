@@ -6,16 +6,22 @@ use std::sync::{Arc, Mutex};
 use unimock::{MockFn, Unimock, matching};
 
 use crate::command::{CommandOutcome, CommandRunnerMock, CommandSpec};
-use crate::file_access::FileAccessMock;
+use crate::file_access::{DirectoryEntry, FileAccessMock};
 use crate::file_length;
 
 #[test]
 fn accepts_a_rust_file_at_the_limit() {
     let path = PathBuf::from("crates/demo/src/lib.rs");
     let files = Unimock::new((
-        FileAccessMock::rust_files
+        FileAccessMock::read_dir
             .next_call(matching!(_))
-            .returns(Ok(vec![path.clone()])),
+            .returns(Ok(vec![DirectoryEntry {
+                path: path.clone(),
+                is_directory: false,
+            }])),
+        FileAccessMock::read_dir
+            .next_call(matching!(_))
+            .returns(Ok(Vec::new())),
         FileAccessMock::read_to_string
             .next_call(matching!(_))
             .returns(Ok("line\n".repeat(300))),
@@ -28,9 +34,15 @@ fn accepts_a_rust_file_at_the_limit() {
 fn reports_a_rust_file_over_the_limit() {
     let path = PathBuf::from("xtask/src/main.rs");
     let files = Unimock::new((
-        FileAccessMock::rust_files
+        FileAccessMock::read_dir
             .next_call(matching!(_))
-            .returns(Ok(vec![path])),
+            .returns(Ok(Vec::new())),
+        FileAccessMock::read_dir
+            .next_call(matching!(_))
+            .returns(Ok(vec![DirectoryEntry {
+                path,
+                is_directory: false,
+            }])),
         FileAccessMock::read_to_string
             .next_call(matching!(_))
             .returns(Ok("line\n".repeat(301))),

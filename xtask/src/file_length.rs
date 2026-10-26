@@ -17,7 +17,7 @@ pub(crate) fn run(
     file_access: &dyn FileAccess,
 ) -> Result<()> {
     let files = if all {
-        match file_access.rust_files(root) {
+        match collect_rust_files(root, file_access) {
             Ok(files) => files,
             Err(source) => {
                 return Err(Error::ReadDirectory {
@@ -56,6 +56,39 @@ pub(crate) fn run(
             details: FileLengthViolations(violations),
         })
     }
+}
+
+fn collect_rust_files(root: &Path, file_access: &dyn FileAccess) -> std::io::Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    for relative_root in ["crates", "xtask"] {
+        let path = root.join(relative_root);
+        match collect_rust_files_below(&path, file_access, &mut files) {
+            Ok(()) => {}
+            Err(source) if source.kind() == std::io::ErrorKind::NotFound => {}
+            Err(source) => return Err(source),
+        }
+    }
+    files.sort();
+    Ok(files)
+}
+
+fn collect_rust_files_below(
+    path: &Path,
+    file_access: &dyn FileAccess,
+    files: &mut Vec<PathBuf>,
+) -> std::io::Result<()> {
+    for entry in file_access.read_dir(path)? {
+        if entry.is_directory {
+            collect_rust_files_below(&entry.path, file_access, files)?;
+        } else if entry
+            .path
+            .extension()
+            .is_some_and(|extension| extension == "rs")
+        {
+            files.push(entry.path);
+        }
+    }
+    Ok(())
 }
 
 fn changed_rust_files(root: &Path, runner: &dyn CommandRunner) -> Result<Vec<PathBuf>> {
