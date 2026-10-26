@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
+use bytes::Bytes;
 use http::{HeaderMap, HeaderValue, Method};
 use pipedream_connect::PipedreamClient;
 use pipedream_connect::config::{ClientCredentials, HttpOptions};
@@ -39,7 +40,7 @@ async fn exact_request_headers_and_body_and_repeated_response_headers_survive() 
     outgoing
         .headers
         .insert("x-pd-rate-limit", HeaderValue::from_static("rate-secret"));
-    outgoing.body = Some(b"{\"input\":true}".to_vec());
+    outgoing.body = Some(Bytes::from_static(b"{\"input\":true}"));
     let reply = transport().send(outgoing).await.unwrap();
     assert_eq!(reply.status, 200);
     assert_eq!(reply.body, b"{}");

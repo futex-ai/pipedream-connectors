@@ -1,5 +1,6 @@
 //! Shared route encoding, HTTP headers, bounds, and diagnostic safety.
 
+use bytes::Bytes;
 use http::{HeaderMap, HeaderValue, Method};
 use pipedream_connect_types::{
     CreateConnectTokenRequest, Environment, ExternalUserId, OAuthTokenResponse, ProjectId,
@@ -264,4 +265,17 @@ async fn response_mode_does_not_change_request_content_type() {
         Some([0, 255, 12].as_slice())
     );
     harness.assert_requests(2);
+}
+
+#[tokio::test]
+async fn request_bodies_use_shared_bytes_buffers() {
+    let body = Bytes::from_static(&[0, 255, 12]);
+    let harness = Harness::script(static_config(), vec![Ok(response(200, json!({})))]);
+    let request =
+        ApiRequest::new(Method::POST, ApiPath::project(&["files"])).with_bytes(body.clone());
+
+    harness.client.dispatcher().dispatch(request).await.unwrap();
+
+    assert_eq!(harness.request(0).body, Some(body));
+    harness.assert_requests(1);
 }

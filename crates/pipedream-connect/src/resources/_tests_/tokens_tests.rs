@@ -7,6 +7,7 @@ use pipedream_connect_types::{
 use serde_json::json;
 
 use crate::error::Error;
+use crate::resources::test_support::assert_wire;
 use crate::tests::support::{Harness, config, response, static_config};
 
 #[tokio::test]
@@ -39,16 +40,17 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
         "ctok_0123456789abcdef0123456789abcdef"
     );
     assert!(!format!("{result:?}").contains("ctok_0123456789abcdef0123456789abcdef"));
-    let request = harness.request(0);
-    assert_eq!(request.method, http::Method::POST);
-    assert_eq!(
-        request.url.expose_secret(),
-        "https://api.pipedream.com/v1/connect/proj_Test123/tokens"
-    );
-    assert_eq!(request.headers["authorization"], "Bearer static-secret");
-    assert_eq!(
-        serde_json::from_slice::<serde_json::Value>(request.body.as_ref().unwrap()).unwrap(),
-        json!({
+    assert_wire(
+        &harness.request(0),
+        http::Method::POST,
+        "https://api.pipedream.com/v1/connect/proj_Test123/tokens",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+            ("content-type", "application/json"),
+        ],
+        Some(&json!({
             "external_user_id":"user_1",
             "project_id":"proj_Test123",
             "expires_in":14400,
@@ -58,7 +60,7 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
             ,"allowed_origins":["https://app.example.com"]
             ,"scope":"connect:accounts:read"
             ,"allow_progressive_scopes":true
-        })
+        })),
     );
     harness.assert_requests(1);
 
@@ -152,10 +154,16 @@ async fn validate_encodes_the_connect_token_and_all_optional_filters() {
         )
         .await
         .unwrap();
-    let request = harness.request(0);
-    assert_eq!(
-        request.url.expose_secret(),
-        "https://api.pipedream.com/v1/connect/tokens/ctok_0123456789abcdef0123456789abcdef/validate?account_id=apn_Account1&app_id=google_calendar&oauth_app_id=oa_App1"
+    assert_wire(
+        &harness.request(0),
+        http::Method::GET,
+        "https://api.pipedream.com/v1/connect/tokens/ctok_0123456789abcdef0123456789abcdef/validate?account_id=apn_Account1&app_id=google_calendar&oauth_app_id=oa_App1",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+        ],
+        None,
     );
     harness.assert_requests(1);
 }

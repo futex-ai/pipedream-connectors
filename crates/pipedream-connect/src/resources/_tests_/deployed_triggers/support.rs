@@ -3,8 +3,6 @@
 use pipedream_connect_types::{DeployedTriggerId, DeployedTriggerQuery, ExternalUserId, WebhookId};
 use serde_json::{Value, json};
 
-use crate::transport::HttpRequest;
-
 pub(super) fn trigger_id() -> DeployedTriggerId {
     DeployedTriggerId::new("dc_Trigger123").expect("valid test trigger ID")
 }
@@ -43,9 +41,4 @@ pub(super) fn deployed_trigger(id: &str) -> Value {
 
 pub(super) fn page(data: Vec<Value>) -> Value {
     json!({"data": data, "page_info": {"count": 4, "end_cursor": "next_cursor"}})
-}
-
-pub(super) fn request_body(request: HttpRequest) -> Value {
-    serde_json::from_slice(request.body.as_ref().expect("JSON request body"))
-        .expect("valid JSON request body")
 }

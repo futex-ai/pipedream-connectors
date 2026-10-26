@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use async_trait::async_trait;
+use bytes::Bytes;
 use http::Method;
 use pipedream_connect_types::{OAuthTokenResponse, SecretString};
 use serde::Serialize;
@@ -130,7 +131,7 @@ impl ClientCredentialsProvider {
                     .as_str(),
                 ),
                 headers: json_headers(true),
-                body: Some(body),
+                body: Some(Bytes::from(body)),
                 response_limit: self.config.http.response_limit,
                 timeout: self.config.http.request_timeout,
             })

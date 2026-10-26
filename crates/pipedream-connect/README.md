@@ -165,8 +165,9 @@ For a custom operation, use `ApiPath::project` for routes under
 `/v1/connect/{project_id}`. Pass each
 path parameter as a separate segment. Query pairs preserve repeated keys.
 For a JSON body, call `with_json(&model)`. The model must implement `Validate`.
-This checks the model before the token call. `with_bytes` sends an exact byte
-body with caller-supplied content headers.
+This checks the model before the token call. `with_bytes` sends an exact shared
+`bytes::Bytes` body with caller-supplied content headers. The dispatcher reuses
+that buffer if a request is sent again.
 
 `ResponseMode::Execution` enables execution errors and accepted 202 results.
 `ResponseMode::Redirect` returns a redirect response without

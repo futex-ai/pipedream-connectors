@@ -5,6 +5,7 @@ use pipedream_connect_types::{ExternalUserId, SecretString, WorkflowRequest};
 use serde_json::json;
 
 use crate::error::Error;
+use crate::resources::test_support::assert_wire;
 use crate::tests::support::{Harness, response, static_config};
 
 #[tokio::test]
@@ -35,19 +36,63 @@ async fn workflow_invocation_sends_endpoint_headers_and_bytes() {
         .unwrap();
     assert_eq!(result.status, StatusCode::CREATED);
     let request = harness.request(0);
-    assert_eq!(
-        request.url.expose_secret(),
-        "https://workflow.example/endpoint?one=1"
+    assert_wire(
+        &request,
+        Method::POST,
+        "https://workflow.example/endpoint?one=1",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-external-user-id", "user_1"),
+            ("x-pd-environment", "development"),
+            ("content-type", "application/json"),
+        ],
+        Some(&json!({"message":"hello"})),
     );
-    assert_eq!(request.headers["x-pd-external-user-id"], "user_1");
-    assert_eq!(request.headers["x-pd-environment"], "development");
     assert!(!request.headers.contains_key("x-pd-rate-limit"));
-    assert_eq!(request.headers["content-type"], "application/json");
-    assert_eq!(
-        request.body.as_deref(),
-        Some(b"{\"message\":\"hello\"}".as_slice())
-    );
     harness.assert_requests(1);
+}
+
+#[tokio::test]
+async fn workflow_pass_through_preserves_non_success_attribution_body() {
+    let body = json!({
+        "error": {
+            "attribution": {
+                "origin": "upstream_api",
+                "network_calls_count": 1,
+                "last_call": {"status": 502}
+            }
+        }
+    });
+    let harness = Harness::new(vec![response(502, body.clone())]);
+    let result = harness
+        .client
+        .workflows()
+        .invoke_for_external_user(
+            "https://workflow.example/endpoint".into(),
+            ExternalUserId::new("user_1").unwrap(),
+            Method::POST,
+            WorkflowRequest::default(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(result.status, StatusCode::BAD_GATEWAY);
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&result.body).unwrap(),
+        body
+    );
+    assert_wire(
+        &harness.request(1),
+        Method::POST,
+        "https://workflow.example/endpoint",
+        &[
+            ("authorization", "Bearer access-secret"),
+            ("x-pd-environment", "development"),
+            ("x-pd-external-user-id", "user_1"),
+        ],
+        None,
+    );
+    harness.assert_requests(2);
 }
 
 #[tokio::test]

@@ -4,6 +4,7 @@ use std::fmt;
 use std::time::Duration;
 
 use async_trait::async_trait;
+use bytes::Bytes;
 use http::{HeaderMap, Method, StatusCode};
 use pipedream_connect_types::SecretString;
 use serde::de::DeserializeOwned;
@@ -20,8 +21,8 @@ pub struct HttpRequest {
     pub url: SecretString,
     /// Exact headers, which can contain credentials.
     pub headers: HeaderMap,
-    /// Serialized request body.
-    pub body: Option<Vec<u8>>,
+    /// Serialized request body shared by all dispatch attempts.
+    pub body: Option<Bytes>,
     /// Maximum response body bytes, enforced before and during reading.
     pub response_limit: usize,
     /// Total request timeout, including the response body.
@@ -35,7 +36,7 @@ impl fmt::Debug for HttpRequest {
             .field("method", &self.method)
             .field("url", &"[REDACTED]")
             .field("headers", &"[REDACTED]")
-            .field("body_bytes", &self.body.as_ref().map(Vec::len))
+            .field("body_bytes", &self.body.as_ref().map(Bytes::len))
             .field("response_limit", &self.response_limit)
             .field("timeout", &self.timeout)
             .finish()

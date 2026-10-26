@@ -2,6 +2,7 @@
 
 use std::fmt;
 
+use bytes::Bytes;
 use http::{HeaderMap, Method};
 use pipedream_connect_types::{PageRequest, UrlRules, parse_validated};
 use serde::Serialize;
@@ -97,7 +98,7 @@ pub struct ApiRequest {
     pub(crate) path: ApiPath,
     pub(crate) query: Vec<(String, String)>,
     pub(crate) headers: HeaderMap,
-    pub(crate) body: Option<Vec<u8>>,
+    pub(crate) body: Option<Bytes>,
     pub(crate) json_body: bool,
     pub(crate) mode: ResponseMode,
 }
@@ -175,14 +176,14 @@ impl ApiRequest {
     /// ```
     pub fn with_json<T: Serialize + Validate>(mut self, model: &T) -> Result<Self> {
         model.validate()?;
-        self.body = Some(encode(model)?);
+        self.body = Some(encode(model)?.into());
         self.json_body = true;
         Ok(self)
     }
 
     /// Selects an exact byte body with content headers supplied by the caller.
-    pub fn with_bytes(mut self, body: Vec<u8>) -> Self {
-        self.body = Some(body);
+    pub fn with_bytes(mut self, body: impl Into<Bytes>) -> Self {
+        self.body = Some(body.into());
         self.json_body = false;
         self
     }
@@ -217,7 +218,7 @@ impl fmt::Debug for ApiRequest {
             .field("path", &"[REDACTED]")
             .field("query", &"[REDACTED]")
             .field("headers", &"[REDACTED]")
-            .field("body_bytes", &self.body.as_ref().map(Vec::len))
+            .field("body_bytes", &self.body.as_ref().map(Bytes::len))
             .field("mode", &self.mode)
             .finish()
     }

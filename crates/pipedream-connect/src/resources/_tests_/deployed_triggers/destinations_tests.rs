@@ -6,9 +6,10 @@ use pipedream_connect_types::{
 };
 use serde_json::json;
 
+use crate::resources::test_support::assert_wire;
 use crate::tests::support::{Harness, response};
 
-use super::support::{query, request_body, trigger_id, webhook_id};
+use super::support::{query, trigger_id, webhook_id};
 
 #[tokio::test]
 async fn events_workflows_and_webhooks_preserve_timestamps_and_signing_keys() {
@@ -139,13 +140,29 @@ async fn workflow_and_webhook_updates_use_tenant_queries_and_json_bodies() {
         )
         .await
         .unwrap();
-    assert_eq!(
-        request_body(harness.request(1)),
-        json!({"workflow_ids":["p_workflow1"]})
+    assert_wire(
+        &harness.request(1),
+        http::Method::PUT,
+        "https://api.pipedream.com/v1/connect/proj_Test123/deployed-triggers/dc_Trigger123/pipelines?external_user_id=customer_1",
+        &[
+            ("authorization", "Bearer access-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+            ("content-type", "application/json"),
+        ],
+        Some(&json!({"workflow_ids":["p_workflow1"]})),
     );
-    assert_eq!(
-        request_body(harness.request(2)),
-        json!({"webhook_urls":["http://127.0.0.1:50151/events"]})
+    assert_wire(
+        &harness.request(2),
+        http::Method::PUT,
+        "https://api.pipedream.com/v1/connect/proj_Test123/deployed-triggers/dc_Trigger123/webhooks?external_user_id=customer_1",
+        &[
+            ("authorization", "Bearer access-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+            ("content-type", "application/json"),
+        ],
+        Some(&json!({"webhook_urls":["http://127.0.0.1:50151/events"]})),
     );
     for index in 1..=2 {
         assert!(

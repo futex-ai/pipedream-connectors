@@ -4,7 +4,7 @@ use pipedream_connect_types::{AppSlug, ExternalUserId, ListUserAccountsRequest, 
 use serde_json::json;
 
 use crate::error::Error;
-use crate::resources::test_support::page;
+use crate::resources::test_support::{assert_wire, page};
 use crate::tests::support::{Harness, response, static_config};
 
 #[tokio::test]
@@ -32,9 +32,17 @@ async fn users_list_accounts_and_delete_use_tenant_scoped_paths() {
         })
         .await
         .unwrap();
-    assert_eq!(
-        harness.request(0).url.expose_secret(),
-        "https://api.pipedream.com/v1/connect/proj_Test123/users?limit=100&q=user"
+    assert_wire(
+        &harness.request(0),
+        http::Method::GET,
+        "https://api.pipedream.com/v1/connect/proj_Test123/users?limit=100&q=user",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+            ("accept", "application/json"),
+        ],
+        None,
     );
     harness
         .client
@@ -48,9 +56,16 @@ async fn users_list_accounts_and_delete_use_tenant_scoped_paths() {
         )
         .await
         .unwrap();
-    assert_eq!(
-        harness.request(1).url.expose_secret(),
-        "https://api.pipedream.com/v1/connect/proj_Test123/users/user_1/accounts?app=google_calendar&include_credentials=false"
+    assert_wire(
+        &harness.request(1),
+        http::Method::GET,
+        "https://api.pipedream.com/v1/connect/proj_Test123/users/user_1/accounts?app=google_calendar&include_credentials=false",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+        ],
+        None,
     );
     harness
         .client
@@ -58,9 +73,15 @@ async fn users_list_accounts_and_delete_use_tenant_scoped_paths() {
         .delete(ExternalUserId::new("user_1").unwrap())
         .await
         .unwrap();
-    assert_eq!(
-        harness.request(2).url.expose_secret(),
-        "https://api.pipedream.com/v1/connect/proj_Test123/users/user_1"
+    assert_wire(
+        &harness.request(2),
+        http::Method::DELETE,
+        "https://api.pipedream.com/v1/connect/proj_Test123/users/user_1",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-environment", "development"),
+        ],
+        None,
     );
     harness.assert_requests(3);
 }

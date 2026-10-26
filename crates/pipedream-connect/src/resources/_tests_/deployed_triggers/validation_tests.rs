@@ -4,6 +4,7 @@ use pipedream_connect_types::{ListTriggerEventsRequest, UpdateTriggerWebhooksReq
 use serde_json::json;
 
 use crate::error::Error;
+use crate::resources::test_support::assert_wire;
 use crate::tests::support::{Harness, config, response};
 
 use super::support::{deployed_trigger, query, trigger_id, webhook_id};
@@ -42,6 +43,22 @@ async fn callback_urls_keep_provider_defined_admission_rules() {
     }))
     .expect("valid model shape");
     harness.client.triggers().deploy(request).await.unwrap();
+    assert_wire(
+        &harness.request(1),
+        http::Method::POST,
+        "https://api.pipedream.com/v1/connect/proj_Test123/triggers/deploy",
+        &[
+            ("authorization", "Bearer access-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+            ("content-type", "application/json"),
+        ],
+        Some(&json!({
+            "id": "google_calendar-new-event",
+            "external_user_id": "customer_1",
+            "webhook_url": "http://public.example/events"
+        })),
+    );
     harness
         .client
         .deployed_triggers()
@@ -54,6 +71,18 @@ async fn callback_urls_keep_provider_defined_admission_rules() {
         )
         .await
         .unwrap();
+    assert_wire(
+        &harness.request(2),
+        http::Method::PUT,
+        "https://api.pipedream.com/v1/connect/proj_Test123/deployed-triggers/dc_Trigger123/webhooks?external_user_id=customer_1",
+        &[
+            ("authorization", "Bearer access-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+            ("content-type", "application/json"),
+        ],
+        Some(&json!({"webhook_urls":["http://public.example/events"]})),
+    );
     harness.assert_requests(3);
 }
 

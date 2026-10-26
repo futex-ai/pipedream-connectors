@@ -60,30 +60,56 @@ pub(super) fn run(stash: Value) -> (RunActionRequest, Value) {
 }
 
 pub(super) fn assert_get(request: HttpRequest, url: &str) {
-    assert_eq!(request.method, Method::GET);
-    assert_eq!(request.url.expose_secret(), url);
-    assert!(request.body.is_none());
-    assert_eq!(request.headers["x-pd-environment"], "development");
-    assert_eq!(request.headers["authorization"], "Bearer access-secret");
-    assert_eq!(request.headers["accept"], "application/json");
-    assert_eq!(
-        request.headers["user-agent"],
-        concat!("pipedream-connect/", env!("CARGO_PKG_VERSION"))
+    assert_wire(
+        &request,
+        Method::GET,
+        url,
+        &[
+            ("x-pd-environment", "development"),
+            ("authorization", "Bearer access-secret"),
+            ("accept", "application/json"),
+            (
+                "user-agent",
+                concat!("pipedream-connect/", env!("CARGO_PKG_VERSION")),
+            ),
+        ],
+        None,
     );
     assert!(!request.headers.contains_key("content-type"));
 }
 
 pub(super) fn assert_post(request: HttpRequest, path: &str, expected: &Value) {
-    assert_eq!(request.method, Method::POST);
-    assert_eq!(
-        request.url.expose_secret(),
-        format!("https://api.pipedream.com/v1/connect/proj_Test123/{path}")
+    assert_wire(
+        &request,
+        Method::POST,
+        &format!("https://api.pipedream.com/v1/connect/proj_Test123/{path}"),
+        &[
+            ("x-pd-environment", "development"),
+            ("authorization", "Bearer access-secret"),
+            ("accept", "application/json"),
+            ("content-type", "application/json"),
+        ],
+        Some(expected),
     );
-    assert_eq!(
-        serde_json::from_slice::<Value>(request.body.as_ref().unwrap()).unwrap(),
-        *expected
-    );
-    assert_eq!(request.headers["x-pd-environment"], "development");
-    assert_eq!(request.headers["authorization"], "Bearer access-secret");
-    assert_eq!(request.headers["content-type"], "application/json");
+}
+
+pub(super) fn assert_wire(
+    request: &HttpRequest,
+    method: Method,
+    url: &str,
+    required_headers: &[(&str, &str)],
+    body: Option<&Value>,
+) {
+    assert_eq!(request.method, method);
+    assert_eq!(request.url.expose_secret(), url);
+    match (request.body.as_deref(), body) {
+        (Some(actual), Some(expected)) => {
+            assert_eq!(serde_json::from_slice::<Value>(actual).unwrap(), *expected);
+        }
+        (None, None) => {}
+        (actual, expected) => panic!("body mismatch: actual={actual:?}, expected={expected:?}"),
+    }
+    for (name, value) in required_headers {
+        assert_eq!(request.headers[*name], *value, "wrong {name} header");
+    }
 }

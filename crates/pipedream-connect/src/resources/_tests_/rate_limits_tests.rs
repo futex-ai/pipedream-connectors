@@ -3,6 +3,7 @@
 use pipedream_connect_types::RateLimitRequest;
 use serde_json::json;
 
+use crate::resources::test_support::assert_wire;
 use crate::tests::support::{Harness, response, static_config};
 
 #[tokio::test]
@@ -25,9 +26,17 @@ async fn rate_limit_token_is_wrapped_and_request_body_is_exact() {
         .unwrap();
     assert_eq!(token.token.expose_secret(), "secret");
     assert!(!format!("{token:?}").contains("secret"));
-    assert_eq!(
-        harness.request(0).body.as_deref(),
-        Some(br#"{"window_size_seconds":5,"requests_per_window":10}"#.as_slice())
+    assert_wire(
+        &harness.request(0),
+        http::Method::POST,
+        "https://api.pipedream.com/v1/connect/rate_limits",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+            ("content-type", "application/json"),
+        ],
+        Some(&json!({"window_size_seconds":5,"requests_per_window":10})),
     );
     let configured = harness
         .client
