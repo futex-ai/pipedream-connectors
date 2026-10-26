@@ -9,6 +9,9 @@ use crate::error::{HeaderProblem, JsonProblem};
 use crate::inputs::MAX_DEPTH;
 use crate::settings::{Setting, Supply};
 
+/// The longest identifier that the SDK accepts, in bytes.
+const LONGEST_ID: usize = 250;
+
 fn noun(setting: Setting) -> &'static str {
     match setting {
         Setting::ClientId => "client ID",
@@ -31,20 +34,20 @@ pub(super) fn missing(settings: &[Setting]) -> String {
             let variables: Vec<&str> = settings.iter().map(|setting| setting.variable()).collect();
             format!(
                 "The {} are missing. Set {}.",
-                join(&nouns),
-                join(&variables)
+                join(&nouns, "and"),
+                join(&variables, "and")
             )
         }
     }
 }
 
-/// Joins words as a list, such as `a, b, and c`.
-fn join(words: &[&str]) -> String {
+/// Joins words as a list with `conjunction`, such as `a, b, and c` or `a, b, or c`.
+fn join(words: &[&str], conjunction: &str) -> String {
     match words {
         [] => String::new(),
         [word] => (*word).to_owned(),
-        [first, second] => format!("{first} and {second}"),
-        [rest @ .., last] => format!("{}, and {last}", rest.join(", ")),
+        [first, second] => format!("{first} {conjunction} {second}"),
+        [rest @ .., last] => format!("{}, {conjunction} {last}", rest.join(", ")),
     }
 }
 
@@ -68,7 +71,8 @@ pub(super) fn invalid_setting(setting: Setting, supply: Supply) -> String {
         Setting::ProjectId => {
             format!(
                 "{name} is not a valid project ID. Use the project ID that starts with proj_ and \
-                 then has only letters and digits."
+                 then has 1 to {} ASCII letters or digits.",
+                LONGEST_ID - "proj_".len()
             )
         }
         Setting::Environment => {
@@ -76,8 +80,8 @@ pub(super) fn invalid_setting(setting: Setting, supply: Supply) -> String {
         }
         Setting::ApiOrigin => format!(
             "{name} is not a valid API origin. \
-             Use an HTTPS origin that has only a host and an optional port, such as \
-             https://api.pipedream.com."
+             Use an HTTPS origin that has only a host and an optional port, without \
+             surrounding spaces, such as https://api.pipedream.com."
         ),
         Setting::ClientId | Setting::ClientSecret => format!(
             "{name} is not a valid {}. Copy it again from your Pipedream OAuth client.",
@@ -133,17 +137,15 @@ fn identifier(kind: IdentifierKind) -> &'static str {
     }
 }
 
-/// States the whole rule of an identifier, so the hint never names a rule that the input meets.
+/// States the whole SDK rule of an identifier: its prefix, its length, and its
+/// characters. An input that fails the rule always fails a part that the hint names.
 fn identifier_hint(kind: IdentifierKind) -> String {
-    let prefixed = |prefix: &str| {
-        format!("Use an ID that starts with {prefix} and then has only letters and digits.")
-    };
     match kind {
-        IdentifierKind::Project => prefixed("proj_"),
-        IdentifierKind::Account => prefixed("apn_"),
-        IdentifierKind::DeployedTrigger => prefixed("dc_, hi_, or ti_"),
-        IdentifierKind::OauthApp => prefixed("oa_"),
-        IdentifierKind::AppCategory => prefixed("appcat_"),
+        IdentifierKind::Project => prefixed(&["proj_"]),
+        IdentifierKind::Account => prefixed(&["apn_"]),
+        IdentifierKind::DeployedTrigger => prefixed(&["dc_", "hi_", "ti_"]),
+        IdentifierKind::OauthApp => prefixed(&["oa_"]),
+        IdentifierKind::AppCategory => prefixed(&["appcat_"]),
         IdentifierKind::ConnectToken => {
             "Use a token that starts with ctok_ and then has 32 lowercase hexadecimal digits."
                 .to_owned()
@@ -157,11 +159,26 @@ fn identifier_hint(kind: IdentifierKind) -> String {
         | IdentifierKind::ComponentKey
         | IdentifierKind::PropName
         | IdentifierKind::Webhook
-        | IdentifierKind::WorkflowEndpoint => "Use 1 to 250 visible ASCII characters without \
-                                               spaces, /, \\, ?, or #. The values . and .. \
-                                               are not valid."
-            .to_owned(),
+        | IdentifierKind::WorkflowEndpoint => format!(
+            "Use 1 to {LONGEST_ID} visible ASCII characters without spaces, /, \\, ?, or #. The \
+             values . and .. are not valid."
+        ),
     }
+}
+
+/// The hint of an ID that starts with one of `prefixes` and then has only ASCII
+/// letters or digits. The count leaves room for the longest prefix in the SDK limit.
+fn prefixed(prefixes: &[&str]) -> String {
+    let longest = prefixes
+        .iter()
+        .map(|prefix| prefix.len())
+        .max()
+        .unwrap_or(0);
+    format!(
+        "Use an ID that starts with {} and then has 1 to {} ASCII letters or digits.",
+        join(prefixes, "or"),
+        LONGEST_ID - longest
+    )
 }
 
 /// The text for an input that cannot be read, by the kind of failure.

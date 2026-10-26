@@ -47,10 +47,11 @@ starts with a hyphen needs the `=` form, such as `--client-secret=-abc`. The
 environment has no default, because development and production use separate
 credentials.
 
-The API origin defaults to `https://api.pipedream.com`. When a flag or a
-variable selects another origin, the CLI writes one note to standard error
-before any request. The note names the origin and the flag or variable that
-set it.
+The API origin defaults to `https://api.pipedream.com`. Another origin must be
+an HTTPS origin with only a host and an optional port, without surrounding
+spaces. When a flag or a variable selects another origin, the CLI writes one
+note to standard error before any request. The note names the origin and the
+flag or variable that set it.
 
 The CLI reports every missing required setting in one message.
 
@@ -171,7 +172,7 @@ as the app API and its status.
 `--emitter-type <email|http|source|timer>`, and the page flags.
 `triggers get`, `triggers delete`, and `triggers events` take the trigger ID
 and `--external-user-id <ID>`. A trigger ID starts with `dc_`, `hi_`, or
-`ti_` and then has only letters and digits. `triggers delete` takes
+`ti_` and then has 1 to 247 ASCII letters or digits. `triggers delete` takes
 `--ignore-hook-errors` and prints `{"status": "deleted"}`. With
 `--missing-ok`, it prints the same result when
 the trigger does not exist. Without it, a missing trigger exits with code 4.
@@ -271,11 +272,14 @@ objects gets its own message. Errors never print a secret, a bearer, a
 response body, or the provider message.
 
 A failed action names where it failed, for example the component code or the
-app API with its status. A network failure names the API origin. A rate-limit
-error names the longer of the `Retry-After` and `X-PD-Rate-Limit-Reset-In`
-waits. A 408 or 5xx answer names its `Retry-After` wait. Each wait is rounded
-up to whole seconds. Without a wait, or with a zero wait, the error asks you
-to wait a moment or to try again later.
+app API with its status. A network failure names the API origin.
+
+A rate-limit error names the longer of the `Retry-After` and
+`X-PD-Rate-Limit-Reset-In` waits. A 408 or 5xx answer to a command that only
+reads names its `Retry-After` wait. After a command that changes data, a 408 or
+5xx error gives the change warning instead of the wait. Each wait is rounded up
+to whole seconds. Without a wait, or with a zero wait, the error asks you to
+wait a moment or to try again later.
 
 A response larger than the 10 MiB limit exits with code 1, and its error names
 the response status. After a command that changes data, an unanswered or

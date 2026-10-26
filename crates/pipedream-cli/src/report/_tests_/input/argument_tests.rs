@@ -18,7 +18,7 @@ fn invalid_arguments_name_the_argument_and_its_rule() {
         (
             argument(Argument::Category, identifier(IdentifierKind::AppCategory)),
             "--category is not a valid category ID. Use an ID that starts with appcat_ and then \
-             has only letters and digits.",
+             has 1 to 243 ASCII letters or digits.",
         ),
         (
             argument(Argument::Action, identifier(IdentifierKind::ComponentKey)),

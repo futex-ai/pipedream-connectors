@@ -204,18 +204,22 @@ fn a_missing_props_file_fails_before_any_request() {
 }
 
 #[test]
-fn an_insecure_origin_fails_before_any_request() {
-    let output = cli(
-        &words("--api-origin http://localhost categories list"),
-        &VARIABLES,
-        None,
-    );
-    assert_eq!(output.status.code(), Some(2));
-    assert_eq!(
-        text(output.stderr),
-        "error: --api-origin is not a valid API origin. Use an HTTPS origin that has only a \
-         host and an optional port, such as https://api.pipedream.com.\n"
-    );
+fn an_insecure_or_padded_origin_fails_before_any_request() {
+    for origin in ["http://localhost", "https://api.pipedream.com "] {
+        let output = cli(
+            &["--api-origin", origin, "categories", "list"],
+            &VARIABLES,
+            None,
+        );
+        assert_eq!(output.status.code(), Some(2), "{origin:?}");
+        assert_eq!(
+            text(output.stderr),
+            "error: --api-origin is not a valid API origin. Use an HTTPS origin that has only a \
+             host and an optional port, without surrounding spaces, such as \
+             https://api.pipedream.com.\n",
+            "{origin:?}"
+        );
+    }
 }
 
 #[test]
