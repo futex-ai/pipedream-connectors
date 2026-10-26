@@ -12,218 +12,133 @@ const FIXTURE: &str = concat!(
     "/tests/fixtures/pipedream_openapi_swagger.json"
 );
 
-struct EpochField<T> {
-    schema: &'static str,
-    field: &'static str,
-    sample: Value,
-    timestamp: fn(&T) -> &Timestamp,
-    raw: i64,
-}
+type TimestampField<T> = (&'static str, fn(&T) -> &Timestamp);
 
 #[test]
 fn integer_date_fields_follow_the_openapi_epoch_unit() {
     let document: Value = serde_json::from_str(&fs::read_to_string(FIXTURE).unwrap()).unwrap();
     let seconds = 1_700_000_000;
-    assert_epoch_fields(
+    assert_epoch_schema::<UsageRecord>(
         &document,
-        [
-            EpochField {
-                schema: "ConnectUsage",
-                field: "usage_start_ts",
-                sample: json!({"credits_used":1,"usage_start_ts":seconds,"usage_end_ts":seconds}),
-                timestamp: |value: &UsageRecord| &value.usage_start_ts,
-                raw: seconds,
-            },
-            EpochField {
-                schema: "ConnectUsage",
-                field: "usage_end_ts",
-                sample: json!({"credits_used":1,"usage_start_ts":seconds,"usage_end_ts":seconds}),
-                timestamp: |value: &UsageRecord| &value.usage_end_ts,
-                raw: seconds,
-            },
+        "ConnectUsage",
+        json!({"credits_used":1,"usage_start_ts":seconds,"usage_end_ts":seconds}),
+        &[
+            ("usage_start_ts", |value: &UsageRecord| {
+                &value.usage_start_ts
+            }),
+            ("usage_end_ts", |value: &UsageRecord| &value.usage_end_ts),
         ],
+        seconds,
     );
-    assert_epoch_fields(
+
+    let webhook_sample = json!({
+        "id":"wh_sample","url":"https://example.com","signing_key_set":false,
+        "created_at":seconds,"updated_at":seconds
+    });
+    assert_epoch_schema::<Webhook>(
         &document,
-        [
-            EpochField {
-                schema: "Webhook",
-                field: "created_at",
-                sample: json!({
-                    "id":"wh_sample","url":"https://example.com","signing_key_set":false,
-                    "created_at":seconds,"updated_at":seconds
-                }),
-                timestamp: |value: &Webhook| &value.created_at,
-                raw: seconds,
-            },
-            EpochField {
-                schema: "Webhook",
-                field: "updated_at",
-                sample: json!({
-                    "id":"wh_sample","url":"https://example.com","signing_key_set":false,
-                    "created_at":seconds,"updated_at":seconds
-                }),
-                timestamp: |value: &Webhook| &value.updated_at,
-                raw: seconds,
-            },
+        "Webhook",
+        webhook_sample.clone(),
+        &[
+            ("created_at", |value: &Webhook| &value.created_at),
+            ("updated_at", |value: &Webhook| &value.updated_at),
         ],
+        seconds,
     );
-    assert_epoch_fields(
+    assert_epoch_schema::<WebhookWithOptionalSigningKey>(
         &document,
-        [
-            EpochField {
-                schema: "WebhookWithOptionalSigningKey",
-                field: "created_at",
-                sample: json!({
-                    "id":"wh_sample","url":"https://example.com","signing_key_set":false,
-                    "created_at":seconds,"updated_at":seconds
-                }),
-                timestamp: |value: &WebhookWithOptionalSigningKey| &value.created_at,
-                raw: seconds,
-            },
-            EpochField {
-                schema: "WebhookWithOptionalSigningKey",
-                field: "updated_at",
-                sample: json!({
-                    "id":"wh_sample","url":"https://example.com","signing_key_set":false,
-                    "created_at":seconds,"updated_at":seconds
-                }),
-                timestamp: |value: &WebhookWithOptionalSigningKey| &value.updated_at,
-                raw: seconds,
-            },
+        "WebhookWithOptionalSigningKey",
+        webhook_sample.clone(),
+        &[
+            ("created_at", |value: &WebhookWithOptionalSigningKey| {
+                &value.created_at
+            }),
+            ("updated_at", |value: &WebhookWithOptionalSigningKey| {
+                &value.updated_at
+            }),
         ],
+        seconds,
     );
-    assert_epoch_fields(
+    let mut signed_webhook_sample = webhook_sample;
+    signed_webhook_sample["signing_key"] = json!("secret");
+    signed_webhook_sample["signing_key_set"] = json!(true);
+    assert_epoch_schema::<WebhookWithSigningKey>(
         &document,
-        [
-            EpochField {
-                schema: "WebhookWithSigningKey",
-                field: "created_at",
-                sample: json!({
-                    "id":"wh_sample","url":"https://example.com","signing_key":"secret",
-                    "signing_key_set":true,"created_at":seconds,"updated_at":seconds
-                }),
-                timestamp: |value: &WebhookWithSigningKey| &value.created_at,
-                raw: seconds,
-            },
-            EpochField {
-                schema: "WebhookWithSigningKey",
-                field: "updated_at",
-                sample: json!({
-                    "id":"wh_sample","url":"https://example.com","signing_key":"secret",
-                    "signing_key_set":true,"created_at":seconds,"updated_at":seconds
-                }),
-                timestamp: |value: &WebhookWithSigningKey| &value.updated_at,
-                raw: seconds,
-            },
+        "WebhookWithSigningKey",
+        signed_webhook_sample,
+        &[
+            ("created_at", |value: &WebhookWithSigningKey| {
+                &value.created_at
+            }),
+            ("updated_at", |value: &WebhookWithSigningKey| {
+                &value.updated_at
+            }),
         ],
+        seconds,
     );
 
     let milliseconds = 1_700_000_000_000;
-    assert_epoch_fields(
+    assert_epoch_schema::<DeployedComponent>(
         &document,
-        [
-            EpochField {
-                schema: "DeployedComponent",
-                field: "created_at",
-                sample: json!({
-                    "id":"dc_sample","owner_id":"owner","component_id":"component",
-                    "configurable_props":[],"configured_props":{},"active":true,
-                    "created_at":0,"updated_at":0,"name":"Sample","name_slug":"sample",
-                    "type":"DeployedComponent"
-                }),
-                timestamp: |value: &DeployedComponent| &value.created_at,
-                raw: milliseconds,
-            },
-            EpochField {
-                schema: "DeployedComponent",
-                field: "updated_at",
-                sample: json!({
-                    "id":"dc_sample","owner_id":"owner","component_id":"component",
-                    "configurable_props":[],"configured_props":{},"active":true,
-                    "created_at":0,"updated_at":0,"name":"Sample","name_slug":"sample",
-                    "type":"DeployedComponent"
-                }),
-                timestamp: |value: &DeployedComponent| &value.updated_at,
-                raw: milliseconds,
-            },
+        "DeployedComponent",
+        json!({
+            "id":"dc_sample","owner_id":"owner","component_id":"component",
+            "configurable_props":[],"configured_props":{},"active":true,
+            "created_at":0,"updated_at":0,"name":"Sample","name_slug":"sample",
+            "type":"DeployedComponent"
+        }),
+        &[
+            ("created_at", |value: &DeployedComponent| &value.created_at),
+            ("updated_at", |value: &DeployedComponent| &value.updated_at),
         ],
+        milliseconds,
     );
-    assert_epoch_fields(
+    assert_epoch_schema::<HttpInterface>(
         &document,
-        [
-            EpochField {
-                schema: "HttpInterface",
-                field: "created_at",
-                sample: json!({
-                    "id":"hi_sample","key":"http","endpoint_url":"https://example.com",
-                    "custom_response":false,"created_at":0,"updated_at":0,"type":"HttpInterface"
-                }),
-                timestamp: |value: &HttpInterface| &value.created_at,
-                raw: milliseconds,
-            },
-            EpochField {
-                schema: "HttpInterface",
-                field: "updated_at",
-                sample: json!({
-                    "id":"hi_sample","key":"http","endpoint_url":"https://example.com",
-                    "custom_response":false,"created_at":0,"updated_at":0,"type":"HttpInterface"
-                }),
-                timestamp: |value: &HttpInterface| &value.updated_at,
-                raw: milliseconds,
-            },
+        "HttpInterface",
+        json!({
+            "id":"hi_sample","key":"http","endpoint_url":"https://example.com",
+            "custom_response":false,"created_at":0,"updated_at":0,"type":"HttpInterface"
+        }),
+        &[
+            ("created_at", |value: &HttpInterface| &value.created_at),
+            ("updated_at", |value: &HttpInterface| &value.updated_at),
         ],
+        milliseconds,
     );
-    assert_epoch_fields(
+    assert_epoch_schema::<TimerInterface>(
         &document,
-        [
-            EpochField {
-                schema: "TimerInterface",
-                field: "created_at",
-                sample: json!({
-                    "id":"ti_sample","timezone":"UTC","schedule_changed_at":0,
-                    "created_at":0,"updated_at":0,"type":"TimerInterface"
-                }),
-                timestamp: |value: &TimerInterface| &value.created_at,
-                raw: milliseconds,
-            },
-            EpochField {
-                schema: "TimerInterface",
-                field: "updated_at",
-                sample: json!({
-                    "id":"ti_sample","timezone":"UTC","schedule_changed_at":0,
-                    "created_at":0,"updated_at":0,"type":"TimerInterface"
-                }),
-                timestamp: |value: &TimerInterface| &value.updated_at,
-                raw: milliseconds,
-            },
+        "TimerInterface",
+        json!({
+            "id":"ti_sample","timezone":"UTC","schedule_changed_at":0,
+            "created_at":0,"updated_at":0,"type":"TimerInterface"
+        }),
+        &[
+            ("created_at", |value: &TimerInterface| &value.created_at),
+            ("updated_at", |value: &TimerInterface| &value.updated_at),
         ],
+        milliseconds,
     );
-    assert_epoch_fields(
+    assert_epoch_schema::<EmittedEvent>(
         &document,
-        [EpochField {
-            schema: "EmittedEvent",
-            field: "ts",
-            sample: json!({"e":{},"k":"emit","ts":0,"id":"event_1"}),
-            timestamp: |value: &EmittedEvent| &value.ts,
-            raw: milliseconds,
-        }],
+        "EmittedEvent",
+        json!({"e":{},"k":"emit","ts":0,"id":"event_1"}),
+        &[("ts", |value: &EmittedEvent| &value.ts)],
+        milliseconds,
     );
 }
 
-fn assert_epoch_fields<T>(document: &Value, cases: impl IntoIterator<Item = EpochField<T>>)
-where
+fn assert_epoch_schema<T>(
+    document: &Value,
+    schema: &str,
+    sample: Value,
+    fields: &[TimestampField<T>],
+    raw: i64,
+) where
     T: DeserializeOwned + Serialize,
 {
-    for case in cases {
-        assert_epoch_field(
-            document,
-            case.schema,
-            case.field,
-            case.sample,
-            case.timestamp,
-            case.raw,
-        );
+    for (field, timestamp) in fields {
+        assert_epoch_field(document, schema, field, sample.clone(), *timestamp, raw);
     }
 }
 

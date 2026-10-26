@@ -44,9 +44,11 @@ within the number limits above. This includes unknown fields and app-defined
 event data. For webhook payloads, the exact-text fields are defined in the
 [webhook lossless-data protocol](webhooks.md#lossless-data).
 
-Date fields MUST accept RFC 3339 strings. An integer in a usage record date
-field or a project webhook date field MUST decode as epoch seconds. An integer
-in any other date field MUST decode as epoch milliseconds.
+Date fields MUST accept RFC 3339 strings. An integer in `usage_start_ts` or
+`usage_end_ts` MUST decode as epoch seconds. An integer in `created_at` or
+`updated_at` on a project webhook or deployed trigger webhook MUST decode as
+epoch seconds. An integer in any other date field MUST decode as epoch
+milliseconds.
 
 A date field MUST re-encode in the wire form that it decoded. When a field that
 the OpenAPI document types as an integer decodes an integer value, it MUST
