@@ -5,15 +5,17 @@ Run it from the repository root to execute the required local checks.
 
 ## Responsibilities
 
-- Run the ordered Rust format, lint, test, documentation, and file-length checks.
+- Run the ordered Rust format, lint, test, documentation, file-length, and
+  Rust module-layout checks.
 - Report command output directly so failures remain actionable.
 - Keep command and file access behind testable traits.
 
 ## What This Crate Does
 
 The `check` command is the workspace gate. It does not implement SDK runtime
-behaviour. It only coordinates developer tools and returns a typed error when
-a command cannot start or fails.
+behaviour. It coordinates developer tools and local source audits. It returns
+a typed error when a command cannot start or fails, or when an audit finds a
+violation.
 
 ## Quick Start
 
@@ -42,6 +44,8 @@ cargo test -p xtask
 - `src/main.rs` parses the task command and selects the workspace root.
 - `src/check.rs` defines the ordered gate commands.
 - `src/file_length.rs` audits Rust files against the 300-line cap.
+- `src/layout.rs` rejects a Rust file beside a directory with the same module
+  name.
 
 ### Related Docs
 

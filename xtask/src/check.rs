@@ -6,6 +6,7 @@ use crate::command::{self, CommandRunner, CommandSpec};
 use crate::error::Result;
 use crate::file_access::FileAccess;
 use crate::file_length;
+use crate::layout;
 
 /// Runs every required check in order.
 pub(crate) fn run(
@@ -16,7 +17,8 @@ pub(crate) fn run(
     for command in commands() {
         command::run(root, command_runner, &command)?;
     }
-    file_length::run(root, true, command_runner, file_access)
+    file_length::run(root, true, command_runner, file_access)?;
+    layout::run(root, file_access)
 }
 
 /// Returns the command plan for the workspace gate.

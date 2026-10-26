@@ -103,6 +103,10 @@ impl CommandRunner for ProcessRunner {
     }
 }
 
+#[cfg(test)]
+#[path = "_tests_/command_tests.rs"]
+mod command_tests;
+
 /// Runs one command and maps process failures to the xtask error contract.
 pub(crate) fn run(
     root: &Path,

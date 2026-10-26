@@ -46,6 +46,43 @@ impl fmt::Display for FileLengthViolations {
     }
 }
 
+/// One Rust file beside a directory with the same module name.
+#[derive(Debug)]
+pub(crate) struct ModuleLayoutViolation {
+    /// The Rust file path.
+    pub(crate) file: PathBuf,
+    /// The adjacent directory path.
+    pub(crate) directory: PathBuf,
+}
+
+impl fmt::Display for ModuleLayoutViolation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "{} sits beside module directory {}",
+            self.file.display(),
+            self.directory.display()
+        )
+    }
+}
+
+/// A displayable list of Rust module-layout violations.
+#[derive(Debug)]
+pub(crate) struct ModuleLayoutViolations(pub(crate) Vec<ModuleLayoutViolation>);
+
+impl fmt::Display for ModuleLayoutViolations {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut violations = self.0.iter();
+        if let Some(first) = violations.next() {
+            write!(formatter, "{first}")?;
+            for violation in violations {
+                write!(formatter, "\n{violation}")?;
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Failures reported by workspace automation.
 #[derive(Debug, Error)]
 pub(crate) enum Error {
@@ -77,5 +114,13 @@ pub(crate) enum Error {
         count: usize,
         /// Typed violation details.
         details: FileLengthViolations,
+    },
+    /// One or more Rust files conflict with adjacent module directories.
+    #[error("[xtask/layout] found {count} violation(s):\n{details}")]
+    ModuleLayoutViolations {
+        /// Number of violations.
+        count: usize,
+        /// Typed violation details.
+        details: ModuleLayoutViolations,
     },
 }
