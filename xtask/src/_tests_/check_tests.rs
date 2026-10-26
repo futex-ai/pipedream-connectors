@@ -15,6 +15,18 @@ fn check_plan_has_the_required_order_and_flags() {
     let commands = check::commands();
 
     assert_eq!(commands.len(), 4);
+    assert_eq!(
+        commands
+            .iter()
+            .map(|command| command.label())
+            .collect::<Vec<_>>(),
+        vec![
+            "cargo fmt --all -- --check",
+            "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings",
+            "cargo test --locked --workspace --all-features",
+            "cargo doc --locked --workspace --no-deps --all-features",
+        ]
+    );
     assert_eq!(commands[0].label(), "cargo fmt --all -- --check");
     assert!(!commands[0].capture_output);
     assert!(commands[1].args.contains(&"--locked".to_owned()));
