@@ -10,9 +10,15 @@ use crate::error::{Error, IdentifierKind, Result};
 pub(crate) fn common_identifier(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 250
+        && !matches!(value, "." | "..")
         && value
             .bytes()
             .all(|byte| byte.is_ascii_graphic() && !matches!(byte, b'/' | b'\\' | b'?' | b'#'))
+}
+
+/// Returns whether a value uses the opaque cursor grammar.
+pub(crate) fn cursor_identifier(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 2048 && value.bytes().all(|byte| byte.is_ascii_graphic())
 }
 
 /// Returns whether a value has the supplied ASCII-alphanumeric prefix.
@@ -136,8 +142,8 @@ identifier!(
 identifier!(
     Cursor,
     Cursor,
-    "An opaque pagination cursor using the common path-safe grammar.",
-    common_identifier
+    "An opaque pagination cursor using visible ASCII up to 2048 bytes.",
+    cursor_identifier
 );
 
 identifier!(

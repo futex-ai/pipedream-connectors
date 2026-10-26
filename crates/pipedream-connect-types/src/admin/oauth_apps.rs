@@ -2,6 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Number;
 
 use crate::{AppAuthType, AppSlug, OauthAppId, ScopeProfile, SecretString, UnknownFields};
 
@@ -32,7 +33,7 @@ pub struct OauthApp {
     pub categories: Option<Vec<String>>,
     /// App popularity weight.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub featured_weight: Option<f64>,
+    pub featured_weight: Option<Number>,
     /// Named OAuth scope profiles.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scope_profiles: Option<Vec<ScopeProfile>>,

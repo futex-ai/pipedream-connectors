@@ -52,7 +52,7 @@ fn flags_build_the_first_page_and_the_budget() {
 
 #[test]
 fn invalid_cursors_name_their_flag() {
-    let error = paging(&["--after", "a#b"]).unwrap_err();
+    let error = paging(&["--after", " "]).unwrap_err();
     assert!(matches!(
         error,
         Error::InvalidArgument {

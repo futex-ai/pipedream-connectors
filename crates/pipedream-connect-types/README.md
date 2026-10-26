@@ -26,6 +26,10 @@ keep unknown object fields. JSON values keep integers exactly within the
 `i64` and `u64` ranges. Larger integers and long decimals can round during
 decoding. These models do not retain the original JSON number text.
 
+Path identifiers reject the dot segments `.` and `..`. Pagination cursors are
+opaque visible-ASCII values between 1 and 2048 bytes and may contain URL
+punctuation.
+
 Absent response fields stay omitted when their schemas do not permit null.
 Nullable response fields keep explicit null output. Request deserialization
 checks the page limit, trigger event limit, and Connect token lifetime.

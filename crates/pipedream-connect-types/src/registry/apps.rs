@@ -1,6 +1,7 @@
 //! Registry models and requests.
 
 use serde::{Deserialize, Serialize};
+use serde_json::Number;
 
 use crate::{AppAuthType, AppCategoryId, AppSlug, ScopeProfileName, UnknownFields};
 
@@ -59,7 +60,7 @@ pub struct App {
     pub categories: Option<Vec<String>>,
     /// Provider popularity ordering.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub featured_weight: Option<f64>,
+    pub featured_weight: Option<Number>,
     /// Named OAuth scope profiles.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scope_profiles: Option<Vec<ScopeProfile>>,

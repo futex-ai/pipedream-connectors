@@ -24,6 +24,5 @@ pub use tokens::{
 };
 pub use usage::UsageRecord;
 pub use webhooks::{
-    ProjectWebhook, SetWebhookRequest, Webhook, WebhookWithOptionalSigningKey,
-    WebhookWithSigningKey,
+    SetWebhookRequest, Webhook, WebhookWithOptionalSigningKey, WebhookWithSigningKey,
 };

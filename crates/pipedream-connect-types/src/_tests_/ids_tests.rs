@@ -29,10 +29,13 @@ fn every_identifier_rejects_invalid_serde_input() {
         ComponentKey,
         PropName,
         WebhookId,
-        Cursor,
         WorkflowEndpoint,
         ConnectToken
     );
+    assert!(serde_json::from_value::<Cursor>(serde_json::json!("bad/value")).is_ok());
+    assert!(serde_json::from_value::<Cursor>(serde_json::json!(" ")).is_err());
+    assert!(serde_json::from_value::<Cursor>(serde_json::json!("x".repeat(2048))).is_ok());
+    assert!(serde_json::from_value::<Cursor>(serde_json::json!("x".repeat(2049))).is_err());
 }
 
 #[test]
@@ -48,16 +51,26 @@ fn common_grammar_checks_all_forbidden_bytes_and_lengths() {
     }
     assert!(ExternalUserId::new("x".repeat(250)).is_ok());
     assert!(ExternalUserId::new("x".repeat(251)).is_err());
-    for value in [
-        ".",
-        "..",
-        "Future.App",
-        "abc:!$&'()*+,;=@[]_~-",
-        "p_endpoint",
-    ] {
+    for value in ["Future.App", "abc:!$&'()*+,;=@[]_~-", "p_endpoint"] {
         assert!(ExternalUserId::new(value).is_ok());
         assert!(AppSlug::new(value).is_ok());
         assert!(WorkflowEndpoint::new(value).is_ok());
+    }
+    for value in [".", ".."] {
+        assert!(ExternalUserId::new(value).is_err());
+        assert!(AppSlug::new(value).is_err());
+        assert!(ComponentKey::new(value).is_err());
+        assert!(PropName::new(value).is_err());
+        assert!(WebhookId::new(value).is_err());
+        assert!(AppOverrideId::new(value).is_err());
+        assert!(WorkflowEndpoint::new(value).is_err());
+        rejects::<ExternalUserId>(value);
+        rejects::<AppSlug>(value);
+        rejects::<ComponentKey>(value);
+        rejects::<PropName>(value);
+        rejects::<WebhookId>(value);
+        rejects::<AppOverrideId>(value);
+        rejects::<WorkflowEndpoint>(value);
     }
     assert!(WorkflowEndpoint::new("p_/bad").is_err());
     assert!(AppCategoryId::new("appcat_demo").is_ok());
@@ -65,6 +78,13 @@ fn common_grammar_checks_all_forbidden_bytes_and_lengths() {
     assert!(PropName::new("account_id").is_ok());
     assert!(WebhookId::new("wh_demo").is_ok());
     assert!(Cursor::new("opaque-cursor").is_ok());
+    for value in ["/", "\\", "?", "#", "cursor~with+punctuation"] {
+        assert!(Cursor::new(value).is_ok());
+    }
+    assert!(Cursor::new("x".repeat(2048)).is_ok());
+    assert!(Cursor::new("x".repeat(2049)).is_err());
+    assert!(Cursor::new(" ").is_err());
+    assert!(Cursor::new("é").is_err());
 }
 
 #[test]
