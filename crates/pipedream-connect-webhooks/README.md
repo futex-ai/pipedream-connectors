@@ -24,8 +24,10 @@ all raw body bytes.
 Direct serde decoding hashes the JSON value text without outer whitespace.
 Both decoding paths reject an invalid context ID.
 
-Session identifiers, event JSON, and unknown webhook fields use `RawJson`.
-Call `as_str()` for the exact JSON text. Call `decode::<T>()` for typed access.
+Session identifiers and trigger event JSON use `RawJson`. Top-level unknown
+fields in connection and trigger payloads, and unknown fields in trigger
+context, also use `RawJson`. Call `as_str()` for the exact JSON text. Call
+`decode::<T>()` for typed access.
 The stored text preserves large integers and long decimals. Typed access uses
 the selected type's number precision. `new` and `decode` return `PayloadError`
 with the original serde error as their source when conversion fails.
