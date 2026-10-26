@@ -1405,13 +1405,13 @@ Tags: ui
 
 Summary: apply the CLI outcomes and adapt the CLI to Milestone 13.
 
-- [ ] One per-command text table for every failure after a sent request
+- [x] One per-command text table for every failure after a sent request
       (29 B).
-- [ ] Hints that state the whole rule (31 A).
-- [ ] A non-zero rate-limit wait type (32 B).
-- [ ] Adapt the CLI to the Milestone 13 error, identifier, cursor, retry, and
+- [x] Hints that state the whole rule (31 A).
+- [x] A non-zero rate-limit wait type (32 B).
+- [x] Adapt the CLI to the Milestone 13 error, identifier, cursor, retry, and
       202 changes, with tests and README updates.
-- [ ] Run the gate and the credential-free smoke, commit, and push.
+- [x] Run the gate and the credential-free smoke, commit, and push.
 
 ## Milestone 15: Verification, commit, and review of the decisions round
 
