@@ -43,6 +43,9 @@ cargo test -p xtask
 
 - `src/main.rs` parses the task command and selects the workspace root.
 - `src/check.rs` defines the ordered gate commands.
+- `src/file_access.rs` lists directories and reads files for both audits. It
+  walks the `crates` and `xtask` roots and skips only a root that does not
+  exist.
 - `src/file_length.rs` audits Rust files against the 300-line cap.
 - `src/layout.rs` rejects a Rust file beside a directory with the same module
   name.
