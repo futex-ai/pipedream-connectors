@@ -84,7 +84,7 @@ fn typed_debug_exposes_safe_fields_and_hides_provider_text() {
         "UpstreamApi",
         "network_calls_count: Some(2)",
         "status: Some(401)",
-        "duration_ms: Some(12.5)",
+        "duration_ms: Some(Number(12.5))",
     ] {
         assert!(debug.contains(safe), "missing {safe}: {debug}");
     }

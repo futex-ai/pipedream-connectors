@@ -26,7 +26,8 @@ fn limits_and_deserialization_use_the_same_validation() {
         PageRequest::default()
     );
     assert!(serde_json::from_value::<PageRequest>(json!({"after":"a","before":"b"})).is_err());
-    assert!(serde_json::from_value::<PageRequest>(json!({"after":"bad/cursor"})).is_err());
+    assert!(serde_json::from_value::<PageRequest>(json!({"after":"bad/cursor"})).is_ok());
+    assert!(serde_json::from_value::<PageRequest>(json!({"after":" "})).is_err());
 }
 
 #[test]

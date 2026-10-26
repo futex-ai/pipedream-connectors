@@ -4,7 +4,8 @@ use serde_json::json;
 
 use crate::{
     Account, App, AppOverride, CreateAccountResponse, ErrorMessage, ErrorResponse,
-    GetAccountResponse, GetAccountsResponse, Project, ProjectInfo, ValidateTokenResponse,
+    GetAccountResponse, GetAccountsResponse, NetworkCall, OauthApp, Observation, Project,
+    ProjectInfo, ValidateTokenResponse,
 };
 
 #[test]
@@ -79,4 +80,45 @@ fn omitted_catalog_defaults_remain_unknown_instead_of_fabricated() {
     }
     let model:AppOverride=serde_json::from_value(json!({"id":"ao_sample","name":"Example","app":{"name_slug":"github","name":"GitHub","img_src":"https://example.com/logo.png"},"owner_id":"sample"})).unwrap();
     assert!(serde_json::to_value(model).unwrap().get("cfmap").is_none());
+}
+
+#[test]
+fn number_fields_preserve_integer_json_numbers() {
+    let app: App = serde_json::from_value(json!({
+        "name_slug": "github",
+        "name": "GitHub",
+        "img_src": "https://example.com/logo.png",
+        "featured_weight": 5000
+    }))
+    .unwrap();
+    let encoded = serde_json::to_value(app).unwrap();
+    assert_eq!(
+        serde_json::to_string(&encoded["featured_weight"]).unwrap(),
+        "5000"
+    );
+
+    let oauth_app: OauthApp = serde_json::from_value(json!({
+        "id": "oa_sample",
+        "client_id": "client",
+        "owner_id": "owner",
+        "featured_weight": 5000
+    }))
+    .unwrap();
+    let encoded = serde_json::to_value(oauth_app).unwrap();
+    assert_eq!(
+        serde_json::to_string(&encoded["featured_weight"]).unwrap(),
+        "5000"
+    );
+
+    let observation: Observation =
+        serde_json::from_value(json!({"k": "console.log", "ts": 5000})).unwrap();
+    let encoded = serde_json::to_value(observation).unwrap();
+    assert_eq!(serde_json::to_string(&encoded["ts"]).unwrap(), "5000");
+
+    let network_call: NetworkCall = serde_json::from_value(json!({"duration_ms": 5000})).unwrap();
+    let encoded = serde_json::to_value(network_call).unwrap();
+    assert_eq!(
+        serde_json::to_string(&encoded["duration_ms"]).unwrap(),
+        "5000"
+    );
 }

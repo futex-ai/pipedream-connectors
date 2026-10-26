@@ -64,6 +64,14 @@ constant-time comparison with a 300-second two-sided window. Parsing decoded
 JSON or accepting one-sided age checks was rejected because either change can
 permit body changes or replayed future requests.
 
+## Lossless data
+
+Typed models MUST preserve integer values exactly only when they fit in the
+`i64` or `u64` range. Larger integers and long decimal values can round during
+decoding or re-encoding.
+
+Webhook payload fields MUST preserve the exact JSON text supplied by Pipedream.
+
 ## Signing-key selection
 
 A deployed trigger webhook has a trigger-level signing key when Pipedream

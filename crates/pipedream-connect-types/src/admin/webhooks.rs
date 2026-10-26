@@ -2,33 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Environment, SecretString, UnknownFields, WebhookId};
-
-/// Project environment webhook metadata.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct ProjectWebhook {
-    /// Webhook identifier.
-    pub id: WebhookId,
-    /// Destination URL.
-    pub url: String,
-    /// Whether a signing key exists.
-    pub signing_key_set: bool,
-    /// Signing key when returned.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub signing_key: Option<SecretString>,
-    /// Creation timestamp in epoch seconds.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<i64>,
-    /// Update timestamp in epoch seconds.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<i64>,
-    /// Project environment.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub environment: Option<Environment>,
-    /// Unknown provider fields.
-    #[serde(flatten)]
-    pub extra: UnknownFields,
-}
+use crate::{SecretString, UnknownFields, WebhookId};
 
 /// A project or trigger webhook without a response envelope.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

@@ -5,9 +5,9 @@ use serde_json::{Value, json};
 
 use crate::{
     Account, ConnectToken, ConnectTokenResponse, CreateAccountRequest, CreateOauthAppRequest,
-    CreateOauthTokenRequest, Data, DeployedComponent, OAuthTokenResponse, Page, ProjectWebhook,
-    RateLimitToken, SecretJson, SecretString, TriggerWebhook, TriggerWebhooks,
-    UpdateOauthAppRequest, WebhookWithOptionalSigningKey, WebhookWithSigningKey,
+    CreateOauthTokenRequest, Data, DeployedComponent, OAuthTokenResponse, Page, RateLimitToken,
+    SecretJson, SecretString, TriggerWebhook, TriggerWebhooks, UpdateOauthAppRequest,
+    WebhookWithOptionalSigningKey, WebhookWithSigningKey,
 };
 
 const MARKER: &str = "0123456789abcdef0123456789abcdef";
@@ -75,11 +75,6 @@ fn every_credential_field_and_nested_model_redacts_debug() {
         (
             "TriggerWebhook.signing_key",
             redacted::<TriggerWebhook>,
-            webhook.clone(),
-        ),
-        (
-            "ProjectWebhook.signing_key",
-            redacted::<ProjectWebhook>,
             webhook.clone(),
         ),
         (

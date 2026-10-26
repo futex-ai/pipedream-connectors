@@ -226,7 +226,7 @@ async fn apps_commands_reject_invalid_input_before_any_request() {
             "error: --max-pages must be a whole number of 1 or more.\n",
         ),
         (
-            &["apps", "list", "--before", "a/b"],
+            &["apps", "list", "--before", " "],
             "error: --before is not a valid cursor. Copy the cursor from the page_info of an \
              earlier result.\n",
         ),

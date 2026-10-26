@@ -2,6 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Number;
 
 use crate::{Error, Result, UnknownFields};
 
@@ -17,7 +18,7 @@ pub struct Observation {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub msg: Option<String>,
     /// Raw epoch-millisecond timestamp.
-    pub ts: f64,
+    pub ts: Number,
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,
@@ -26,14 +27,17 @@ pub struct Observation {
 impl Observation {
     /// Converts the raw timestamp to UTC.
     pub fn timestamp(&self) -> Result<DateTime<Utc>> {
-        if !self.ts.is_finite() {
+        let Some(millis) = self.ts.as_f64() else {
+            return Err(Error::InvalidTimestamp);
+        };
+        if !millis.is_finite() {
             return Err(Error::InvalidTimestamp);
         }
-        let seconds = (self.ts / 1000.0).floor();
+        let seconds = (millis / 1000.0).floor();
         if seconds < i64::MIN as f64 || seconds >= i64::MAX as f64 {
             return Err(Error::InvalidTimestamp);
         }
-        let nanos = ((self.ts - seconds * 1000.0) * 1_000_000.0).round() as u32;
+        let nanos = ((millis - seconds * 1000.0) * 1_000_000.0).round() as u32;
         let (seconds, nanos) = if nanos == 1_000_000_000 {
             (
                 (seconds as i64)

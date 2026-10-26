@@ -35,6 +35,12 @@ The SDK MUST NOT discard a component because its property type is unknown.
 
 The SDK MUST preserve app-defined property values without product redaction.
 
+Typed models MUST preserve integer values exactly only when they fit in the
+`i64` or `u64` range. Larger integers and long decimal values can round during
+decoding or re-encoding.
+
+Webhook payload fields MUST preserve the exact JSON text supplied by Pipedream.
+
 **Decision.** Unknown property types keep their raw definition, and unknown
 enum values keep their strings. A closed model that drops new components or
 values was rejected because a general SDK must remain lossless as Pipedream
@@ -48,6 +54,8 @@ An identifier MUST be between 1 and 250 bytes inclusive.
 
 An identifier MUST NOT contain a URL separator, backslash, query marker,
 fragment marker, or control character.
+
+An identifier MUST NOT be exactly `.` or `..`.
 
 The identifier grammar MUST apply both during construction and during JSON
 deserialization.
@@ -72,8 +80,8 @@ The following prefixes and patterns are part of the contract.
 The SDK MUST enforce the documented prefix pattern for each identifier above.
 
 The SDK MUST use the common grammar for external user IDs, app slugs, app
-override IDs, component keys, property names, webhook IDs, workflow endpoint
-IDs, and opaque cursors unless this protocol specifies a stricter pattern.
+override IDs, component keys, property names, webhook IDs, and workflow
+endpoint IDs unless this protocol specifies a stricter pattern.
 
 The OpenAPI document shows workflow endpoint IDs with a `p_` prefix, but the
 Connect docs describe endpoint URLs rather than a stable ID grammar.
@@ -86,9 +94,17 @@ SDK adds no prefix rule beyond the eight listed prefixes without a user
 decision. `p_` is accepted as an opaque workflow endpoint value until
 Pipedream publishes a stable workflow ID contract.
 A free-form grammar for all IDs was rejected because these values enter URL
-paths.
+paths. Dot segments were rejected because URL path normalization could route a
+request to another resource.
 
 ## Cursor pagination
+
+A cursor MUST contain visible ASCII bytes only.
+
+A cursor MUST be between 1 and 2048 bytes inclusive.
+
+A cursor MAY contain any visible ASCII character because it is opaque and is
+sent only as a query parameter.
 
 A paged request MAY include `limit`, `after`, or `before` query parameters.
 

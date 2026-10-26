@@ -1,6 +1,6 @@
 //! Fractional observation timestamp conversion tests.
 
-use serde_json::json;
+use serde_json::{Number, json};
 
 use crate::{Error, Observation};
 
@@ -19,10 +19,10 @@ fn converts_fractional_milliseconds_to_nanoseconds() {
 }
 
 #[test]
-fn rejects_nonfinite_and_out_of_range_timestamps() {
-    for ts in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, f64::MAX, 1e30] {
+fn rejects_out_of_range_timestamps() {
+    for ts in [f64::MAX, 1e30] {
         let value = Observation {
-            ts,
+            ts: Number::from_f64(ts).unwrap(),
             k: "console.log".into(),
             msg: None,
             err: None,

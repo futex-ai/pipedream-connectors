@@ -1,7 +1,7 @@
 //! Execution models and requests.
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de::DeserializeOwned};
-use serde_json::{Map, Value};
+use serde_json::{Map, Number, Value};
 
 use crate::{UnknownFields, string_enum};
 
@@ -91,7 +91,7 @@ pub struct NetworkCall {
     /// Upstream status.
     pub status: Option<u16>,
     /// Upstream duration in milliseconds.
-    pub duration_ms: Option<f64>,
+    pub duration_ms: Option<Number>,
     /// Unknown call fields.
     pub extra: UnknownFields,
 }
