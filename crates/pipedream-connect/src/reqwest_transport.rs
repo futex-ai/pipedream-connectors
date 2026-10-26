@@ -1,4 +1,7 @@
 //! Optional reqwest transport with no redirects, retries, or unbounded bodies.
+//!
+//! Request bodies arrive as shared `bytes::Bytes` values, so sending them does
+//! not copy the body when the dispatcher builds another attempt.
 
 use async_trait::async_trait;
 

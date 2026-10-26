@@ -2,6 +2,7 @@
 
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use bytes::Bytes;
 use http::{HeaderMap, HeaderValue, StatusCode};
 use pipedream_connect_types::{AccountId, AccountRef, ExternalUserId, SecretString};
 use serde_json::json;
@@ -62,7 +63,7 @@ async fn proxy_encodes_the_exact_target_prefixes_headers_and_preserves_bytes() {
     assert_eq!(sent.headers["authorization"], "Bearer static-secret");
     assert_eq!(sent.headers["x-pd-environment"], "development");
     assert_eq!(sent.headers["x-pd-rate-limit"], "rate-secret");
-    assert_eq!(sent.body, Some(vec![9, 8, 7]));
+    assert_eq!(sent.body, Some(Bytes::from_static(&[9, 8, 7])));
     assert!(!sent.headers.contains_key("content-type"));
     harness.assert_requests(1);
 }
