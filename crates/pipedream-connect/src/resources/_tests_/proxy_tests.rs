@@ -67,6 +67,24 @@ async fn proxy_encodes_the_exact_target_prefixes_headers_and_preserves_bytes() {
     harness.assert_requests(1);
 }
 
+#[test]
+fn proxy_with_headers_merges_maps_and_replaces_only_repeated_names() {
+    let mut first = HeaderMap::new();
+    first.insert("x-first", HeaderValue::from_static("one"));
+    first.insert("x-overlap", HeaderValue::from_static("old"));
+    let mut second = HeaderMap::new();
+    second.insert("x-second", HeaderValue::from_static("two"));
+    second.insert("x-overlap", HeaderValue::from_static("new"));
+
+    let request = ProxyRequest::get(account(), "/resource")
+        .with_headers(first)
+        .with_headers(second);
+
+    assert_eq!(request.headers["x-first"], "one");
+    assert_eq!(request.headers["x-second"], "two");
+    assert_eq!(request.headers["x-overlap"], "new");
+}
+
 #[tokio::test]
 async fn proxy_exposes_all_documented_methods() {
     let harness = Harness::script(
@@ -192,6 +210,7 @@ async fn invalid_proxy_targets_are_rejected_before_authentication() {
         "https://user:secret@example.com/resource",
         "https://example.com/resource#fragment",
         "//example.com/resource",
+        "/\\evil.example/api",
     ] {
         let harness = Harness::script(config(), vec![]);
         let result = harness

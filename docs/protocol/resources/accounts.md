@@ -59,6 +59,15 @@ Account creation MAY send `external_user_id` and `oauth_app_id` query values.
 Account retrieval and deletion send `external_user_id` when the operation
 uses an `AccountRef` ownership check.
 
+An owned account call MUST return `NotFound` when the returned account belongs
+to another external user or has no `external_id`.
+
+A filtered account list MUST fail with `NotFound` when any returned account
+belongs to another external user or has no `external_id`.
+
+A user account list MUST fail with `NotFound` when any returned account belongs
+to another external user or has no `external_id`.
+
 Deleting an account removes only the selected account.
 
 Deleting accounts by app removes the selected app's accounts in the project

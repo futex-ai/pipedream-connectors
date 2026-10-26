@@ -50,6 +50,11 @@ Only credentials use redacted wrappers. Account creation mappings and nested
 webhook signing keys stay redacted. Redirect and webhook URLs remain plain
 strings.
 
+The public `UrlRules`, `parse_validated`, and `is_valid` helpers share URL
+boundary checks for API origins, workflow endpoints, HTTPS hosts, and proxy
+targets. Proxy targets may be absolute HTTPS URLs or single-slash relative
+paths.
+
 ## Quick Start
 
 ```rust
@@ -98,6 +103,7 @@ crates/pipedream-connect-types/tests/fixtures/refresh-openapi.sh
   and events.
 - `src/admin/` defines projects, OAuth apps, overrides, webhooks, usage, and
   tokens.
+- `src/url.rs` defines shared URL boundary rules and validation helpers.
 - `src/wire.rs` defines data and error envelopes and response aliases.
 - `tests/conformance/main.rs` checks nested response maps, union branches, nulls,
   optional fields, request bodies, and query models against vendored schemas.

@@ -114,6 +114,10 @@ acknowledgement.
 The host owns application retries for mutations, job queues, and durable
 pagination checkpoints.
 
+The host MUST pass only trusted workflow URLs to the SDK. The SDK sends the
+project bearer to the HTTPS workflow URL that the caller passes, and that
+bearer authorizes the whole Connect project.
+
 The host owns the browser-side Connect Link flow. The SDK creates the token and
 link but does not expose credentials to browser code.
 

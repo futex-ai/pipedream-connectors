@@ -131,15 +131,12 @@ pub(super) fn get_component(
     group: CatalogGroup,
     key: &ComponentKey,
     request: &GetComponentRequest,
-) -> ApiRequest {
-    let operation = ApiRequest::new(
+) -> Result<ApiRequest> {
+    ApiRequest::new(
         Method::GET,
         ApiPath::project(&[group.segment(), key.as_str()]),
-    );
-    match &request.version {
-        Some(version) => operation.query_pair("version", version),
-        None => operation,
-    }
+    )
+    .with_query(request)
 }
 
 /// Checks a catalog response against its requested component key.

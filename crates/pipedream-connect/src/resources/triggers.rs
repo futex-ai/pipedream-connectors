@@ -68,11 +68,7 @@ impl TriggersApi for Triggers {
     ) -> Result<GetComponentResponse> {
         let response = operation::json(
             &self.dispatcher,
-            Ok(operation::get_component(
-                CatalogGroup::Triggers,
-                &key,
-                &request,
-            )),
+            operation::get_component(CatalogGroup::Triggers, &key, &request),
         )
         .await?;
         operation::check_component(response, &key)

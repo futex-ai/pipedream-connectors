@@ -6,10 +6,9 @@ use http::{HeaderMap, HeaderName, Method};
 use pipedream_connect_types::{
     Account, AccountId, AccountRef, AppSlug, CreateAccountQuery, CreateAccountRequest,
     CreateConnectTokenRequest, ExternalUserId, GetAccountRequest, ListAccountsRequest,
-    ListUserAccountsRequest, ListUsersRequest, ProjectId, ValidateTokenRequest,
+    ListUserAccountsRequest, ListUsersRequest, ProjectId, UrlRules, ValidateTokenRequest, is_valid,
 };
 use serde::Serialize;
-use url::Url;
 
 use crate::error::{Error, InvalidRequest, Result, WireFailure};
 use crate::request::{ApiPath, ApiRequest, ResponseMode};
@@ -195,26 +194,9 @@ pub(super) fn check_owned_accounts(
     Ok(())
 }
 
-/// Validates an absolute HTTPS target or a single relative path.
-///
-/// Absolute targets keep their host and reject credentials and fragments.
-/// Relative targets must start with one slash and cannot contain a fragment.
+/// Validates a proxy target through the shared URL boundary rules.
 fn validate_target(target: &str) -> Result<()> {
-    if target.is_empty() || target.trim() != target || target.chars().any(char::is_control) {
-        return Err(Error::InvalidRequest(InvalidRequest::ProxyTarget));
-    }
-    if let Ok(url) = Url::parse(target) {
-        if url.scheme() != "https"
-            || url.host_str().is_none()
-            || !url.username().is_empty()
-            || url.password().is_some()
-            || url.fragment().is_some()
-        {
-            return Err(Error::InvalidRequest(InvalidRequest::ProxyTarget));
-        }
-        return Ok(());
-    }
-    if target.starts_with('/') && !target.starts_with("//") && !target.contains('#') {
+    if is_valid(target, UrlRules::ProxyTarget) {
         return Ok(());
     }
     Err(Error::InvalidRequest(InvalidRequest::ProxyTarget))

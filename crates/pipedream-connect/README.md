@@ -184,8 +184,10 @@ is still an open plan decision. Slash, percent, question mark, and hash
 characters are encoded inside each segment.
 
 Workflow invocations use the raw pass-through response mode and send the
-external user and environment headers to the HTTPS endpoint. File Stash
-downloads return bytes or a redirect location without following the redirect.
+project bearer, external user, and environment headers to the caller-supplied
+HTTPS endpoint. The bearer authorizes the whole Connect project, so the host
+must pass only trusted workflow URLs. File Stash downloads return bytes or a
+redirect location without following the redirect.
 
 ## Development
 
@@ -223,6 +225,19 @@ cleans up a trigger created by the test. It requires
 `PIPEDREAM_EXTERNAL_USER_ID` and `PIPEDREAM_CONNECTED_ACCOUNT_ID`. Both tests
 print missing variable names and skip when credentials or the opt-in are
 absent.
+
+Run the managed-auth and proxy smoke test with the explicit opt-in:
+
+```sh
+PIPEDREAM_LIVE_TESTS=1 cargo test -p pipedream-connect \
+  --test live_managed_auth -- --nocapture
+```
+
+This test requires `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`,
+`PIPEDREAM_PROJECT_ID`, and `PIPEDREAM_EXTERNAL_USER_ID`. The
+`PIPEDREAM_CONNECTED_ACCOUNT_ID` value must identify a Google Calendar account
+owned by that external user. The test validates a short-lived Connect token,
+reads the Google Calendar list, and submits a read-only free/busy query.
 
 ### Adding an operation
 
