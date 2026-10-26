@@ -664,6 +664,9 @@ no user answer. Each records the alternative and the reason.
 
 ## Open decisions
 
+The user answered every item below on 2026-10-26 except where an item says
+otherwise. Milestones 13 and 14 apply the outcomes.
+
 - **GET retry defaults (2026-10-21).** Decision 4 requires an opt-in GET
   retry policy but does not settle the default total attempts or maximum
   delay. **A.** Three total attempts, with a 30-second maximum delay and
@@ -671,12 +674,16 @@ no user answer. Each records the alternative and the reason.
   60-second maximum delay and `Retry-After` support. Effort: Medium.
   **Recommendation:** A, because it matches the settled two-retry wording
   while bounding delay and work. The protocol leaves this default open.
+  **Outcome:** A: three attempts and a 30-second maximum delay, chosen by the
+  user on 2026-10-26.
 - **Webhook body limit (2026-10-21).** Milestone 9 requires a bounded webhook
   body but does not settle its default. **A.** Use a 1 MiB default, with a
   configurable limit. Effort: Small. **B.** Use the 10 MiB client response
   default, with a configurable limit. Effort: Small. **Recommendation:** A,
   because webhook ingress should have a smaller independent bound. The
   protocol leaves this default open.
+  **Outcome:** B: a 10 MiB default, configurable, chosen by the user on
+  2026-10-26.
 
 - **Literal dot path parameters (2026-10-21).** The URL library skips `.`
   and `..` when appending path segments. Some generic identifiers currently
@@ -687,6 +694,8 @@ no user answer. Each records the alternative and the reason.
   change with one identifier rule. No new rejection is applied before the
   user answers. This choice blocks final handling of these identifiers in
     resource paths.
+  **Outcome:** A: reject `.` and `..` identifiers before the token call,
+  chosen by the user on 2026-10-26.
 
 - **CLI contract home (2026-10-21).** The CLI exit codes, settings, output,
   and redaction rules are requirements at the CLI boundary. They live in the
@@ -696,6 +705,8 @@ no user answer. Each records the alternative and the reason.
   CLI README. Effort: Large. **Recommendation:** B, because the post-push
   review checks behaviour against protocol docs. No protocol doc is added
   before the user answers.
+  **Outcome:** A: keep the CLI rules in the CLI README, chosen by the user on
+  2026-10-26.
 - **CLI redaction mechanism (2026-10-21).** Each printed model lists its
   credential-class fields in a `Redact` implementation. A new credential
   field in an existing model stays unredacted until someone adds it to the
@@ -707,6 +718,8 @@ no user answer. Each records the alternative and the reason.
   Large. **Recommendation:** B, because a new model field then fails the CLI
   build until someone classifies it, without a change to the types crate. No
   option is applied before the user answers.
+  **Outcome:** A: keep the per-model field lists, chosen by the user on
+  2026-10-26.
 
 - **Workflow host allow-list (2026-10-22).** Workflow invocation sends the
   project bearer to any HTTPS URL that the caller passes. The official
@@ -717,6 +730,8 @@ no user answer. Each records the alternative and the reason.
   constructible only inside the crate. Effort: Medium. **Recommendation:** C,
   because it keeps the bearer on Pipedream hosts and removes the generic
   path. Final review finding 1, severity High.
+  **Outcome:** A: keep any HTTPS host, and document the risk, chosen by the
+  user on 2026-10-26.
 - **Proxy target backslash and raw `@` (2026-10-22).** A relative proxy target
   such as `/\evil.example/api` passes the origin check, and WHATWG URL
   resolution turns it into another host. **A.** Keep the current rules.
@@ -724,33 +739,41 @@ no user answer. Each records the alternative and the reason.
   raw `@` in an absolute target's authority. Effort: Small. **C.** B, through
   the shared URL rule helper. Effort: Large. **Recommendation:** B. Final
   review finding 4.
+  **Outcome:** C: reject them through the shared URL rule helper, chosen by
+  the user on 2026-10-26.
 - **Cursor grammar (2026-10-21).** Cursors use the common identifier grammar:
   at most 250 bytes and no `/`, `\`, `?`, or `#`. The Firna adapter accepted
   visible ASCII up to 2 KiB. A real cursor outside the grammar fails the whole
   page. **A.** Keep the common grammar. Effort: Small. **B.** Accept visible
   ASCII up to 2 KiB for cursors, which go into query strings. Effort: Small.
   **Recommendation:** B, because cursors are opaque and never enter a path.
+  **Outcome:** B: visible ASCII up to 2 KiB, chosen by the user on 2026-10-26.
 - **`appcat_` prefix (2026-10-21).** `AppCategoryId` requires `appcat_`. The
   OpenAPI document gives `AppCategory.id` no pattern, and the retrieve path
   uses `^appcar_`. **A.** Keep `appcat_`. Effort: Small. **B.** Use the common
   grammar for category IDs. Effort: Small. **C.** Decide after one live
   category list. Effort: Small. **Recommendation:** C, then A or B.
+  **Outcome:** A: keep `appcat_`, chosen by the user on 2026-10-26.
 - **Trigger callback URL rule (2026-10-22).** Milestone 7 added an HTTPS or
   loopback-HTTP rule for trigger callback URLs without a user decision. The
   fix round removed it, so callback URLs pass unchanged. **A.** No rule.
   Effort: Small. **B.** Require HTTPS, as for Connect token URIs. Effort:
   Small. **Recommendation:** B, because Pipedream cannot reach loopback URLs.
+  **Outcome:** A: no rule, chosen by the user on 2026-10-26.
 - **202 for a blocking request (2026-10-21).** A 202 from configure or
   reload is `Accepted` when `blocking` is omitted or false. A 202 for an
   explicit `blocking: true` decodes its body. **A.** Keep it. Effort: Small.
   **B.** Map every 202 in execution mode to `Accepted`. Effort: Medium.
   **Recommendation:** B, because a 202 has no result body.
+  **Outcome:** B: every 202 in execution mode is `Accepted`, chosen by the
+  user on 2026-10-26.
 - **Unknown-field redaction (2026-10-22).** `Emitter::Other` and the
   unknown-field maps print raw JSON in `Debug`, so a credential field that
   Pipedream adds later prints in diagnostics. **A.** Keep decision 5:
   credential-class fields only. Effort: Small. **B.** Mask unknown fields
   whose names look like secrets. Effort: Medium. **Recommendation:** B, with
   a fixed name list. Final review finding 50.
+  **Outcome:** A: keep decision 5, chosen by the user on 2026-10-26.
 
 ## Public API sketch
 
@@ -1201,91 +1224,132 @@ Summary: the final checks and the review loop.
   - Finding 1: Workflow calls send the project bearer to any HTTPS host.
     Severity High, effort Medium. Recommended: C, workflow domain allow-list and
     crate-private absolute targets (open decision).
+    Outcome (2026-10-26): A.
   - Finding 3: 408 and 5xx retry stops drop the Retry-After delay. Severity
     Medium, effort Large. Recommended: B, `Unavailable` carries `retry_after`.
+    Outcome (2026-10-26): B.
   - Finding 4: Relative proxy target with a backslash can bypass the origin
     check. Severity Medium, effort Small. Recommended: B, reject backslashes
     (open decision).
+    Outcome (2026-10-26): C.
   - Finding 5: Managed-auth live test cannot detect proxy failures. Severity
     Medium, effort Small. Recommended: A, Google Calendar targets and outcome
     assertions.
+    Outcome (2026-10-26): A.
   - Finding 6: Unit tests miss four resource rules. Severity Medium, effort
     Small. Recommended: A, add the four tests.
+    Outcome (2026-10-26): B.
   - Finding 7: Accounts protocol omits the ownership outcomes. Severity Medium,
     effort Small. Recommended: A, record the requirements.
+    Outcome (2026-10-26): A.
   - Finding 8: Connection webhooks have no documented signature. Severity
     Medium, effort Small. Recommended: B, an unauthenticated-event requirement.
+    Open (2026-10-26): no answer yet.
   - Finding 9: Trigger context timestamp rule can reject deliveries. Severity
     Medium, effort Small. Recommended: B, best-effort `ts` decoding.
+    Outcome (2026-10-26): C.
   - Finding 13: Oversize 401 through reqwest keeps the bearer. Severity Low,
     effort Large. Recommended: B, status on `ResponseTooLarge`.
+    Outcome (2026-10-26): B.
   - Finding 14: Execution check parses every body twice. Severity Low, effort
     Small. Recommended: A, decode only the `error` member.
+    Outcome (2026-10-26): A.
   - Finding 15: Dispatch copies every request body. Severity Low, effort Small.
     Recommended: A, move the body when no retry follows.
+    Outcome (2026-10-26): B.
   - Finding 18: No gate builds the client without default features. Severity
     Low, effort Small. Recommended: A, add no-default steps.
+    Open (2026-10-26): explanation requested.
   - Finding 21: Component retrieval keeps a hand-written query encoder. Severity
     Low, effort Small. Recommended: A, use `with_query`.
+    Outcome (2026-10-26): A.
   - Finding 22: Protocol sentences promise optional inputs and cursors. Severity
     Low, effort Small. Recommended: A, correct the three sentences.
+    Open (2026-10-26): question asked about OpenAPI generation.
   - Finding 23: Serde path skips connection event checks. Severity Low, effort
     Small. Recommended: B, one constructor for both paths.
+    Outcome (2026-10-26): B.
   - Finding 25: Serde round trip changes delivery identity. Severity Low, effort
     Small. Recommended: A, document it.
+    Open (2026-10-26): explanation of trade-offs requested.
   - Finding 26: Webhook status mapping blames the sender for host faults.
     Severity Low, effort Small. Recommended: A, map host faults to 500.
+    Outcome (2026-10-26): C.
   - Finding 27: Protocol does not define an invalid context ID. Severity Low,
     effort Small. Recommended: A, record the rule.
+    Outcome (2026-10-26): A.
   - Finding 28: Webhook header cases and status mapping lack tests. Severity
     Low, effort Small. Recommended: B, a requirement table test.
+    Outcome (2026-10-26): A.
   - Finding 29: A failed CLI result write hides a completed change. Severity
     Low, effort Medium. Recommended: B, per-command text after a sent request.
+    Outcome (2026-10-26): B.
   - Finding 31: CLI error hints state a rule the input meets. Severity Low,
     effort Small. Recommended: A, state the whole rule.
+    Outcome (2026-10-26): A.
   - Finding 32: A zero rate-limit wait prints "Wait 0 seconds". Severity Low,
     effort Small. Recommended: B, a non-zero wait type.
+    Outcome (2026-10-26): B.
   - Finding 33: Integers in number fields re-encode as floats. Severity Low,
     effort Medium. Recommended: B, `serde_json::Number` and integer samples.
+    Outcome (2026-10-26): A.
   - Finding 37: Unused public `ProjectWebhook` model. Severity Low, effort
     Medium. Recommended: A, delete it.
+    Outcome (2026-10-26): A.
   - Finding 38: Unused chrono clock features. Severity Low, effort Small.
     Recommended: A, disable chrono default features.
+    Outcome (2026-10-26): A.
   - Finding 39: Local gate rewrites a stale Cargo.lock. Severity Low, effort
     Small. Recommended: A, `--locked` in the xtask alias.
+    Outcome (2026-10-26): A.
   - Finding 40: Gate failure path has no unit test. Severity Low, effort Small.
     Recommended: A, unimock tests.
+    Outcome (2026-10-26): A.
   - Finding 41: CI repeats the gate instead of running it. Severity Low, effort
     Small. Recommended: A, run `cargo xtask check` in CI.
+    Outcome (2026-10-26): A.
   - Finding 42: Protocol promises lossless values that models round. Severity
     Low, effort Small. Recommended: A, state the number limit.
+    Outcome (2026-10-26): A.
   - Finding 48: Plan evidence lines name lost worktree files. Severity Low,
     effort Small. Recommended: A, keep new evidence in the plan folder.
+    Outcome (2026-10-26): A.
   - Finding 49: Plan rewrote two checked TODOs. Severity Low, effort Small.
     Recommended: A, restore the words and add correction TODOs.
+    Outcome (2026-10-26): A.
   - Finding 50: `Emitter::Other` and unknown-field maps print raw JSON in Debug.
     Severity Low, effort Medium. Recommended: B, mask secret-like names (open
     decision).
+    Outcome (2026-10-26): A.
   - Finding 52: `RateLimited` drops `x-pd-rate-limit-reset-in`. Severity Low,
     effort Small. Recommended: parse it as a reset delay.
+    Outcome (2026-10-26): A.
   - Finding 53: The vendored OpenAPI snapshot is behind the live schema.
     Severity Low, effort Medium. Recommended: refresh it in a separate change
     and review the diff.
+    Outcome (2026-10-26): A.
   - Finding 55: No test checks `InvalidJson` after the webhook parse fix.
     Severity Low, effort Small. Recommended: B, one decoder error table test.
+    Outcome (2026-10-26): B.
   - Finding 56: The OAuth coverage row skips the OpenAPI method and path.
     Severity Low, effort Small. Recommended: B, check every row in one loop.
+    Outcome (2026-10-26): A.
   - Finding 63: Crate docs carry broken relative links in rustdoc. Severity Low,
     effort Small. Recommended: A, absolute repository URLs after the merge.
+    Outcome (2026-10-26): A.
   - Finding 64: `with_headers` merges on `ApiRequest` but replaces on
     `ProxyRequest`. Severity Low, effort Small. Recommended: B, merge on both.
+    Outcome (2026-10-26): B.
   - Finding 65: Several commit bodies hold literal `\n` text, and one title is
     too long. Severity Low, effort Small. Recommended: A, keep the history.
+    Outcome (2026-10-26): A.
   - Follow-up decision: ban `Result::map_err` outside tests with a clippy
     `disallowed-methods` entry. Effort Small. Covers findings 59 and 60.
     Previous examples: b364bb2, 85d7679, a4c09f1.
+    Outcome (2026-10-26): A, add the ban (decision 75).
   - Follow-up decision: an xtask check that fails when `<name>.rs` sits beside
     `<name>/`. Effort Medium. Covers findings 36, 47, and 61.
+    Outcome (2026-10-26): A, add the check (decision 76).
   - Outside the scope: `AGENTS.md` intro paragraph differs from the template.
     Separate branch.
   - Outside the scope: `docs/protocol/webhooks.md` says the client preserves
@@ -1298,6 +1362,63 @@ Summary: the final checks and the review loop.
     Separate branch.
   - The full report is `.context/pipedream-connect-sdk/final-review/report.md`.
 
+## Milestone 13: Apply the final review decisions
+
+Summary: apply the SDK, docs, and workspace outcomes that the user chose on
+2026-10-26. Finding and decision numbers refer to the final review report.
+
+- [ ] Types crate: reject `.` and `..` identifiers (66 A), cursors take
+      visible ASCII up to 2 KiB (70 B), `serde_json::Number` for the four
+      `number` fields (33 A), delete `ProjectWebhook` (37 A), and one shared
+      date type for every date field (9 C).
+- [ ] Client core: `retry_after` on `Unavailable` (3 B), the status on
+      `ResponseTooLarge` (13 B), the `x-pd-rate-limit-reset-in` delay (52 A),
+      decode only the `error` member (14 A), shared `Bytes` bodies (15 B),
+      merging `ProxyRequest::with_headers` (64 B), GET retry defaults (67 A),
+      every execution 202 is `Accepted` (73 B), `with_query` for component
+      retrieval (21 A), and backslash and raw `@` proxy target rejection
+      through the shared URL rules (4 C).
+- [ ] Webhooks crate: one connection constructor for both paths (23 B), a
+      fault class on each error (26 C), header cases (28 A), one decoder
+      error table (55 B), and a 10 MiB default body limit (68 B).
+- [ ] Tests: managed-auth live test targets and assertions (5 A), a shared
+      `assert_wire` helper with the four missing rules (6 B), and OpenAPI
+      values for the OAuth coverage row (56 A).
+- [ ] Docs: the workflow bearer risk (1 A), the account ownership outcomes
+      (7 A), the invalid context ID rule (27 A), the number limit (42 A), and
+      every protocol sentence that the items above change.
+- [ ] Workspace: chrono without default features (38 A), `--locked` in the
+      xtask alias (39 A), gate failure tests (40 A), CI runs
+      `cargo xtask check` (41 A), a clippy ban on `map_err` (75 A), and an
+      xtask check for `<name>.rs` beside `<name>/` (76 A).
+- [ ] Plan: restore the words of the two rewritten checked TODOs and add
+      correction TODOs (49 A).
+- [ ] Run the gate, commit, and push.
+
+## Milestone 14: CLI updates for the review decisions
+
+Tags: ui
+
+Summary: apply the CLI outcomes and adapt the CLI to Milestone 13.
+
+- [ ] One per-command text table for every failure after a sent request
+      (29 B).
+- [ ] Hints that state the whole rule (31 A).
+- [ ] A non-zero rate-limit wait type (32 B).
+- [ ] Adapt the CLI to the Milestone 13 error, identifier, cursor, retry, and
+      202 changes, with tests and README updates.
+- [ ] Run the gate and the credential-free smoke, commit, and push.
+
+## Milestone 15: Verification, commit, and review of the decisions round
+
+Summary: the final checks and one review loop for Milestones 13 and 14.
+
+- [ ] Run the targeted tests and the complete gate named in `AGENTS.md`.
+- [ ] Commit with Conventional Commits and push the branch.
+- [ ] Review the diff since `d748ed5` with the `implementation-review` skill
+      after the push. Apply the review-fix rule: fix the `Auto-fix: yes`
+      findings, re-review once, and report the rest.
+
 ## Post-merge follow-up (non-blocking)
 
 - [ ] Open a plan in `futex-ai/firna` that makes `fna-connectors-pipedream`
@@ -1306,3 +1427,7 @@ Summary: the final checks and the review loop.
       published.
 - [ ] Consider an MCP server client and the legacy workflow REST API as
       separate plans.
+- [ ] Use absolute repository URLs in the Related Docs lists of the library
+      READMEs, so that rustdoc links work (finding 63, outcome A).
+- [ ] Refresh the vendored OpenAPI fixture in a separate change, implement
+      any new operation, and review the diff (finding 53, outcome A).
