@@ -1,6 +1,7 @@
 //! Credential-gated development-project smoke tests with explicit opt-in.
 
 #![cfg(feature = "reqwest")]
+#![allow(clippy::disallowed_methods)]
 
 use std::env;
 

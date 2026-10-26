@@ -1,6 +1,7 @@
 //! Exact token and Connect wire requests through client dispatch and reqwest.
 
 #![cfg(feature = "reqwest")]
+#![allow(clippy::disallowed_methods)]
 
 mod _support;
 

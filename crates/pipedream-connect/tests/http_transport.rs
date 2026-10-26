@@ -1,6 +1,7 @@
 //! Local socket smoke tests for the optional concrete HTTP transport.
 
 #![cfg(feature = "reqwest")]
+#![allow(clippy::disallowed_methods)]
 
 mod _support;
 

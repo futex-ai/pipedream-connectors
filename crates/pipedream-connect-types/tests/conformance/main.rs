@@ -1,5 +1,7 @@
 //! Schema-generated response and request conformance checks.
 
+#![allow(clippy::disallowed_methods)]
+
 use std::fs;
 
 use pipedream_connect_types::*;

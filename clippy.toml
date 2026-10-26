@@ -1,3 +1,4 @@
+# Tests may use `map_err`; production code remains subject to this ban.
 disallowed-methods = [
     { path = "core::result::Result::map_err", reason = "Rust error rules require explicit typed error handling" },
 ]

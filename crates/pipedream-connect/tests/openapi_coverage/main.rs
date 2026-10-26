@@ -1,5 +1,7 @@
 //! OpenAPI and protocol-table coverage for every Connect operation.
 
+#![allow(clippy::disallowed_methods)]
+
 mod admin;
 mod cases;
 mod catalog;
