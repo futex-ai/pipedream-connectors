@@ -16,12 +16,16 @@ fn uses_context_id_and_preserves_event_and_unknown_context_data() {
     assert_eq!(delivery.identity(), "delivery-1");
     assert_eq!(delivery.identity(), "delivery-1");
     assert_eq!(
-        delivery.context.timestamp.unwrap().to_rfc3339(),
+        delivery.context.timestamp.as_ref().unwrap().to_rfc3339(),
         "2026-01-01T00:00:00+00:00"
     );
     assert_eq!(
         delivery.context.extra["future"].decode::<u32>().unwrap(),
         42
+    );
+    assert_eq!(
+        serde_json::to_value(&delivery).unwrap()["context"]["ts"],
+        json!("2026-01-01T00:00:00Z")
     );
     assert_eq!(
         delivery.extra["future_delivery_field"]
@@ -33,6 +37,39 @@ fn uses_context_id_and_preserves_event_and_unknown_context_data() {
         delivery.event.decode::<serde_json::Value>().unwrap()["amount"],
         json!(9007199254740993u64)
     );
+}
+
+#[test]
+fn accepts_numeric_context_timestamps_and_round_trips_the_wire_form() {
+    let body = br#"{"event":{},"context":{"ts":1700000000000}}"#;
+    let delivery = TriggerDelivery::decode(body).unwrap();
+    assert_eq!(
+        delivery
+            .context
+            .timestamp
+            .as_ref()
+            .unwrap()
+            .as_datetime()
+            .timestamp_millis(),
+        1_700_000_000_000
+    );
+    assert_eq!(
+        serde_json::to_value(&delivery).unwrap()["context"]["ts"],
+        json!(1_700_000_000_000_i64)
+    );
+}
+
+#[test]
+fn keeps_invalid_context_timestamps_in_unknown_fields() {
+    for value in [json!(true), json!("bad"), json!(null)] {
+        let body = serde_json::to_vec(&json!({"event":{},"context":{"ts":value}})).unwrap();
+        let delivery = TriggerDelivery::decode(&body).unwrap();
+        assert_eq!(delivery.context.extra["ts"].as_str(), value.to_string());
+        assert_eq!(
+            serde_json::to_value(&delivery).unwrap()["context"]["ts"],
+            value
+        );
+    }
 }
 
 #[test]

@@ -1,10 +1,10 @@
 //! Execution observations and provider error details.
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use serde_json::Number;
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::Value;
 
-use crate::{Error, Result, UnknownFields};
+use crate::{Result, Timestamp, UnknownFields};
 
 /// One execution observation or log record.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -17,38 +17,35 @@ pub struct Observation {
     /// Log message.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub msg: Option<String>,
-    /// Raw epoch-millisecond timestamp.
-    pub ts: Number,
+    /// Observation timestamp.
+    #[serde(deserialize_with = "deserialize_timestamp_number")]
+    pub ts: Timestamp,
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,
 }
 
+fn deserialize_timestamp_number<'de, D>(deserializer: D) -> std::result::Result<Timestamp, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Value::deserialize(deserializer)?;
+    if let Some(number) = value.as_number() {
+        return match Timestamp::from_number(number.clone()) {
+            Ok(timestamp) => Ok(timestamp),
+            Err(error) => Err(serde::de::Error::custom(error)),
+        };
+    }
+    match Timestamp::deserialize(value) {
+        Ok(timestamp) => Ok(timestamp),
+        Err(error) => Err(serde::de::Error::custom(error)),
+    }
+}
+
 impl Observation {
     /// Converts the raw timestamp to UTC.
     pub fn timestamp(&self) -> Result<DateTime<Utc>> {
-        let Some(millis) = self.ts.as_f64() else {
-            return Err(Error::InvalidTimestamp);
-        };
-        if !millis.is_finite() {
-            return Err(Error::InvalidTimestamp);
-        }
-        let seconds = (millis / 1000.0).floor();
-        if seconds < i64::MIN as f64 || seconds >= i64::MAX as f64 {
-            return Err(Error::InvalidTimestamp);
-        }
-        let nanos = ((millis - seconds * 1000.0) * 1_000_000.0).round() as u32;
-        let (seconds, nanos) = if nanos == 1_000_000_000 {
-            (
-                (seconds as i64)
-                    .checked_add(1)
-                    .ok_or(Error::InvalidTimestamp)?,
-                0,
-            )
-        } else {
-            (seconds as i64, nanos)
-        };
-        DateTime::from_timestamp(seconds, nanos).ok_or(Error::InvalidTimestamp)
+        Ok(self.ts.as_datetime())
     }
 }
 

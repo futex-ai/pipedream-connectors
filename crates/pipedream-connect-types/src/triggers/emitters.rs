@@ -1,12 +1,11 @@
 //! Trigger emitter variants and lossless discriminator handling.
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Number, Value};
 
 use crate::{
-    ComponentKey, ConfigurableProp, ConfiguredProps, DeployedTriggerId, SecretString,
-    TriggerWebhook, UnknownFields, epoch_millis, string_enum,
+    ComponentKey, ConfigurableProp, ConfiguredProps, DeployedTriggerId, SecretString, Timestamp,
+    TriggerWebhook, UnknownFields, string_enum,
 };
 
 /// A deployed component emitter.
@@ -27,18 +26,10 @@ pub struct DeployedComponent {
     pub configured_props: ConfiguredProps,
     /// Whether the deployment is active.
     pub active: bool,
-    /// Deployment timestamp in epoch milliseconds.
-    #[serde(
-        deserialize_with = "epoch_millis::deserialize",
-        serialize_with = "epoch_millis::serialize"
-    )]
-    pub created_at: DateTime<Utc>,
-    /// Last update timestamp in epoch milliseconds.
-    #[serde(
-        deserialize_with = "epoch_millis::deserialize",
-        serialize_with = "epoch_millis::serialize"
-    )]
-    pub updated_at: DateTime<Utc>,
+    /// Deployment timestamp.
+    pub created_at: Timestamp,
+    /// Last update timestamp.
+    pub updated_at: Timestamp,
     /// Display name.
     pub name: String,
     /// Display slug.
@@ -77,18 +68,10 @@ pub struct HttpInterface {
     pub endpoint_url: String,
     /// Whether custom responses are enabled.
     pub custom_response: bool,
-    /// Creation timestamp in epoch milliseconds.
-    #[serde(
-        deserialize_with = "epoch_millis::deserialize",
-        serialize_with = "epoch_millis::serialize"
-    )]
-    pub created_at: DateTime<Utc>,
-    /// Last update timestamp in epoch milliseconds.
-    #[serde(
-        deserialize_with = "epoch_millis::deserialize",
-        serialize_with = "epoch_millis::serialize"
-    )]
-    pub updated_at: DateTime<Utc>,
+    /// Creation timestamp.
+    pub created_at: Timestamp,
+    /// Last update timestamp.
+    pub updated_at: Timestamp,
     /// Discriminator.
     #[serde(rename = "type")]
     pub type_name: String,
@@ -110,24 +93,12 @@ pub struct TimerInterface {
     pub cron: Option<String>,
     /// IANA timezone.
     pub timezone: String,
-    /// Schedule-change timestamp in epoch milliseconds.
-    #[serde(
-        deserialize_with = "epoch_millis::deserialize",
-        serialize_with = "epoch_millis::serialize"
-    )]
-    pub schedule_changed_at: DateTime<Utc>,
-    /// Creation timestamp in epoch milliseconds.
-    #[serde(
-        deserialize_with = "epoch_millis::deserialize",
-        serialize_with = "epoch_millis::serialize"
-    )]
-    pub created_at: DateTime<Utc>,
-    /// Last update timestamp in epoch milliseconds.
-    #[serde(
-        deserialize_with = "epoch_millis::deserialize",
-        serialize_with = "epoch_millis::serialize"
-    )]
-    pub updated_at: DateTime<Utc>,
+    /// Schedule-change timestamp.
+    pub schedule_changed_at: Timestamp,
+    /// Creation timestamp.
+    pub created_at: Timestamp,
+    /// Last update timestamp.
+    pub updated_at: Timestamp,
     /// Discriminator.
     #[serde(rename = "type")]
     pub type_name: String,

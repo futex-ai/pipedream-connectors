@@ -13,8 +13,8 @@ pub struct EmittedEvent {
     pub e: Value,
     /// Event kind.
     pub k: String,
-    /// Raw epoch-millisecond timestamp.
-    pub ts: i64,
+    /// Event timestamp.
+    pub ts: Timestamp,
     /// Event identifier.
     pub id: String,
     /// Optional event summary.
@@ -26,8 +26,8 @@ pub struct EmittedEvent {
 }
 
 impl EmittedEvent {
-    /// Converts the raw event timestamp to UTC.
+    /// Returns the event timestamp as a UTC instant.
     pub fn timestamp(&self) -> Result<DateTime<Utc>> {
-        Timestamp::from_millis(self.ts).map(|timestamp| timestamp.0)
+        Ok(self.ts.as_datetime())
     }
 }

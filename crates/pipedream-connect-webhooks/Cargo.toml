@@ -15,7 +15,6 @@ default = []
 unimock = ["dep:unimock"]
 
 [dependencies]
-chrono.workspace = true
 hmac.workspace = true
 hex.workspace = true
 pipedream-connect-types.workspace = true

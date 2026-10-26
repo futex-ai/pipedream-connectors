@@ -41,6 +41,12 @@ decoding or re-encoding.
 
 Webhook payload fields MUST preserve the exact JSON text supplied by Pipedream.
 
+Date fields MUST accept RFC 3339 strings and epoch-millisecond numbers.
+
+A date field MUST re-encode in the wire form that it decoded. When a field that
+the OpenAPI document types as an integer decodes an integer value, it MUST
+re-encode that value as an integer.
+
 **Decision.** Unknown property types keep their raw definition, and unknown
 enum values keep their strings. A closed model that drops new components or
 values was rejected because a general SDK must remain lossless as Pipedream

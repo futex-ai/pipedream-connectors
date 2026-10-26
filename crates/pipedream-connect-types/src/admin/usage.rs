@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::UnknownFields;
+use crate::{Timestamp, UnknownFields};
 
 /// Connect usage for one time window.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -18,10 +18,10 @@ pub struct UsageRecord {
     /// Trigger emission credits.
     #[serde(default)]
     pub source_emit_credits_used: Option<i64>,
-    /// Start timestamp in epoch seconds.
-    pub usage_start_ts: i64,
-    /// End timestamp in epoch seconds.
-    pub usage_end_ts: i64,
+    /// Start timestamp.
+    pub usage_start_ts: Timestamp,
+    /// End timestamp.
+    pub usage_end_ts: Timestamp,
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,

@@ -1,10 +1,11 @@
 //! Project administration models.
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Number;
 
-use crate::{AppAuthType, AppSlug, OauthAppId, ScopeProfile, SecretString, UnknownFields};
+use crate::{
+    AppAuthType, AppSlug, OauthAppId, ScopeProfile, SecretString, Timestamp, UnknownFields,
+};
 
 /// A custom OAuth client returned by Connect.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -53,10 +54,10 @@ pub struct OauthApp {
     pub owner_id: String,
     /// Creation time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<DateTime<Utc>>,
+    pub created_at: Option<Timestamp>,
     /// Last update time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<Timestamp>,
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,

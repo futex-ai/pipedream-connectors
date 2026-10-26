@@ -35,6 +35,11 @@ Those models use `serde_json::Value` for JSON fields. They keep integers exactly
 within the `i64` and `u64` ranges. Larger integers and long decimals can round.
 Only fields stored as `RawJson` retain exact JSON number text.
 
+Trigger context timestamps use the shared `Timestamp` type. They accept RFC
+3339 strings and epoch milliseconds. Call `Timestamp::as_datetime` for the UTC
+value. An invalid timestamp remains in the unknown context fields so the
+delivery can still be decoded.
+
 `FaultClass::Sender` marks invalid headers, signatures, payloads, and body
 sizes. These errors keep their 4xx status codes. `FaultClass::Host` marks an
 empty signing key, an invalid receipt clock, or another host configuration
@@ -86,6 +91,7 @@ cargo xtask check
   `HmacWebhookSignatureVerifier`, and `SignatureError`.
 - `src/events.rs` defines `ConnectionEvent` and its lossless event models.
 - `src/raw_json.rs` defines exact `RawJson` values and typed decoding.
+- `src/trigger.rs` uses the shared `Timestamp` for context timestamps.
 - `src/trigger.rs` defines `TriggerDelivery`, `TriggerContext`, and the
   SHA-256 body-hash identity fallback.
 - `src/error.rs` defines bounded payload errors and their status mapping.
