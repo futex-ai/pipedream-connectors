@@ -33,7 +33,8 @@ Each skill description says when to read it.
 - Targeted tests: `cargo test -p <crate> <test name filter>`
 - Early check: `cargo fmt --all -- --check` and `cargo clippy --workspace
   --all-targets --all-features -- -D warnings`
-- Complete gate: `cargo xtask check`
+- Complete gate: `cargo xtask check` (format, locked clippy, tests, docs,
+  file-length, and Rust module-layout audits)
 - Rust file-length lint: `cargo xtask rust-file-length-lint --all`
 - CLI smoke without credentials: `cargo test -p pipedream-cli --test cli_smoke`
 - Markdown lint: `npx --yes markdownlint-cli2 <files>`
@@ -43,6 +44,8 @@ Each skill description says when to read it.
 
 - Use the pinned toolchain in `rust-toolchain.toml`.
 - Keep Rust files under `crates/` and `xtask/` at or below 300 lines.
+- Do not place `<name>.rs` beside a `<name>/` directory under `crates/` or
+  `xtask/`.
 - Credential-gated live tests must skip cleanly when Pipedream variables are absent.
 - Live tests also require `PIPEDREAM_LIVE_TESTS=1`.
 

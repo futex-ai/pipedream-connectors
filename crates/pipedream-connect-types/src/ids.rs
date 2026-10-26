@@ -1,5 +1,10 @@
 //! Validated identifiers used in Connect paths and request bodies.
 
+#![allow(
+    clippy::disallowed_methods,
+    reason = "serde's try_from derives generate map_err"
+)]
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};

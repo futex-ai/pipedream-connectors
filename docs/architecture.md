@@ -36,7 +36,7 @@ It redacts credential-class values in its output unless the caller asks for
 them, and it maps each failure to a documented exit code.
 
 The `xtask` task runner owns the repository gate. It runs formatting, linting,
-tests, documentation checks, and the file-length check as one developer
+tests, documentation checks, and source layout audits as one developer
 command.
 
 ## Runtime boundaries

@@ -6,6 +6,7 @@ mod command;
 mod error;
 mod file_access;
 mod file_length;
+mod layout;
 mod workspace;
 
 use clap::Parser;
