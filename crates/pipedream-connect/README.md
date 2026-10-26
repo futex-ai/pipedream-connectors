@@ -40,10 +40,9 @@ its missing-resource choice is enabled. Signing keys stay wrapped in
 `SecretString`.
 
 Configure, reload, and run calls use the shared execution error mapping.
-An omitted or explicit `blocking: Some(false)` maps a 202 from configure or
-reload to `Error::Accepted` without decoding a result body. Action runs never
-send a blocking flag, so every 202 from a run is `Error::Accepted`. These
-mutations never retry.
+Every 202 in execution mode maps to `Error::Accepted`, including blocking
+configure and reload calls, without decoding a result body. These mutations
+never retry.
 
 `tokens()`, `accounts()`, and `users()` return managed-auth handles. Account
 credential fields use `SecretJson`, so their `Debug` output is redacted.
@@ -56,6 +55,11 @@ exact HTTPS target or relative path as URL-safe Base64 without padding. It
 rejects reserved headers before authentication, prefixes allowed headers with
 `x-pd-proxy-`, and sends body bytes unchanged. `ProxyResponse` preserves the
 upstream status, every response header, and every body byte.
+
+`RateLimited` retains the standard rate-limit fields, the `Retry-After` delay,
+and the custom reset delay when Pipedream sends them. `Unavailable` retains
+its response status and parsed `Retry-After` delay. `ResponseTooLarge` retains
+the response status and configured byte limit.
 
 `PipedreamClient::new(config, transport, clock, sleeper)` accepts shared trait
 objects. It has no implicit Tokio sleeper. The builder supplies a Tokio
@@ -79,11 +83,12 @@ Provider error messages remain available in typed error fields. Error
 formatting does not print those messages. Success JSON decode errors retain
 only the line and column.
 
-GET retries are disabled until a caller supplies `RetryPolicy`. The policy
-requires total attempts, a maximum delay, and a fallback delay. It honors a
-valid `Retry-After` value. A value above the maximum stops retries and returns
-the mapped error. Fallback delays stay within the maximum. No method
-other than GET retries. Transport failures do not trigger a retry.
+GET retries are disabled until a caller supplies `RetryPolicy`. The default
+policy has three total attempts, a 30-second maximum delay, and a one-second
+fallback delay when `Retry-After` is absent. A valid `Retry-After` value above
+the maximum stops retries and returns the mapped error with the parsed delay.
+Fallback delays stay within the maximum. No method other than GET retries.
+Transport failures do not trigger a retry.
 
 `BoundedPaginator` uses an injected `PageSource` through `Paginator`. The
 `FilteredPageSource` adapter fixes list filters and changes only the page. Its
@@ -163,8 +168,8 @@ For a JSON body, call `with_json(&model)`. The model must implement `Validate`.
 This checks the model before the token call. `with_bytes` sends an exact byte
 body with caller-supplied content headers.
 
-`ResponseMode::Execution` enables execution errors and nonblocking 202
-results. `ResponseMode::Redirect` returns a redirect response without
+`ResponseMode::Execution` enables execution errors and accepted 202 results.
+`ResponseMode::Redirect` returns a redirect response without
 following its location. Select these modes only for operations whose
 contracts define them.
 

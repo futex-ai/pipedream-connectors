@@ -29,7 +29,10 @@ async fn a_page_failure_keeps_prior_records_page_count_and_resume_request() {
         PageSourceMock::fetch
             .with_types::<u32>()
             .next_call(matching!(_))
-            .returns(Err(Error::Unavailable { status: Some(503) })),
+            .returns(Err(Error::Unavailable {
+                status: Some(503),
+                retry_after: None,
+            })),
     )));
     let paginator: BoundedPaginator<u32> = BoundedPaginator::new(source);
     let error = paginator
@@ -50,7 +53,13 @@ async fn a_page_failure_keeps_prior_records_page_count_and_resume_request() {
     assert_eq!(pages, 1);
     assert_eq!(request.after.as_ref().unwrap().as_str(), "resume");
     assert_eq!(request.limit, 100);
-    assert!(matches!(source, Error::Unavailable { status: Some(503) }));
+    assert!(matches!(
+        source,
+        Error::Unavailable {
+            status: Some(503),
+            ..
+        }
+    ));
     let source = Arc::new(Unimock::new(
         PageSourceMock::fetch
             .with_types::<u32>()

@@ -53,6 +53,7 @@ fn model_validation_messages_include_the_safe_field_and_bounds() {
 fn typed_debug_exposes_safe_fields_and_hides_provider_text() {
     let error = error::Error::RateLimited {
         retry_after: Some(Duration::from_secs(12)),
+        reset_after: Some(Duration::from_secs(17)),
         limit: Some(100),
         remaining: Some(0),
         reset: Some(1200),
@@ -60,6 +61,7 @@ fn typed_debug_exposes_safe_fields_and_hides_provider_text() {
     let debug = format!("{error:?}");
     for field in [
         "retry_after: Some(12s)",
+        "reset_after: Some(17s)",
         "limit: Some(100)",
         "remaining: Some(0)",
         "reset: Some(1200)",

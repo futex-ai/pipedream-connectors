@@ -11,6 +11,7 @@ mod hang_guard;
 mod pagination_tests;
 mod passthrough_tests;
 mod provider_tests;
+mod rate_limit_tests;
 mod recovery_tests;
 mod refresh_failure_tests;
 mod retry_tests;

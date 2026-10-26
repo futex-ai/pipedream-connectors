@@ -100,8 +100,8 @@ fn base(target: Target, cause: &Error, origin: &str) -> ApiText {
             "Pipedream accepted the request without a result.",
             "Run the command again later.",
         ),
-        Error::Unavailable { status } => unavailable(*status, origin),
-        Error::ResponseTooLarge { limit } => fixed(
+        Error::Unavailable { status, .. } => unavailable(*status, origin),
+        Error::ResponseTooLarge { limit, .. } => fixed(
             Exit::Internal,
             &format!(
                 "The Pipedream response is larger than {}, so the CLI could not read it.",

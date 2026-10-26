@@ -81,7 +81,10 @@ async fn an_invalid_target_exits_two() {
 async fn an_unanswered_write_warns_that_the_upstream_request_may_have_run() {
     let ran = run(
         &proxy("post", "/api/chat.postMessage", &[]),
-        sent(Err(Error::Unavailable { status: Some(504) })),
+        sent(Err(Error::Unavailable {
+            status: Some(504),
+            retry_after: None,
+        })),
     )
     .await;
     assert_eq!(ran.exit, Exit::Unavailable);
@@ -96,7 +99,10 @@ async fn an_unanswered_write_warns_that_the_upstream_request_may_have_run() {
 async fn an_unanswered_read_suggests_a_retry() {
     let ran = run(
         &proxy("get", "/api/users.list", &[]),
-        sent(Err(Error::Unavailable { status: None })),
+        sent(Err(Error::Unavailable {
+            status: None,
+            retry_after: None,
+        })),
     )
     .await;
     assert_eq!(ran.exit, Exit::Unavailable);

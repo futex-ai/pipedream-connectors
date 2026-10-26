@@ -107,10 +107,8 @@ when Pipedream supplies that envelope.
 
 The `error` value MAY contain text or structured JSON.
 
-A 202 response from configure or props is `Accepted` when the operation was
-requested without blocking.
-
-A 202 response from an action run is always `Accepted`.
+Every 202 response in execution mode is `Accepted`, including blocking
+configure and props requests.
 
 A 401 response is `Unauthorized`.
 
@@ -120,8 +118,9 @@ A 404 response is `NotFound`.
 
 A 429 response is `RateLimited`.
 
-A `RateLimited` error includes parsed `Retry-After`, `X-RateLimit-Limit`,
-`X-RateLimit-Remaining`, and `X-RateLimit-Reset` values when present.
+A `RateLimited` error includes parsed `Retry-After`,
+`X-PD-Rate-Limit-Reset-In`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and
+`X-RateLimit-Reset` values when present.
 
 An execution response containing an `error` object with `attribution` or
 `name` is `ExecutionFailed` with the structured attribution and HTTP status.
@@ -136,9 +135,11 @@ Proxy pass-through requests MUST never retry.
 Keeping the bearer was rejected because an upstream 401 and a Connect 401
 cannot be distinguished reliably.
 
-A 408 response is `Unavailable`.
+A 408 response is `Unavailable` with its parsed `Retry-After` delay when
+present.
 
-A 5xx response is `Unavailable`.
+A 5xx response is `Unavailable` with its parsed `Retry-After` delay when
+present.
 
 Any other 3xx or 4xx response is `Rejected` with its status, error code, and
 message when the response supplies them, unless an operation defines a
@@ -146,7 +147,8 @@ redirect result, as the file stash download does.
 
 A timeout or transport failure is `Unavailable`.
 
-A body larger than the configured response limit is `ResponseTooLarge`.
+A body larger than the configured response limit is `ResponseTooLarge` with the
+response status and configured limit.
 
 A local validation failure is `InvalidRequest` and sends no request.
 
@@ -174,11 +176,19 @@ when present.
 
 The client MUST parse `X-RateLimit-Reset` as a Unix timestamp when present.
 
+The client MUST parse `X-PD-Rate-Limit-Reset-In` as a reset delay in seconds
+when present.
+
 The client MUST expose absent or malformed rate-limit fields as absent values.
 
 The client MUST NOT retry POST, PUT, PATCH, or DELETE automatically.
 
 The client MAY enable retries for GET requests through an explicit policy.
+
+The default GET retry policy has three total attempts, a 30-second maximum
+delay, and a one-second fallback delay.
+
+The default GET retry policy MUST remain opt-in.
 
 The GET retry policy MUST select only 408, 429, and 5xx responses.
 

@@ -8,7 +8,7 @@ use http::Method;
 use pipedream_connect_types::SecretString;
 
 use crate::config::{Authentication, ClientConfig};
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::failure::{check_limit, ensure_status, retry_after};
 use crate::headers::authenticated;
 use crate::request::{ApiPath, ApiRequest, ResponseMode, build_url};
@@ -106,14 +106,12 @@ impl RequestDispatcher for PipedreamClient {
                 request.headers.clone(),
                 matches!(
                     request.mode,
-                    ResponseMode::Json
-                        | ResponseMode::Execution { .. }
-                        | ResponseMode::Delete { .. }
+                    ResponseMode::Json | ResponseMode::Execution | ResponseMode::Delete { .. }
                 ),
                 request.json_body,
                 !matches!(request.path, ApiPath::Absolute(_)),
             )?;
-            let response = self
+            let response = match self
                 .transport
                 .send(HttpRequest {
                     method: request.method.clone(),
@@ -123,7 +121,15 @@ impl RequestDispatcher for PipedreamClient {
                     response_limit: self.config.http.response_limit,
                     timeout: self.config.http.request_timeout,
                 })
-                .await?;
+                .await
+            {
+                Ok(response) => response,
+                Err(error @ Error::ResponseTooLarge { status: 401, .. }) => {
+                    self.tokens.invalidate(&token).await;
+                    return Err(error);
+                }
+                Err(error) => return Err(error),
+            };
             attempts += 1;
             if response.status == 401 {
                 self.tokens.invalidate(&token).await;

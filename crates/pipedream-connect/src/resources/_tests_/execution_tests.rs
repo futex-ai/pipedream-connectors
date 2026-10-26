@@ -103,7 +103,7 @@ async fn configure_and_reload_send_exact_bodies_and_keep_lossless_results() {
 }
 
 #[tokio::test]
-async fn nonblocking_configure_and_reload_accept_202_without_decoding_a_result() {
+async fn every_configure_and_reload_202_is_accepted_without_decoding_a_result() {
     for resource in Resource::all() {
         for blocking in [None, Some(false), Some(true)] {
             let mut reply = response(202, json!({}));
@@ -111,11 +111,7 @@ async fn nonblocking_configure_and_reload_accept_202_without_decoding_a_result()
             let harness = Harness::new(vec![reply.clone(), reply]);
             let (request, expected) = configure(blocking);
             let result = resource.configure(&harness.client, request).await;
-            if blocking == Some(true) {
-                assert!(matches!(result, Err(Error::Internal(_))));
-            } else {
-                assert!(matches!(result, Err(Error::Accepted)));
-            }
+            assert!(matches!(result, Err(Error::Accepted)));
             assert_post(
                 harness.request(1),
                 &format!("{}/configure", resource.path()),
@@ -123,11 +119,7 @@ async fn nonblocking_configure_and_reload_accept_202_without_decoding_a_result()
             );
             let (request, expected) = reload(blocking);
             let result = resource.reload(&harness.client, request).await;
-            if blocking == Some(true) {
-                assert!(matches!(result, Err(Error::Internal(_))));
-            } else {
-                assert!(matches!(result, Err(Error::Accepted)));
-            }
+            assert!(matches!(result, Err(Error::Accepted)));
             assert_post(
                 harness.request(2),
                 &format!("{}/props", resource.path()),
@@ -139,13 +131,19 @@ async fn nonblocking_configure_and_reload_accept_202_without_decoding_a_result()
 }
 
 #[tokio::test]
-async fn blocking_configure_and_reload_decode_a_202_body() {
+async fn blocking_configure_and_reload_accept_202_without_decoding_a_body() {
     for resource in Resource::all() {
         let harness = Harness::new(vec![response(202, json!({})), response(202, json!({}))]);
         let (request, _) = configure(Some(true));
-        assert!(resource.configure(&harness.client, request).await.is_ok());
+        assert!(matches!(
+            resource.configure(&harness.client, request).await,
+            Err(Error::Accepted)
+        ));
         let (request, _) = reload(Some(true));
-        assert!(resource.reload(&harness.client, request).await.is_ok());
+        assert!(matches!(
+            resource.reload(&harness.client, request).await,
+            Err(Error::Accepted)
+        ));
         harness.assert_requests(3);
     }
 }
@@ -219,7 +217,13 @@ async fn configure_and_reload_map_http_errors_without_mutation_retries() {
                 assert!(matches!(
                     (status, error),
                     (429, Error::RateLimited { .. })
-                        | (503, Error::Unavailable { status: Some(503) })
+                        | (
+                            503,
+                            Error::Unavailable {
+                                status: Some(503),
+                                ..
+                            }
+                        )
                 ));
             }
             harness.assert_requests(3);

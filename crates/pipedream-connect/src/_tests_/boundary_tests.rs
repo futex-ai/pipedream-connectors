@@ -59,7 +59,7 @@ async fn token_endpoint_statuses_are_typed_and_a_later_call_can_refresh() {
                 matches!(error, Error::RateLimited { retry_after: Some(delay), .. } if delay == Duration::from_secs(17))
             ),
             _ => assert!(
-                matches!(error, Error::Unavailable { status: Some(actual) } if actual == status)
+                matches!(error, Error::Unavailable { status: Some(actual), .. } if actual == status)
             ),
         }
         assert_eq!(harness.requests.lock().unwrap().len(), 1);
@@ -151,7 +151,7 @@ async fn oversize_errors_precede_status_mapping_and_retry() {
             );
             assert!(matches!(
                 harness.get().await,
-                Err(Error::ResponseTooLarge { limit: 2 })
+                Err(Error::ResponseTooLarge { status: actual, limit: 2 }) if actual == status
             ));
             harness.assert_requests(1);
         }

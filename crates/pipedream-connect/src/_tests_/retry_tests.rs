@@ -20,6 +20,18 @@ fn policy(attempts: u32) -> RetryPolicy {
     )
 }
 
+#[test]
+fn default_policy_has_three_attempts_and_a_one_second_fallback() {
+    let policy = RetryPolicy::default();
+    assert_eq!(policy.max_attempts.get(), 3);
+    assert_eq!(policy.delay(None), Some(Duration::from_secs(1)));
+    assert_eq!(
+        policy.delay(Some(Duration::from_secs(30))),
+        Some(Duration::from_secs(30))
+    );
+    assert_eq!(policy.delay(Some(Duration::from_secs(31))), None);
+}
+
 #[tokio::test]
 async fn retry_after_dates_seconds_and_fallback_delays_obey_the_cap() {
     for (header, delay) in [
@@ -73,7 +85,7 @@ async fn fallback_delays_remain_capped_when_no_retry_after_is_available() {
 
 #[tokio::test]
 async fn retry_after_above_the_cap_returns_the_original_error_without_retry() {
-    for status in [429, 503] {
+    for status in [408, 429, 500, 503] {
         for header in [
             "60".to_owned(),
             httpdate::fmt_http_date(UNIX_EPOCH + Duration::from_secs(1060)),
@@ -91,7 +103,13 @@ async fn retry_after_above_the_cap_returns_the_original_error_without_retry() {
                 429 => assert!(
                     matches!(error, Error::RateLimited { retry_after: Some(delay), .. } if delay == Duration::from_secs(60))
                 ),
-                _ => assert!(matches!(error, Error::Unavailable { status: Some(503) })),
+                _ => assert!(matches!(
+                    error,
+                    Error::Unavailable {
+                        status: Some(actual),
+                        retry_after: Some(delay),
+                    } if actual == status && delay == Duration::from_secs(60)
+                )),
             }
             harness.assert_requests(1);
             assert!(harness.sleeps.lock().unwrap().is_empty());
@@ -165,11 +183,17 @@ async fn no_policy_one_attempt_and_transport_errors_have_no_retry() {
     }
     let harness = Harness::script(
         static_config().with_retry_policy(policy(3)),
-        vec![Err(Error::Unavailable { status: None })],
+        vec![Err(Error::Unavailable {
+            status: None,
+            retry_after: None,
+        })],
     );
     assert!(matches!(
         harness.get().await,
-        Err(Error::Unavailable { status: None })
+        Err(Error::Unavailable {
+            status: None,
+            retry_after: None
+        })
     ));
     harness.assert_requests(1);
     assert!(harness.sleeps.lock().unwrap().is_empty());

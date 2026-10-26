@@ -51,7 +51,10 @@ fn exit_codes_match_the_documented_set() {
 
 #[test]
 fn a_retryable_interruption_gives_the_resume_command_as_its_one_action() {
-    let unavailable = pipedream_connect::error::Error::Unavailable { status: None };
+    let unavailable = pipedream_connect::error::Error::Unavailable {
+        status: None,
+        retry_after: None,
+    };
     assert_eq!(
         interrupted(1, after("cursor_2"), unavailable),
         Failure::new(
@@ -62,6 +65,7 @@ fn a_retryable_interruption_gives_the_resume_command_as_its_one_action() {
     );
     let limited = pipedream_connect::error::Error::RateLimited {
         retry_after: Some(Duration::from_secs(30)),
+        reset_after: None,
         limit: None,
         remaining: None,
         reset: None,
@@ -87,7 +91,10 @@ fn other_interruptions_keep_their_own_action() {
              OAuth client can use this project and environment."
         )
     );
-    let unavailable = pipedream_connect::error::Error::Unavailable { status: None };
+    let unavailable = pipedream_connect::error::Error::Unavailable {
+        status: None,
+        retry_after: None,
+    };
     assert_eq!(
         interrupted(0, PageRequest::default(), unavailable).message,
         "The CLI could not reach Pipedream at https://api.pipedream.com. Check the network and \

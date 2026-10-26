@@ -49,6 +49,43 @@ async fn a_401_invalidates_the_exact_injected_bearer_without_replay() {
     ));
 }
 
+#[tokio::test]
+async fn an_oversize_401_invalidates_the_exact_injected_bearer() {
+    let tokens = Arc::new(Unimock::new((
+        AccessTokenProviderMock::access_token
+            .next_call(matching!())
+            .returns(Ok(SecretString::new("injected-secret"))),
+        AccessTokenProviderMock::invalidate
+            .next_call(matching!((bearer) if bearer.expose_secret() == "injected-secret"))
+            .returns(()),
+    )));
+    let transport = Arc::new(Unimock::new(
+        HttpTransportMock::send
+            .next_call(matching!(_))
+            .returns(Err(Error::ResponseTooLarge {
+                status: 401,
+                limit: 2,
+            })),
+    ));
+    let clock = Arc::new(Unimock::new(()));
+    let client = PipedreamClient::new(
+        static_config(),
+        transport,
+        clock,
+        Arc::new(Unimock::new(())),
+    )
+    .unwrap()
+    .with_token_provider(tokens);
+    let request = ApiRequest::new(Method::GET, ApiPath::project(&["apps"]));
+    assert!(matches!(
+        client.dispatcher().dispatch(request).await,
+        Err(Error::ResponseTooLarge {
+            status: 401,
+            limit: 2
+        })
+    ));
+}
+
 struct SensitiveSerialization;
 
 impl Serialize for SensitiveSerialization {

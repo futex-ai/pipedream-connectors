@@ -73,7 +73,10 @@ async fn an_announced_oversize_body_is_rejected_without_reading_body_bytes() {
         server(b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\n".to_vec()).await;
     assert!(matches!(
         transport().send(request(url, 4)).await,
-        Err(Error::ResponseTooLarge { limit: 4 })
+        Err(Error::ResponseTooLarge {
+            status: 200,
+            limit: 4
+        })
     ));
     guard(received).await.unwrap();
 }
@@ -83,7 +86,26 @@ async fn streaming_stops_at_the_cap_before_the_last_chunk_or_a_body_eof() {
     let (url, received) = server(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n3\r\nabc\r\n2\r\nde\r\n".to_vec()).await;
     assert!(matches!(
         transport().send(request(url, 4)).await,
-        Err(Error::ResponseTooLarge { limit: 4 })
+        Err(Error::ResponseTooLarge {
+            status: 200,
+            limit: 4
+        })
+    ));
+    guard(received).await.unwrap();
+}
+
+#[tokio::test]
+async fn oversize_unauthorized_response_keeps_its_status() {
+    let (url, received) = server(
+        b"HTTP/1.1 401 Unauthorized\r\nContent-Length: 5\r\nConnection: close\r\n\r\n".to_vec(),
+    )
+    .await;
+    assert!(matches!(
+        transport().send(request(url, 4)).await,
+        Err(Error::ResponseTooLarge {
+            status: 401,
+            limit: 4
+        })
     ));
     guard(received).await.unwrap();
 }
@@ -149,7 +171,13 @@ async fn incomplete_responses_return_a_sanitized_transport_failure() {
         server(b"HTTP/1.1 200 OK\r\nContent-Length: 8\r\nConnection: close\r\n\r\nsecret".to_vec())
             .await;
     let error = transport().send(request(url, 16)).await.unwrap_err();
-    assert!(matches!(error, Error::Unavailable { status: None }));
+    assert!(matches!(
+        error,
+        Error::Unavailable {
+            status: None,
+            retry_after: None
+        }
+    ));
     assert!(!format!("{error:?} {error}").contains("secret"));
     guard(received).await.unwrap();
 }

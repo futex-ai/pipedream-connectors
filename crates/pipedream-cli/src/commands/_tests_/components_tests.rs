@@ -124,7 +124,10 @@ async fn components_get_without_a_version_asks_for_the_latest() {
         components_handle(),
         ComponentsApiMock::get
             .next_call(matching!((_, request) if request.version.is_none()))
-            .returns(Err(Error::Unavailable { status: Some(503) })),
+            .returns(Err(Error::Unavailable {
+                status: Some(503),
+                retry_after: None,
+            })),
     );
     let ran = run(&["components", "get", "google_calendar-new-event"], clauses).await;
     assert_eq!(ran.exit, Exit::Unavailable);

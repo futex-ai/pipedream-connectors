@@ -145,7 +145,10 @@ async fn tokens_create_rejects_invalid_input_before_any_request() {
 async fn an_unanswered_token_request_warns_that_a_token_may_exist() {
     let ran = run(
         &["tokens", "create", "--external-user-id", "user_1"],
-        created(Err(Error::Unavailable { status: None })),
+        created(Err(Error::Unavailable {
+            status: None,
+            retry_after: None,
+        })),
     )
     .await;
     assert_eq!(ran.exit, Exit::Unavailable);

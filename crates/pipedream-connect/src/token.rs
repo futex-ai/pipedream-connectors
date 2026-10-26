@@ -150,7 +150,10 @@ impl ClientCredentialsProvider {
             .checked_add(lifetime - skew)
             .ok_or_else(|| Error::internal(WireFailure::Token))?;
         if refresh_at <= self.clock.monotonic() {
-            return Err(Error::Unavailable { status: None });
+            return Err(Error::Unavailable {
+                status: None,
+                retry_after: None,
+            });
         }
         Ok(CachedToken {
             token: value.access_token,

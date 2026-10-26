@@ -4,7 +4,7 @@ use std::time::{Duration, SystemTime};
 
 use http::HeaderMap;
 use pipedream_connect_types::{ErrorResponse, ExecutionError};
-use serde_json::Value;
+use serde::Deserialize;
 
 use crate::error::{Error, Result};
 use crate::request::ResponseMode;
@@ -30,18 +30,18 @@ fn classify(
     if mode == (ResponseMode::Delete { missing_ok: true }) && status == 404 {
         return Ok(());
     }
-    if matches!(mode, ResponseMode::Execution { .. })
+    if matches!(mode, ResponseMode::Execution)
         || (mode == ResponseMode::PassThrough && !response.status.is_success())
     {
+        if status == 202 && mode == ResponseMode::Execution {
+            return Err(Error::Accepted);
+        }
         let require_attribution = mode == ResponseMode::PassThrough;
         if let Some(error) = execution_error(&response.body, require_attribution) {
             return Err(Error::ExecutionFailed {
                 status,
                 error: Box::new(error),
             });
-        }
-        if status == 202 && mode == (ResponseMode::Execution { nonblocking: true }) {
-            return Err(Error::Accepted);
         }
     }
     if matches!(
@@ -56,6 +56,7 @@ fn classify(
         429 => {
             return Err(Error::RateLimited {
                 retry_after: retry_after(&response.headers, now),
+                reset_after: seconds(&response.headers, "x-pd-rate-limit-reset-in"),
                 limit: number(&response.headers, "x-ratelimit-limit"),
                 remaining: number(&response.headers, "x-ratelimit-remaining"),
                 reset: number(&response.headers, "x-ratelimit-reset"),
@@ -64,6 +65,7 @@ fn classify(
         408 | 500..=599 => {
             return Err(Error::Unavailable {
                 status: Some(status),
+                retry_after: retry_after(&response.headers, now),
             });
         }
         _ => {}
@@ -82,16 +84,24 @@ fn classify(
     })
 }
 
+#[derive(Deserialize)]
+struct ExecutionEnvelope {
+    error: Option<ExecutionError>,
+}
+
 fn execution_error(body: &[u8], require_attribution: bool) -> Option<ExecutionError> {
-    let value: Value = serde_json::from_slice(body).ok()?;
-    let error = value.get("error")?.as_object()?;
-    if require_attribution && !error.contains_key("attribution") {
+    let error = serde_json::from_slice::<ExecutionEnvelope>(body)
+        .ok()?
+        .error?;
+    let has_attribution = error.attribution.is_some() || error.extra.contains_key("attribution");
+    let has_name = error.name.is_some() || error.extra.contains_key("name");
+    if require_attribution && !has_attribution {
         return None;
     }
-    if !require_attribution && !error.contains_key("attribution") && !error.contains_key("name") {
+    if !require_attribution && !has_attribution && !has_name {
         return None;
     }
-    serde_json::from_value(Value::Object(error.clone())).ok()
+    Some(error)
 }
 
 #[cfg(test)]
@@ -122,6 +132,10 @@ fn number(headers: &HeaderMap, name: &str) -> Option<u64> {
     value.parse().ok()
 }
 
+fn seconds(headers: &HeaderMap, name: &str) -> Option<Duration> {
+    number(headers, name).map(Duration::from_secs)
+}
+
 pub(crate) fn check_limit(response: &HttpResponse, limit: usize) -> Result<()> {
     let announced = response
         .headers
@@ -129,7 +143,10 @@ pub(crate) fn check_limit(response: &HttpResponse, limit: usize) -> Result<()> {
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.parse::<u64>().ok());
     if response.body.len() > limit || announced.is_some_and(|length| length > limit as u64) {
-        return Err(Error::ResponseTooLarge { limit });
+        return Err(Error::ResponseTooLarge {
+            status: response.status.as_u16(),
+            limit,
+        });
     }
     Ok(())
 }

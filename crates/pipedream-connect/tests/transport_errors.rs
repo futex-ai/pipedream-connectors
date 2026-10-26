@@ -55,6 +55,12 @@ async fn a_silent_server_returns_unavailable_when_the_request_times_out() {
     let error = guard(transport.send(request(url))).await.unwrap_err();
     release_sender.send(()).unwrap();
     guard(server).await.unwrap();
-    assert!(matches!(error, Error::Unavailable { status: None }));
+    assert!(matches!(
+        error,
+        Error::Unavailable {
+            status: None,
+            retry_after: None
+        }
+    ));
     assert!(!format!("{error:?} {error}").contains("secret"));
 }
