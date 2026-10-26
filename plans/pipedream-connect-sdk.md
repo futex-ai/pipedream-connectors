@@ -1050,8 +1050,9 @@ Summary: tokens, accounts, users, and the proxy work against the real API.
 - [x] `UsersApi`: list, delete, and list the accounts of one external user.
 - [x] `ProxyApi`: GET, POST, PUT, PATCH, and DELETE with the header policy,
       the base64 target, byte bodies, and the lossless response.
-- [x] `ProjectsApi::info` for the apps enabled in the project environment
-      (moved to Milestone 8).
+- [x] `ProjectsApi::info` for the apps enabled in the project environment.
+- [x] Correction (2026-10-21): `ProjectsApi::info` moved to Milestone 8, so
+      that one agent owned `ProjectsApi`. Milestone 8 implemented it.
 - [x] Unit tests: ownership checks, `include_credentials` handling with
       redacted `Debug`, every blocked header, prefixing, target encoding,
       and upstream error statuses preserved.
@@ -1077,8 +1078,11 @@ Summary: deploy and manage triggers for an external user.
 - [x] Unit tests: tenant scoping on every call, idempotent delete of a
       missing trigger, epoch-millisecond timestamps, signing-key redaction,
       and the emitter variants.
-- [x] A credential-gated live test that deploys a Google Calendar trigger to a
-      loopback webhook URL, lists it, and always deletes test-created triggers.
+- [x] A credential-gated live test that deploys a timer-free Google
+      Calendar trigger to a loopback webhook URL, lists it, and deletes it.
+- [x] Correction (2026-10-22, `a4c09f1`): the trigger has a timer property,
+      the app property is `googleCalendar`, and the test always deletes the
+      triggers that it created, also after a failed assertion.
 - [x] Update the READMEs and the resources protocol doc only if a contract
       changed.
 - [x] Run the complete gate and commit the branch without pushing.
@@ -1391,7 +1395,7 @@ Summary: apply the SDK, docs, and workspace outcomes that the user chose on
       xtask alias (39 A), gate failure tests (40 A), CI runs
       `cargo xtask check` (41 A), a clippy ban on `map_err` (75 A), and an
       xtask check for `<name>.rs` beside `<name>/` (76 A).
-- [ ] Plan: restore the words of the two rewritten checked TODOs and add
+- [x] Plan: restore the words of the two rewritten checked TODOs and add
       correction TODOs (49 A).
 - [ ] Run the gate, commit, and push.
 
