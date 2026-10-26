@@ -1,13 +1,14 @@
 //! User-facing text for SDK failures, chosen by the resource of the command.
 
-use std::time::Duration;
+use std::num::NonZeroU64;
 
 use pipedream_connect::error::{Error, InvalidRequest};
 use pipedream_connect_types::{ErrorOrigin, ExecutionError};
 
 use crate::report::exit::Exit;
-use crate::report::failure::{Failure, REPORT, seconds};
-use crate::report::target::text;
+use crate::report::failure::{Failure, REPORT};
+use crate::report::target::{Sent, after_request, text};
+use crate::report::wait::{rate_limited, unavailable};
 use crate::target::Target;
 
 /// An SDK failure, split into what failed and the one recovery action.
@@ -21,8 +22,8 @@ pub(super) struct ApiText {
     pub(super) action: String,
     /// Whether the same request can succeed later without a change.
     pub(super) retryable: bool,
-    /// The wait that a rate limit asks for, in seconds.
-    pub(super) wait: Option<u64>,
+    /// The wait that the failure asks for, in whole seconds. It is never zero.
+    pub(super) wait: Option<NonZeroU64>,
 }
 
 /// Describes an SDK failure without provider messages, provider codes, or bodies.
@@ -34,15 +35,19 @@ pub(super) fn describe(target: Target, cause: &Error, origin: &str) -> Failure {
 /// Splits an SDK failure into its summary and its action.
 ///
 /// When a command changes data and the answer is missing or unreadable, the
-/// action becomes the warning that the change may have happened.
+/// action becomes the change text: the change completed when an oversized
+/// answer has a success status, and it may have happened otherwise.
 pub(super) fn explain(target: Target, cause: &Error, origin: &str) -> ApiText {
     let mut explained = base(target, cause, origin);
-    let unknown = matches!(
-        cause,
-        Error::Unavailable { .. } | Error::ResponseTooLarge { .. } | Error::Internal(_)
-    );
-    if let (true, Some(warning)) = (unknown, text(target).uncertain) {
-        explained.action = warning.to_owned();
+    let sent = match cause {
+        Error::ResponseTooLarge { status, .. } if success(*status) => Some(Sent::Completed),
+        Error::Unavailable { .. } | Error::ResponseTooLarge { .. } | Error::Internal(_) => {
+            Some(Sent::Unanswered)
+        }
+        _ => None,
+    };
+    if let Some(change) = sent.and_then(|sent| after_request(target, sent)) {
+        explained.action = change.to_owned();
         explained.retryable = false;
     }
     explained
@@ -84,7 +89,11 @@ fn base(target: Target, cause: &Error, origin: &str) -> ApiText {
             target_text.missing,
             target_text.missing_action,
         ),
-        Error::RateLimited { retry_after, .. } => rate_limited(*retry_after),
+        Error::RateLimited {
+            retry_after,
+            reset_after,
+            ..
+        } => rate_limited(*retry_after, *reset_after),
         Error::Rejected { status, .. } => fixed(
             Exit::Rejected,
             &format!("Pipedream rejected the request with status {status}."),
@@ -100,14 +109,18 @@ fn base(target: Target, cause: &Error, origin: &str) -> ApiText {
             "Pipedream accepted the request without a result.",
             "Run the command again later.",
         ),
-        Error::Unavailable { status, .. } => unavailable(*status, origin),
-        Error::ResponseTooLarge { limit, .. } => fixed(
+        Error::Unavailable {
+            status,
+            retry_after,
+        } => unavailable(*status, *retry_after, origin),
+        Error::ResponseTooLarge { status, limit } => fixed(
             Exit::Internal,
             &format!(
-                "The Pipedream response is larger than {}, so the CLI could not read it.",
+                "The Pipedream response with status {status} is larger than {}, so the CLI \
+                 could not read it.",
                 size(*limit)
             ),
-            if target_text.paged {
+            if target_text.paged && success(*status) {
                 "Request fewer records with --limit."
             } else {
                 REPORT
@@ -142,8 +155,9 @@ fn invalid_request(reason: &InvalidRequest) -> (&'static str, &'static str) {
             "Check the command arguments.",
         ),
         InvalidRequest::ProxyTarget => (
-            "<URL> must be an HTTPS URL or a path that starts with /.",
-            "Fix the proxy target.",
+            "<URL> must be an HTTPS URL with a host, or a path that starts with one /.",
+            "Remove any surrounding spaces, control characters, backslashes, credentials, and \
+             fragment.",
         ),
         InvalidRequest::ProxyHeader => (
             "Pipedream does not forward one of the --header values.",
@@ -155,7 +169,8 @@ fn invalid_request(reason: &InvalidRequest) -> (&'static str, &'static str) {
         ),
         InvalidRequest::WorkflowEndpoint => (
             "The workflow URL is not valid.",
-            "Use an HTTPS URL without credentials or a fragment.",
+            "Use an HTTPS URL with a host, without surrounding spaces, control characters, \
+             backslashes, credentials, or a fragment.",
         ),
         InvalidRequest::Origin
         | InvalidRequest::Credentials
@@ -168,39 +183,9 @@ fn invalid_request(reason: &InvalidRequest) -> (&'static str, &'static str) {
     }
 }
 
-fn rate_limited(retry_after: Option<Duration>) -> ApiText {
-    let wait = retry_after.map(|delay| delay.as_secs() + u64::from(delay.subsec_nanos() > 0));
-    let action = match wait {
-        Some(wait) => format!("Wait {}, then run the command again.", seconds(wait)),
-        None => "Wait a moment, then run the command again.".to_owned(),
-    };
-    ApiText {
-        exit: Exit::RateLimited,
-        summary: "Pipedream rate limited the request.".to_owned(),
-        action,
-        retryable: true,
-        wait,
-    }
-}
-
-fn unavailable(status: Option<u16>, origin: &str) -> ApiText {
-    let (summary, action) = match status {
-        Some(status) => (
-            format!("Pipedream at {origin} is unavailable with status {status}."),
-            "Try again later.",
-        ),
-        None => (
-            format!("The CLI could not reach Pipedream at {origin}."),
-            "Check the network and the API origin, then try again.",
-        ),
-    };
-    ApiText {
-        exit: Exit::Unavailable,
-        summary,
-        action: action.to_owned(),
-        retryable: true,
-        wait: None,
-    }
+/// Whether an HTTP status reports success.
+fn success(status: u16) -> bool {
+    (200..300).contains(&status)
 }
 
 fn place(error: &ExecutionError) -> String {

@@ -82,6 +82,8 @@ fn rate_limits_exit_five_with_the_wait_time() {
     let cases = [
         (Some(Duration::from_secs(30)), "Wait 30 seconds"),
         (Some(Duration::from_millis(500)), "Wait 1 second"),
+        (Some(Duration::ZERO), "Wait a moment"),
+        (Some(Duration::MAX), "Wait 18446744073709551615 seconds"),
         (None, "Wait a moment"),
     ];
     for (retry_after, wait) in cases {
@@ -178,7 +180,9 @@ fn invalid_requests_exit_two() {
         ),
         (
             InvalidRequest::ProxyTarget,
-            "<URL> must be an HTTPS URL or a path that starts with /. Fix the proxy target.",
+            "<URL> must be an HTTPS URL with a host, or a path that starts with one /. Remove \
+             any surrounding spaces, control characters, backslashes, credentials, and \
+             fragment.",
         ),
         (
             InvalidRequest::ProxyHeader,
@@ -190,7 +194,8 @@ fn invalid_requests_exit_two() {
         ),
         (
             InvalidRequest::WorkflowEndpoint,
-            "The workflow URL is not valid. Use an HTTPS URL without credentials or a fragment.",
+            "The workflow URL is not valid. Use an HTTPS URL with a host, without surrounding \
+             spaces, control characters, backslashes, credentials, or a fragment.",
         ),
     ];
     for (reason, message) in cases {

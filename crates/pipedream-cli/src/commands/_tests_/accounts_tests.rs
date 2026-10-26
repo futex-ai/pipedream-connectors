@@ -198,17 +198,25 @@ async fn a_listed_account_of_another_external_user_is_not_found() {
 async fn accounts_commands_reject_invalid_input_before_any_request() {
     let cases = [
         (
-            &["accounts", "get", "account-1"][..],
-            "error: <ACCOUNT> is not a valid account ID. Use an ID that starts with apn_.\n",
+            &["accounts", "get", "apn_bad-id"][..],
+            "error: <ACCOUNT> is not a valid account ID. Use an ID that starts with apn_ and \
+             then has only letters and digits.\n",
+        ),
+        (
+            &["accounts", "get", "account-1"],
+            "error: <ACCOUNT> is not a valid account ID. Use an ID that starts with apn_ and \
+             then has only letters and digits.\n",
         ),
         (
             &["accounts", "list", "--oauth-app-id", "custom"],
-            "error: --oauth-app-id is not a valid OAuth app ID. Use an ID that starts with oa_.\n",
+            "error: --oauth-app-id is not a valid OAuth app ID. Use an ID that starts with oa_ \
+             and then has only letters and digits.\n",
         ),
         (
             &["accounts", "list", "--external-user-id", "user/1"],
             "error: --external-user-id is not a valid external user ID. Use 1 to 250 visible \
-             ASCII characters without /, \\, ?, or #.\n",
+             ASCII characters without spaces, /, \\, ?, or #. The values . and .. are not \
+             valid.\n",
         ),
     ];
     for (args, stderr) in cases {

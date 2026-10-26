@@ -213,9 +213,39 @@ fn an_insecure_origin_fails_before_any_request() {
     assert_eq!(output.status.code(), Some(2));
     assert_eq!(
         text(output.stderr),
-        "error: --api-origin is not a valid API origin. Use an HTTPS origin without a path, \
-         such as https://api.pipedream.com.\n"
+        "error: --api-origin is not a valid API origin. Use an HTTPS origin that has only a \
+         host and an optional port, such as https://api.pipedream.com.\n"
     );
+}
+
+#[test]
+fn an_invalid_proxy_target_fails_before_any_request() {
+    for target in [
+        "/api\\items",
+        "https://user@example.com/items",
+        " /api/items",
+    ] {
+        let args = [
+            "proxy",
+            "get",
+            target,
+            "--external-user-id",
+            "user_1",
+            "--account",
+            "apn_Account1",
+        ];
+        let output = cli(&args, &VARIABLES, None);
+        assert_eq!(output.status.code(), Some(2), "{target}");
+        assert!(output.stdout.is_empty(), "{target}");
+        assert!(
+            text(output.stderr).ends_with(
+                "error: <URL> must be an HTTPS URL with a host, or a path that starts with one \
+                 /. Remove any surrounding spaces, control characters, backslashes, credentials, \
+                 and fragment.\n"
+            ),
+            "{target}"
+        );
+    }
 }
 
 #[test]

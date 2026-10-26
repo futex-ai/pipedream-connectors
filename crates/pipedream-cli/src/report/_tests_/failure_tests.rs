@@ -1,6 +1,7 @@
 //! Tests for exit codes, interrupted listings, and internal failures.
 
 use std::io;
+use std::num::NonZeroU64;
 use std::time::Duration;
 
 use pipedream_connect_types::{Cursor, PageRequest};
@@ -81,6 +82,42 @@ fn a_retryable_interruption_gives_the_resume_command_as_its_one_action() {
 }
 
 #[test]
+fn a_server_delay_comes_before_the_resume_hint() {
+    let unavailable = pipedream_connect::error::Error::Unavailable {
+        status: Some(503),
+        retry_after: Some(Duration::from_secs(30)),
+    };
+    assert_eq!(
+        interrupted(1, after("cursor_5"), unavailable),
+        Failure::new(
+            Exit::Unavailable,
+            "Pipedream at https://api.pipedream.com is unavailable with status 503. The CLI \
+             read 1 page before the failure. Wait 30 seconds, then run the command again with \
+             --after 'cursor_5'."
+        )
+    );
+}
+
+#[test]
+fn a_zero_wait_never_reaches_the_resume_hint() {
+    let limited = pipedream_connect::error::Error::RateLimited {
+        retry_after: Some(Duration::ZERO),
+        reset_after: None,
+        limit: None,
+        remaining: None,
+        reset: None,
+    };
+    assert_eq!(
+        interrupted(2, after("cursor_4"), limited),
+        Failure::new(
+            Exit::RateLimited,
+            "Pipedream rate limited the request. The CLI read 2 pages before the failure. To \
+             continue, run the command again with --after 'cursor_4'."
+        )
+    );
+}
+
+#[test]
 fn other_interruptions_keep_their_own_action() {
     let forbidden = pipedream_connect::error::Error::Forbidden { message: None };
     assert_eq!(
@@ -113,7 +150,7 @@ fn resume_hints_follow_the_cursor_direction_and_quote_the_cursor() {
         Some("To continue, run the command again with --before 'cursor_0'.")
     );
     assert_eq!(
-        resume(&after("it's$x"), Some(1)).as_deref(),
+        resume(&after("it's$x"), NonZeroU64::new(1)).as_deref(),
         Some("Wait 1 second, then run the command again with --after 'it'\\''s$x'.")
     );
     assert_eq!(resume(&PageRequest::default(), None), None);
@@ -130,5 +167,29 @@ fn internal_failures_name_the_issue_tracker() {
         failure.message,
         "The CLI could not complete the command. Report this problem with the command that you \
          ran at https://github.com/futex-ai/pipedream-connectors/issues."
+    );
+}
+
+#[test]
+fn a_result_that_does_not_encode_says_whether_the_change_happened() {
+    let unencodable = |target| Error::Unencodable {
+        target,
+        cause: serde_json::from_str::<u8>("x").unwrap_err(),
+    };
+    assert_eq!(
+        describe(&unencodable(Target::TokenCreate), DEFAULT_ORIGIN),
+        Failure::new(
+            Exit::Internal,
+            "The CLI could not print the result. Pipedream created the token. Run the command \
+             again for a new one."
+        )
+    );
+    assert_eq!(
+        describe(&unencodable(Target::Apps), DEFAULT_ORIGIN),
+        Failure::new(
+            Exit::Internal,
+            "The CLI could not print the result. Report this problem with the command that you \
+             ran at https://github.com/futex-ai/pipedream-connectors/issues."
+        )
     );
 }

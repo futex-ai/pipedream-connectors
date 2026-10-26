@@ -9,7 +9,7 @@ use pipedream_connect_types::{AppCategoryId, AppSlug, AppSortKey, ListAppsReques
 
 use crate::argument::Argument;
 use crate::commands::pages::{self, PageArgs, Paging};
-use crate::document::{Document, Output, Secrets};
+use crate::document::{Output, Secrets};
 use crate::error::{Result, called, checked};
 use crate::target::Target;
 
@@ -147,7 +147,7 @@ pub(crate) async fn run(
         }
         AppsTask::Get(slug) => {
             let app = called(api.get(slug).await, Target::App)?;
-            Ok(Document::redacted(app, secrets)?.into())
+            Output::redacted(Target::App, app, secrets)
         }
     }
 }

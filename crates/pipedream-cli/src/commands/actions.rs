@@ -13,7 +13,7 @@ use pipedream_connect_types::{
 use crate::argument::Argument;
 use crate::commands::pages::{self, PageArgs, Paging};
 use crate::commands::registry::RegistryArgs;
-use crate::document::{Acknowledgement, Document, Output, Secrets};
+use crate::document::{Acknowledgement, Output, Secrets};
 use crate::error::{Error, Result, checked};
 use crate::inputs::{InputSource, Inputs, read_props};
 use crate::target::Target;
@@ -126,9 +126,9 @@ pub(crate) async fn run(
             pages::list(Arc::new(source), paging, Target::Actions, secrets).await
         }
         ActionsTask::Run(request) => match api.run(request).await {
-            Ok(response) => Ok(Document::redacted(response, secrets)?.into()),
+            Ok(response) => Output::redacted(Target::ActionRun, response, secrets),
             Err(pipedream_connect::error::Error::Accepted) => {
-                Ok(Document::redacted(Acknowledgement::accepted(), secrets)?.into())
+                Output::redacted(Target::ActionRun, Acknowledgement::accepted(), secrets)
             }
             Err(cause) => Err(Error::Api {
                 target: Target::ActionRun,

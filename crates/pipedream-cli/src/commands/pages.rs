@@ -12,7 +12,7 @@ use serde::Serialize;
 
 use crate::argument::Argument;
 use crate::commands::numbers::{bounded, positive};
-use crate::document::{Document, Notice, Output, Secrets};
+use crate::document::{Notice, Output, Secrets};
 use crate::error::{Error, Interruption, Result, called, checked};
 use crate::redact::Redact;
 use crate::target::Target;
@@ -129,7 +129,7 @@ where
 {
     let Some(budget) = paging.budget else {
         let page = called(source.fetch(paging.page).await, target)?;
-        return Ok(Document::redacted(page, secrets)?.into());
+        return Output::redacted(target, page, secrets);
     };
     let pagination = match BoundedPaginator::new(source)
         .paginate(paging.page, budget)
@@ -151,10 +151,7 @@ where
         }
     };
     let (traversal, notices) = traversal(pagination);
-    Ok(Output {
-        document: Document::redacted(traversal, secrets)?,
-        notices,
-    })
+    Ok(Output::redacted(target, traversal, secrets)?.with_notices(notices))
 }
 
 fn traversal<T>(pagination: Pagination<T>) -> (Traversal<T>, Vec<Notice>) {

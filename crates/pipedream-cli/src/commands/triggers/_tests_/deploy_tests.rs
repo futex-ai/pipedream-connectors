@@ -13,7 +13,7 @@ use unimock::{Clause, MockFn, matching};
 
 use crate::inputs::{InputSource, ReadInputMock};
 use crate::report::exit::Exit;
-use crate::test_support::{Env, connected, connects, run, triggers_handle};
+use crate::test_support::{Env, connected, connects, run, run_closed, triggers_handle};
 
 const PROPS: &[u8] =
     br#"{"googleCalendar": {"authProvisionId": "apn_Account1"}, "calendarId": "primary"}"#;
@@ -153,12 +153,12 @@ async fn invalid_deployments_fail_before_reading_props_or_any_request() {
                 "props.json",
             ],
             "error: <COMPONENT> is not a valid component key. Use 1 to 250 visible ASCII \
-             characters without /, \\, ?, or #.\n",
+             characters without spaces, /, \\, ?, or #. The values . and .. are not valid.\n",
         ),
         (
             deploy(&["--workflow-id", "p/abc", "--props", "props.json"]),
             "error: --workflow-id is not a valid workflow ID. Use 1 to 250 visible ASCII \
-             characters without /, \\, ?, or #.\n",
+             characters without spaces, /, \\, ?, or #. The values . and .. are not valid.\n",
         ),
     ];
     for (args, stderr) in cases {
@@ -183,5 +183,16 @@ async fn an_unanswered_deployment_warns_that_the_trigger_may_exist() {
         ran.stderr,
         "error: Pipedream at https://api.pipedream.com is unavailable with status 502. Pipedream \
          may have deployed the trigger. Check triggers list before you deploy it again.\n"
+    );
+}
+
+#[tokio::test]
+async fn a_closed_stdout_after_a_deployment_says_that_the_trigger_exists() {
+    let ran = run_closed(&deploy(&[]), deployed(Ok(response()))).await;
+    assert_eq!(ran.exit, Exit::Internal);
+    assert_eq!(
+        ran.stderr,
+        "error: The CLI cannot write to standard output. Pipedream deployed the trigger. Check \
+         triggers list before you deploy it again.\n"
     );
 }

@@ -162,7 +162,7 @@ async fn trigger_commands_reject_invalid_input_before_any_request() {
                 "user_1",
             ],
             "error: <TRIGGER> is not a valid deployed trigger ID. Use an ID that starts with \
-             dc_, hi_, or ti_.\n",
+             dc_, hi_, or ti_ and then has only letters and digits.\n",
         ),
     ];
     for (args, stderr) in cases {

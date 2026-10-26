@@ -150,7 +150,8 @@ async fn invalid_proxy_input_fails_before_any_request_without_header_values() {
                 "--account",
                 "acct_1",
             ],
-            "error: --account is not a valid account ID. Use an ID that starts with apn_.\n",
+            "error: --account is not a valid account ID. Use an ID that starts with apn_ and \
+             then has only letters and digits.\n",
         ),
     ];
     for (args, stderr) in cases {

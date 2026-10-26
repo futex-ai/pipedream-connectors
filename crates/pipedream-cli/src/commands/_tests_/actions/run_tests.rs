@@ -15,7 +15,7 @@ use unimock::{Clause, MockFn, matching};
 use crate::commands::actions::stash;
 use crate::inputs::{InputSource, ReadInputMock};
 use crate::report::exit::Exit;
-use crate::test_support::{Env, actions_handle, connected, connects, printed, run};
+use crate::test_support::{Env, actions_handle, connected, connects, printed, run, run_closed};
 
 const PROPS: &[u8] =
     br#"{"googleCalendar": {"authProvisionId": "apn_Account1"}, "calendarId": "primary"}"#;
@@ -232,6 +232,20 @@ async fn invalid_run_input_fails_before_any_request() {
     assert_eq!(
         ran.stderr,
         "error: --external-user-id is not a valid external user ID. Use 1 to 250 visible \
-         ASCII characters without /, \\, ?, or #.\n"
+         ASCII characters without spaces, /, \\, ?, or #. The values . and .. are not \
+         valid.\n"
     );
+}
+
+#[tokio::test]
+async fn a_closed_stdout_after_a_run_says_that_the_action_ran() {
+    for result in [Ok(response()), Err(Error::Accepted)] {
+        let ran = run_closed(&run_args(&[]), ran_with(result)).await;
+        assert_eq!(ran.exit, Exit::Internal);
+        assert_eq!(
+            ran.stderr,
+            "error: The CLI cannot write to standard output. Pipedream ran the action or \
+             accepted it for later completion. Check its effects before you run it again.\n"
+        );
+    }
 }

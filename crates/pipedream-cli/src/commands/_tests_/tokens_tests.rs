@@ -7,7 +7,7 @@ use serde_json::json;
 use unimock::{Clause, MockFn, matching};
 
 use crate::report::exit::Exit;
-use crate::test_support::{Env, connected, printed, run, tokens_handle};
+use crate::test_support::{Env, connected, printed, run, run_closed, tokens_handle};
 
 const TOKEN: &str = "ctok_0123456789abcdef0123456789abcdef";
 
@@ -121,15 +121,15 @@ async fn tokens_create_rejects_invalid_input_before_any_request() {
         ),
         (
             &["--success-redirect-uri", "http://app.example.com/done"],
-            "error: --success-redirect-uri must be an HTTPS URL.\n",
+            "error: --success-redirect-uri must be an HTTPS URL with a host.\n",
         ),
         (
             &["--error-redirect-uri", "ftp://app.example.com/failed"],
-            "error: --error-redirect-uri must be an HTTPS URL.\n",
+            "error: --error-redirect-uri must be an HTTPS URL with a host.\n",
         ),
         (
             &["--webhook-uri", "not a url"],
-            "error: --webhook-uri must be an HTTPS URL.\n",
+            "error: --webhook-uri must be an HTTPS URL with a host.\n",
         ),
     ];
     for (extra, stderr) in cases {
@@ -156,5 +156,20 @@ async fn an_unanswered_token_request_warns_that_a_token_may_exist() {
         ran.stderr,
         "error: The CLI could not reach Pipedream at https://api.pipedream.com. Pipedream may \
          have created the token. Run the command again for a new one.\n"
+    );
+}
+
+#[tokio::test]
+async fn a_closed_stdout_after_a_token_says_that_pipedream_created_it() {
+    let ran = run_closed(
+        &["tokens", "create", "--external-user-id", "user_1"],
+        created(Ok(response())),
+    )
+    .await;
+    assert_eq!(ran.exit, Exit::Internal);
+    assert_eq!(
+        ran.stderr,
+        "error: The CLI cannot write to standard output. Pipedream created the token. Run \
+         the command again for a new one.\n"
     );
 }

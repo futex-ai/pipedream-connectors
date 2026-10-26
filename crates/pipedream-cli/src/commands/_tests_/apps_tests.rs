@@ -203,7 +203,8 @@ async fn apps_commands_reject_invalid_input_before_any_request() {
     let cases = [
         (
             &["apps", "list", "--category", "productivity"][..],
-            "error: --category is not a valid category ID. Use an ID that starts with appcat_.\n",
+            "error: --category is not a valid category ID. Use an ID that starts with appcat_ \
+             and then has only letters and digits.\n",
         ),
         (
             &["apps", "list", "--limit", "0"],
@@ -227,13 +228,23 @@ async fn apps_commands_reject_invalid_input_before_any_request() {
         ),
         (
             &["apps", "list", "--before", " "],
-            "error: --before is not a valid cursor. Copy the cursor from the page_info of an \
-             earlier result.\n",
+            "error: --before is not a valid cursor. A cursor has 1 to 2048 visible ASCII \
+             characters without spaces. Copy it from the page_info of an earlier result.\n",
         ),
         (
             &["apps", "get", "google/calendar"],
             "error: <APP> is not a valid app slug. Use 1 to 250 visible ASCII characters \
-             without /, \\, ?, or #.\n",
+             without spaces, /, \\, ?, or #. The values . and .. are not valid.\n",
+        ),
+        (
+            &["apps", "get", ".."],
+            "error: <APP> is not a valid app slug. Use 1 to 250 visible ASCII characters \
+             without spaces, /, \\, ?, or #. The values . and .. are not valid.\n",
+        ),
+        (
+            &["apps", "list", "--after", &"c".repeat(2049)],
+            "error: --after is not a valid cursor. A cursor has 1 to 2048 visible ASCII \
+             characters without spaces. Copy it from the page_info of an earlier result.\n",
         ),
     ];
     for (args, stderr) in cases {

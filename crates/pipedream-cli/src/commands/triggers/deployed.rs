@@ -15,7 +15,7 @@ use crate::commands::pages::{self, Paging};
 use crate::commands::triggers::args::{
     DeleteTriggerArgs, ListTriggersArgs, TriggerArgs, TriggerEventsArgs,
 };
-use crate::document::{Acknowledgement, Document, Output, Secrets};
+use crate::document::{Acknowledgement, Output, Secrets};
 use crate::error::{Result, called, checked};
 use crate::target::Target;
 
@@ -112,18 +112,18 @@ pub(crate) async fn run(
         }
         DeployedTask::Get(trigger, query) => {
             let response = called(api.get(trigger, query).await, Target::Trigger)?;
-            Ok(Document::redacted(response, secrets)?.into())
+            Output::redacted(Target::Trigger, response, secrets)
         }
         DeployedTask::Delete(trigger, request) => {
             called(api.delete(trigger, request).await, Target::TriggerDelete)?;
-            Ok(Document::redacted(Acknowledgement::deleted(), secrets)?.into())
+            Output::redacted(Target::TriggerDelete, Acknowledgement::deleted(), secrets)
         }
         DeployedTask::Events(trigger, request) => {
             let response = called(
                 api.list_events(trigger, request).await,
                 Target::TriggerEvents,
             )?;
-            Ok(Document::redacted(response, secrets)?.into())
+            Output::redacted(Target::TriggerEvents, response, secrets)
         }
     }
 }

@@ -15,10 +15,40 @@ pub(super) struct TargetText {
     pub(super) subject: &'static str,
     /// What the user does after an execution failure.
     pub(super) execution_action: &'static str,
-    /// The warning for a change that may have happened without a readable answer.
-    pub(super) uncertain: Option<&'static str>,
+    /// The text of each failure after the request left, for a command that changes data.
+    pub(super) change: Option<Change>,
     /// Whether `--limit` can make the response smaller.
     pub(super) paged: bool,
+}
+
+/// What a failure after a sent request says about the change that the request makes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct Change {
+    /// The warning when the answer is missing or unreadable: the change may have happened.
+    pub(super) uncertain: &'static str,
+    /// The fact and the action when Pipedream made the change but the CLI cannot print it.
+    pub(super) completed: &'static str,
+}
+
+/// What Pipedream answered before a failure that came after the request left.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum Sent {
+    /// No readable answer, so the change may have happened.
+    Unanswered,
+    /// A successful answer, so the change happened.
+    Completed,
+}
+
+/// Returns the change text of a failure after a sent request on `target`.
+///
+/// Every failure path after a request left takes its text from here, so no path
+/// can skip it. A command that only reads has no change text.
+pub(super) fn after_request(target: Target, sent: Sent) -> Option<&'static str> {
+    let change = text(target).change?;
+    Some(match sent {
+        Sent::Unanswered => change.uncertain,
+        Sent::Completed => change.completed,
+    })
 }
 
 /// Text for a command that only reads.
@@ -28,7 +58,7 @@ const fn read(missing: &'static str, missing_action: &'static str, paged: bool) 
         missing_action,
         subject: "The request",
         execution_action: "Check the command arguments, then run the command again.",
-        uncertain: None,
+        change: None,
         paged,
     }
 }
@@ -38,14 +68,14 @@ const fn change(
     missing: (&'static str, &'static str),
     subject: &'static str,
     execution_action: &'static str,
-    uncertain: &'static str,
+    change: Change,
 ) -> TargetText {
     TargetText {
         missing: missing.0,
         missing_action: missing.1,
         subject,
         execution_action,
-        uncertain: Some(uncertain),
+        change: Some(change),
         paged: false,
     }
 }
@@ -131,7 +161,11 @@ pub(super) fn text(target: Target) -> TargetText {
             ),
             "The action",
             "Check the configured props, then run the command again.",
-            "The action may have run. Check its effects before you run it again.",
+            Change {
+                uncertain: "The action may have run. Check its effects before you run it again.",
+                completed: "Pipedream ran the action or accepted it for later completion. Check \
+                            its effects before you run it again.",
+            },
         ),
         Target::TokenCreate => change(
             (
@@ -140,13 +174,21 @@ pub(super) fn text(target: Target) -> TargetText {
             ),
             "The token request",
             "Check the command arguments, then run the command again.",
-            "Pipedream may have created the token. Run the command again for a new one.",
+            Change {
+                uncertain: "Pipedream may have created the token. Run the command again for a \
+                            new one.",
+                completed: "Pipedream created the token. Run the command again for a new one.",
+            },
         ),
         Target::ProxyWrite => change(
             PROXIED,
             "The proxy request",
             PROXY_ACTION,
-            "The upstream request may have run. Check its effects before you send it again.",
+            Change {
+                uncertain: "The upstream request may have run. Check its effects before you send \
+                            it again.",
+                completed: "The upstream request ran. Check its effects before you send it again.",
+            },
         ),
         Target::TriggerDeploy => change(
             (
@@ -155,14 +197,21 @@ pub(super) fn text(target: Target) -> TargetText {
             ),
             "The deployment",
             "Check the configured props, then run the command again.",
-            "Pipedream may have deployed the trigger. Check triggers list before you deploy \
-             it again.",
+            Change {
+                uncertain: "Pipedream may have deployed the trigger. Check triggers list before \
+                            you deploy it again.",
+                completed: "Pipedream deployed the trigger. Check triggers list before you deploy \
+                            it again.",
+            },
         ),
         Target::TriggerDelete => change(
             DEPLOYED,
             "The deletion",
             "Check the command arguments, then run the command again.",
-            "Pipedream may have deleted the trigger. Check it with triggers get.",
+            Change {
+                uncertain: "Pipedream may have deleted the trigger. Check it with triggers get.",
+                completed: "Pipedream deleted the trigger.",
+            },
         ),
     }
 }

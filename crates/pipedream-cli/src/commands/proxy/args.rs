@@ -10,7 +10,7 @@ use pipedream_connect_types::{AccountId, AccountRef, ExternalUserId};
 use crate::argument::Argument;
 use crate::commands::proxy::headers;
 use crate::commands::proxy::output::ProxyOutput;
-use crate::document::{Document, Output, Secrets};
+use crate::document::{Output, Secrets};
 use crate::error::{Error, Result, called, checked};
 use crate::inputs::{InputSource, Inputs};
 use crate::target::Target;
@@ -106,7 +106,7 @@ pub(crate) async fn run(
     secrets: Secrets,
 ) -> Result<Output> {
     let response = called(api.send(task.request).await, task.target)?;
-    Ok(Document::redacted(ProxyOutput::from(response), secrets)?.into())
+    Output::redacted(task.target, ProxyOutput::from(response), secrets)
 }
 
 #[cfg(test)]

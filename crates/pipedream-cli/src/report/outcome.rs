@@ -4,12 +4,15 @@ use crate::document::{Notice, Output};
 use crate::error::Result;
 use crate::report::exit::Exit;
 use crate::report::failure::{count, cursor_flag, describe};
+use crate::report::target::{Sent, after_request};
 use crate::settings::{ApiOrigin, Setting};
 use crate::terminal::Terminal;
 
-/// The message when standard output rejects a result.
-const OUTPUT_FAILURE: &str =
-    "The CLI cannot write to standard output. Check that the output stream is open.";
+/// What failed when standard output rejects a result.
+const OUTPUT_FAILURE: &str = "The CLI cannot write to standard output.";
+
+/// The action when standard output rejects a result that changed nothing.
+const OUTPUT_ACTION: &str = "Check that the output stream is open.";
 
 /// Writes help, version text, or a parse failure and returns its exit status.
 pub(crate) fn usage(error: &clap::Error, terminal: &mut Terminal<'_>) -> Exit {
@@ -21,7 +24,7 @@ pub(crate) fn usage(error: &clap::Error, terminal: &mut Terminal<'_>) -> Exit {
     match terminal.text(&text) {
         Ok(()) => Exit::Success,
         Err(_) => {
-            terminal.diagnostic("error", OUTPUT_FAILURE);
+            terminal.diagnostic("error", &format!("{OUTPUT_FAILURE} {OUTPUT_ACTION}"));
             Exit::Internal
         }
     }
@@ -47,7 +50,8 @@ pub(crate) fn finish(outcome: Result<Output>, origin: &str, terminal: &mut Termi
         }
     };
     if terminal.result(output.document.bytes()).is_err() {
-        terminal.diagnostic("error", OUTPUT_FAILURE);
+        let action = after_request(output.target, Sent::Completed).unwrap_or(OUTPUT_ACTION);
+        terminal.diagnostic("error", &format!("{OUTPUT_FAILURE} {action}"));
         return Exit::Internal;
     }
     for notice in &output.notices {

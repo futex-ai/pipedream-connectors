@@ -136,7 +136,16 @@ pub(crate) enum Error {
     /// A multi-page listing failed after zero or more completed pages.
     #[error("[pipedream-cli/api] listing interrupted")]
     Interrupted(#[source] Box<Interruption>),
-    /// An internal failure, such as an output encoding failure.
+    /// Pipedream answered with success, but the CLI could not encode the result.
+    #[error("[pipedream-cli/output] cannot encode the {target} result")]
+    Unencodable {
+        /// The resource of the request that succeeded.
+        target: Target,
+        /// The encoding failure.
+        #[source]
+        cause: serde_json::Error,
+    },
+    /// An internal failure that no other variant describes.
     #[error("[pipedream-cli/internal] internal error")]
     Internal(#[from] InternalError),
 }

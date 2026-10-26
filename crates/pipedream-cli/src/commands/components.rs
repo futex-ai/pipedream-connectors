@@ -10,7 +10,7 @@ use pipedream_connect_types::{ComponentKey, GetComponentRequest, ListComponentsR
 use crate::argument::Argument;
 use crate::commands::pages::{self, PageArgs, Paging};
 use crate::commands::registry::{ComponentTypeArg, RegistryArgs};
-use crate::document::{Document, Output, Secrets};
+use crate::document::{Output, Secrets};
 use crate::error::{Result, called, checked};
 use crate::target::Target;
 
@@ -107,7 +107,7 @@ pub(crate) async fn run(
         }
         ComponentsTask::Get { key, request } => {
             let component = called(api.get(key, request).await, Target::Component)?;
-            Ok(Document::redacted(component, secrets)?.into())
+            Output::redacted(Target::Component, component, secrets)
         }
     }
 }
