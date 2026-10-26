@@ -1421,11 +1421,43 @@ Summary: apply the CLI outcomes and adapt the CLI to Milestone 13.
 
 Summary: the final checks and one review loop for Milestones 13 and 14.
 
-- [ ] Run the targeted tests and the complete gate named in `AGENTS.md`.
-- [ ] Commit with Conventional Commits and push the branch.
-- [ ] Review the diff since `d748ed5` with the `implementation-review` skill
+- [x] Run the targeted tests and the complete gate named in `AGENTS.md`.
+- [x] Commit with Conventional Commits and push the branch.
+- [x] Review the diff since `d748ed5` with the `implementation-review` skill
       after the push. Apply the review-fix rule: fix the `Auto-fix: yes`
       findings, re-review once, and report the rest.
+      Evidence: `.context/review-r2/sdk-summary.md`,
+      `.context/review-r2/cli-workspace-summary.md`, and
+      `.context/review-r2/rereview/report.md`.
+  - Review: findings S1 to S8 for the SDK and R1 to R7 for the CLI and
+    workspace. Every finding except S2 is fixed in 62024a1, eee82bc, 4fa6afa,
+    46b96b5, 95fc0e8, and 1673a28.
+  - Re-review: 11 of 14 fixes verified. S1, S3, and R4 were partial, and the
+    re-review found 4 Low findings. The partial parts and the 4 findings are
+    fixed in 3f11122 and 6593d24.
+  - S2: The shared date type adds new decode rejections. Severity Low, effort
+    Small. Recommended: A, parse date strings with chrono's
+    `DateTime<FixedOffset>` parser.
+    Open (2026-10-26): needs a user decision.
+  - Follow-up: add `#![warn(unreachable_pub)]` to the xtask binary and narrow
+    each item that it flags. Effort Small. Covers re-review finding 4.
+    Previous examples: none found.
+  - Outside the scope: `xtask/src/layout.rs` and `xtask/src/file_length.rs`: a
+    read error names the workspace root, not the directory that failed.
+    Separate branch.
+  - Outside the scope: `xtask/src/command.rs`: `CommandSpec`, `CommandOutcome`,
+    and `CommandRunner` are `pub` in a binary crate. Separate branch.
+  - Outside the scope: `crates/pipedream-connect-types/src/triggers/emitters.rs`:
+    `TimerInterface.schedule_changed_at` reads integers as epoch milliseconds,
+    but the OpenAPI document gives it no unit. Separate branch.
+  - Outside the scope: `crates/pipedream-connect/src/failure.rs`: the
+    `provider_message` doc comment describes history. Separate branch.
+  - Outside the scope: `xtask/src/error.rs`: a failed command prints its exit
+    code as `Some(101)`. Separate branch.
+  - Outside the scope: `crates/pipedream-cli`: a request to a closed port
+    reports that the change "may have run". Separate branch.
+- [ ] Open the pull request when every other milestone TODO is ticked, or when
+      the user asks for it.
 
 ## Post-merge follow-up (non-blocking)
 
