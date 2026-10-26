@@ -1,6 +1,7 @@
 //! Downstream callers can use every resource mock through an object-safe trait.
 
 #![cfg(feature = "unimock")]
+#![allow(clippy::disallowed_methods)]
 
 use std::sync::Arc;
 

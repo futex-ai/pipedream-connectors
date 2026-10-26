@@ -1,6 +1,7 @@
 //! Pipedream Connect command line for smoke tests and JSON inspection.
 
 #![warn(unreachable_pub)]
+#![cfg_attr(test, allow(clippy::disallowed_methods))]
 
 mod app;
 mod argument;

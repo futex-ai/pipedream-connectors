@@ -1,6 +1,7 @@
 //! Credential-gated managed-auth and proxy smoke test.
 
 #![cfg(feature = "reqwest")]
+#![allow(clippy::disallowed_methods)]
 
 use std::env;
 

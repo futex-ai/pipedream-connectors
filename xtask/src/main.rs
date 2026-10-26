@@ -1,5 +1,7 @@
 //! Workspace automation entry point.
 
+#![cfg_attr(test, allow(clippy::disallowed_methods))]
+
 mod check;
 mod cli;
 mod command;

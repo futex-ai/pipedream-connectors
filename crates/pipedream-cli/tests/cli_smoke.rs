@@ -3,6 +3,8 @@
 //! Each run clears the environment and points the API origin at a closed local
 //! port, so no command can reach Pipedream.
 
+#![allow(clippy::disallowed_methods)]
+
 use std::io::Write;
 use std::process::{Command, Output, Stdio};
 

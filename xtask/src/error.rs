@@ -101,6 +101,9 @@ pub(crate) enum Error {
     /// A directory could not be read.
     #[error("[xtask/file_length] failed to read directory `{path:?}`: {source}")]
     ReadDirectory { path: PathBuf, source: io::Error },
+    /// A directory could not be read for the module-layout audit.
+    #[error("[xtask/layout] failed to read directory `{path:?}`: {source}")]
+    ReadLayout { path: PathBuf, source: io::Error },
     /// A Rust source file could not be read.
     #[error("[xtask/file_length] failed to read Rust file `{path:?}`: {source}")]
     ReadFile { path: PathBuf, source: io::Error },

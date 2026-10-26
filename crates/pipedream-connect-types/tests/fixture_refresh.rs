@@ -1,6 +1,7 @@
 //! Integration check for the schema refresh script without a network request.
 
 #![cfg(unix)]
+#![allow(clippy::disallowed_methods)]
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;

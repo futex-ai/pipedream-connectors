@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![warn(unreachable_pub)]
+#![cfg_attr(test, allow(clippy::disallowed_methods))]
 
 mod error;
 mod events;

@@ -1,6 +1,7 @@
 //! Concrete request construction failures and silent-server timeout mapping.
 
 #![cfg(feature = "reqwest")]
+#![allow(clippy::disallowed_methods)]
 
 #[path = "../src/_tests_/hang_guard.rs"]
 mod hang_guard;
