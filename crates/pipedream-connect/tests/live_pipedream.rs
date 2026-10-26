@@ -176,7 +176,7 @@ async fn live_pipedream_google_calendar_trigger_lifecycle() {
         }
     };
     let lifecycle = async {
-        let listed = client
+        let listed = match client
             .deployed_triggers()
             .list(ListDeployedTriggersRequest {
                 external_user_id: external_user_id.clone(),
@@ -184,7 +184,10 @@ async fn live_pipedream_google_calendar_trigger_lifecycle() {
                 emitter_type: None,
             })
             .await
-            .map_err(|error| format!("{error:?}"))?;
+        {
+            Ok(listed) => listed,
+            Err(error) => return Err(format!("{error:?}")),
+        };
         if !listed.data.iter().any(|emitter| {
             matches!(emitter, Emitter::DeployedComponent(trigger) if trigger.id == trigger_id)
         }) {

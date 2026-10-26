@@ -1,0 +1,1 @@
+disallowed-methods = [{ path = "core::result::Result::map_err", reason = "Rust error rules require explicit typed error handling" }]
