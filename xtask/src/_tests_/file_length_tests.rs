@@ -1,28 +1,29 @@
 //! Unit tests for the Rust file-length audit.
 
+use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use unimock::{MockFn, Unimock, matching};
 
 use crate::command::{CommandOutcome, CommandRunnerMock, CommandSpec};
-use crate::file_access::{DirectoryEntry, FileAccessMock};
+use crate::file_access::{DirectoryEntry, FileAccessReadDirMock, FileAccessReadToStringMock};
 use crate::file_length;
 
 #[test]
 fn accepts_a_rust_file_at_the_limit() {
     let path = PathBuf::from("crates/demo/src/lib.rs");
     let files = Unimock::new((
-        FileAccessMock::read_dir
+        FileAccessReadDirMock
             .next_call(matching!(_))
             .returns(Ok(vec![DirectoryEntry {
                 path: path.clone(),
                 is_directory: false,
             }])),
-        FileAccessMock::read_dir
+        FileAccessReadDirMock
             .next_call(matching!(_))
             .returns(Ok(Vec::new())),
-        FileAccessMock::read_to_string
+        FileAccessReadToStringMock
             .next_call(matching!(_))
             .returns(Ok("line\n".repeat(300))),
     ));
@@ -34,16 +35,16 @@ fn accepts_a_rust_file_at_the_limit() {
 fn reports_a_rust_file_over_the_limit() {
     let path = PathBuf::from("xtask/src/main.rs");
     let files = Unimock::new((
-        FileAccessMock::read_dir
+        FileAccessReadDirMock
             .next_call(matching!(_))
             .returns(Ok(Vec::new())),
-        FileAccessMock::read_dir
+        FileAccessReadDirMock
             .next_call(matching!(_))
             .returns(Ok(vec![DirectoryEntry {
                 path,
                 is_directory: false,
             }])),
-        FileAccessMock::read_to_string
+        FileAccessReadToStringMock
             .next_call(matching!(_))
             .returns(Ok("line\n".repeat(301))),
     ));
@@ -52,6 +53,52 @@ fn reports_a_rust_file_over_the_limit() {
         .unwrap_err()
         .to_string();
     assert!(error.contains("xtask/src/main.rs has 301 lines"));
+}
+
+#[test]
+fn skips_a_missing_crates_root_and_reports_an_xtask_violation() {
+    let path = PathBuf::from("/workspace/xtask/src/main.rs");
+    let files = Unimock::new((
+        FileAccessReadDirMock
+            .next_call(matching!(_))
+            .returns(Err(io::Error::new(io::ErrorKind::NotFound, "missing"))),
+        FileAccessReadDirMock
+            .next_call(matching!(_))
+            .returns(Ok(vec![DirectoryEntry {
+                path: path.clone(),
+                is_directory: false,
+            }])),
+        FileAccessReadToStringMock
+            .next_call(matching!(_))
+            .returns(Ok("line\n".repeat(301))),
+    ));
+
+    let error = file_length::run(Path::new("/workspace"), true, &unused_runner(), &files)
+        .unwrap_err()
+        .to_string();
+
+    assert!(error.contains("xtask/src/main.rs has 301 lines"));
+}
+
+#[test]
+fn reports_a_nested_not_found_with_file_length_prefix() {
+    let files = Unimock::new((
+        FileAccessReadDirMock
+            .next_call(matching!(_))
+            .returns(Ok(vec![DirectoryEntry {
+                path: PathBuf::from("/workspace/crates/nested"),
+                is_directory: true,
+            }])),
+        FileAccessReadDirMock
+            .next_call(matching!(_))
+            .returns(Err(io::Error::new(io::ErrorKind::NotFound, "gone"))),
+    ));
+
+    let error = file_length::run(Path::new("/workspace"), true, &unused_runner(), &files)
+        .unwrap_err()
+        .to_string();
+
+    assert!(error.starts_with("[xtask/file_length] failed to read directory"));
 }
 
 #[test]
@@ -75,7 +122,7 @@ fn changed_file_audit_reads_both_git_lists() {
             })),
     );
     let files = Unimock::new(
-        FileAccessMock::read_to_string
+        FileAccessReadToStringMock
             .next_call(matching!(_))
             .returns(Ok("line\n".repeat(2))),
     );

@@ -8,7 +8,7 @@ use unimock::{MockFn, Unimock, matching};
 use crate::check;
 use crate::command::{CommandOutcome, CommandRunnerMock, CommandSpec};
 use crate::error::Error;
-use crate::file_access::FileAccessMock;
+use crate::file_access::FileAccessReadDirMock;
 
 #[test]
 fn check_plan_has_the_required_order_and_flags() {
@@ -96,7 +96,7 @@ fn clean_gate_runs_every_command_then_file_audits() {
     let events_for_layout = Arc::clone(&events);
     let events_for_layout_again = Arc::clone(&events);
     let files = Unimock::new((
-        FileAccessMock::read_dir
+        FileAccessReadDirMock
             .next_call(matching!(_))
             .answers_arc(Arc::new(move |_, _| {
                 events_for_files
@@ -105,7 +105,7 @@ fn clean_gate_runs_every_command_then_file_audits() {
                     .push("file-length".to_owned());
                 Ok(Vec::new())
             })),
-        FileAccessMock::read_dir
+        FileAccessReadDirMock
             .next_call(matching!(_))
             .answers_arc(Arc::new(move |_, _| {
                 events_for_files_again
@@ -114,13 +114,13 @@ fn clean_gate_runs_every_command_then_file_audits() {
                     .push("file-length".to_owned());
                 Ok(Vec::new())
             })),
-        FileAccessMock::read_dir
+        FileAccessReadDirMock
             .next_call(matching!(_))
             .answers_arc(Arc::new(move |_, _| {
                 events_for_layout.lock().unwrap().push("layout".to_owned());
                 Ok(Vec::new())
             })),
-        FileAccessMock::read_dir
+        FileAccessReadDirMock
             .next_call(matching!(_))
             .answers_arc(Arc::new(move |_, _| {
                 events_for_layout_again
