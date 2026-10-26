@@ -164,7 +164,10 @@ async fn failed_runs_exit_seven_without_provider_text() {
 async fn unavailable_runs_warn_that_the_action_may_have_run() {
     let ran = run(
         &run_args(&[]),
-        ran_with(Err(Error::Unavailable { status: None })),
+        ran_with(Err(Error::Unavailable {
+            status: None,
+            retry_after: None,
+        })),
     )
     .await;
     assert_eq!(ran.exit, Exit::Unavailable);

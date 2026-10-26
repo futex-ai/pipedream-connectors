@@ -74,6 +74,7 @@ fn not_found_names_what_to_check_for_each_target() {
 fn rate_limits_exit_five_with_the_wait_time() {
     let limited = |retry_after| Error::RateLimited {
         retry_after,
+        reset_after: None,
         limit: Some(100),
         remaining: Some(0),
         reset: None,

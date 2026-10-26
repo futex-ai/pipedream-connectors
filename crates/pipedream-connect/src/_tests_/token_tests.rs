@@ -104,14 +104,20 @@ async fn failed_refresh_is_not_cached_and_invalid_responses_never_expose_values(
     let harness = Harness::script(
         config(),
         vec![
-            Err(Error::Unavailable { status: None }),
+            Err(Error::Unavailable {
+                status: None,
+                retry_after: None,
+            }),
             Ok(token("fresh", 3600)),
             Ok(response(200, json!({}))),
         ],
     );
     assert!(matches!(
         harness.get().await,
-        Err(Error::Unavailable { status: None })
+        Err(Error::Unavailable {
+            status: None,
+            retry_after: None
+        })
     ));
     harness.get().await.unwrap();
     harness.assert_requests(3);
@@ -158,7 +164,10 @@ async fn a_token_that_expires_during_acquisition_is_never_dispatched() {
         Arc::new(ClientCredentialsProvider::new(config(), transport, clock).unwrap());
     assert!(matches!(
         provider.access_token().await,
-        Err(Error::Unavailable { status: None })
+        Err(Error::Unavailable {
+            status: None,
+            retry_after: None
+        })
     ));
 }
 

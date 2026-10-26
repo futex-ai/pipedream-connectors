@@ -158,9 +158,7 @@ pub(super) fn configure(group: CatalogGroup, request: &ConfigurePropRequest) -> 
         ApiPath::project(&[group.segment(), "configure"]),
     )
     .with_json(request)?
-    .with_response_mode(ResponseMode::Execution {
-        nonblocking: request.blocking != Some(true),
-    }))
+    .with_response_mode(ResponseMode::Execution))
 }
 
 /// Builds a dynamic-property reload request.
@@ -168,9 +166,7 @@ pub(super) fn reload(group: CatalogGroup, request: &ReloadPropsRequest) -> Resul
     Ok(
         ApiRequest::new(Method::POST, ApiPath::project(&[group.segment(), "props"]))
             .with_json(request)?
-            .with_response_mode(ResponseMode::Execution {
-                nonblocking: request.blocking != Some(true),
-            }),
+            .with_response_mode(ResponseMode::Execution),
     )
 }
 
@@ -179,7 +175,7 @@ pub(super) fn run(request: &RunActionRequest) -> Result<ApiRequest> {
     Ok(
         ApiRequest::new(Method::POST, ApiPath::project(&["actions", "run"]))
             .with_json(request)?
-            .with_response_mode(ResponseMode::Execution { nonblocking: true }),
+            .with_response_mode(ResponseMode::Execution),
     )
 }
 

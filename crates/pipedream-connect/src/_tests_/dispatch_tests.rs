@@ -194,7 +194,10 @@ async fn injected_transport_bodies_and_announced_sizes_are_bounded() {
         let harness = Harness::script(config, vec![Ok(reply)]);
         assert!(matches!(
             harness.get().await,
-            Err(Error::ResponseTooLarge { limit: 2 })
+            Err(Error::ResponseTooLarge {
+                status: 200,
+                limit: 2
+            })
         ));
         assert_eq!(harness.request(0).response_limit, 2);
         harness.assert_requests(1);

@@ -128,7 +128,13 @@ async fn action_failures_never_retry_even_with_a_get_retry_policy() {
         assert!(matches!(
             (status, result),
             (429, Err(Error::RateLimited { .. }))
-                | (503, Err(Error::Unavailable { status: Some(503) }))
+                | (
+                    503,
+                    Err(Error::Unavailable {
+                        status: Some(503),
+                        ..
+                    })
+                )
         ));
         harness.assert_requests(2);
     }

@@ -71,11 +71,8 @@ pub enum ResponseMode {
     /// JSON operation with normal status mapping.
     #[default]
     Json,
-    /// Execution operation with structured errors and an optional 202 result.
-    Execution {
-        /// Whether 202 means accepted without waiting for completion.
-        nonblocking: bool,
-    },
+    /// Execution operation with structured errors and accepted 202 results.
+    Execution,
     /// Byte operation with normal status mapping.
     Bytes,
     /// Return a 3xx response to the caller without following it.

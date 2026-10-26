@@ -137,7 +137,10 @@ async fn invalid_initial_pages_send_no_request_and_source_errors_propagate() {
         PageSourceMock::fetch
             .with_types::<u32>()
             .next_call(matching!(_))
-            .returns(Err(Error::Unavailable { status: Some(503) })),
+            .returns(Err(Error::Unavailable {
+                status: Some(503),
+                retry_after: None,
+            })),
     ));
     let paginator: Arc<dyn Paginator<u32> + Send + Sync> = Arc::new(BoundedPaginator::new(source));
     assert!(matches!(
@@ -145,7 +148,10 @@ async fn invalid_initial_pages_send_no_request_and_source_errors_propagate() {
             .paginate(PageRequest::default(), NonZeroUsize::new(1).unwrap())
             .await,
         Err(PaginationError::Interrupted {
-            source: Error::Unavailable { status: Some(503) },
+            source: Error::Unavailable {
+                status: Some(503),
+                retry_after: None,
+            },
             ..
         })
     ));

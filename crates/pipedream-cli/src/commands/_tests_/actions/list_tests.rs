@@ -152,7 +152,10 @@ async fn actions_list_all_names_the_resume_cursor_after_a_failure() {
             .returns(Ok(page(&["first"], Some("cursor_1")))),
         ActionsApiMock::list
             .next_call(matching!((request) if after(request) == Some("cursor_1")))
-            .returns(Err(Error::Unavailable { status: None })),
+            .returns(Err(Error::Unavailable {
+                status: None,
+                retry_after: None,
+            })),
     );
     let ran = run(&["actions", "list", "--all"], clauses).await;
     assert_eq!(ran.exit, Exit::Unavailable);

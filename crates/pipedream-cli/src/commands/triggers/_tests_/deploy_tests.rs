@@ -172,7 +172,10 @@ async fn invalid_deployments_fail_before_reading_props_or_any_request() {
 async fn an_unanswered_deployment_warns_that_the_trigger_may_exist() {
     let ran = run(
         &deploy(&[]),
-        deployed(Err(Error::Unavailable { status: Some(502) })),
+        deployed(Err(Error::Unavailable {
+            status: Some(502),
+            retry_after: None,
+        })),
     )
     .await;
     assert_eq!(ran.exit, Exit::Unavailable);

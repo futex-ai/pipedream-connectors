@@ -11,6 +11,16 @@ pub struct RetryPolicy {
     fallback_delay: Duration,
 }
 
+impl Default for RetryPolicy {
+    fn default() -> Self {
+        Self {
+            max_attempts: NonZeroU32::new(3).map_or(NonZeroU32::MIN, |value| value),
+            max_delay: Duration::from_secs(30),
+            fallback_delay: Duration::from_secs(1),
+        }
+    }
+}
+
 impl RetryPolicy {
     /// Selects total attempts, maximum delay, and delay without Retry-After.
     ///

@@ -50,7 +50,10 @@ impl HttpTransport for ReqwestTransport {
             .content_length()
             .is_some_and(|length| length > limit as u64)
         {
-            return Err(Error::ResponseTooLarge { limit });
+            return Err(Error::ResponseTooLarge {
+                status: response.status().as_u16(),
+                limit,
+            });
         }
         let status = response.status();
         let headers = response.headers().clone();
@@ -59,7 +62,10 @@ impl HttpTransport for ReqwestTransport {
             match response.chunk().await {
                 Ok(Some(chunk)) => {
                     if chunk.len() > limit.saturating_sub(body.len()) {
-                        return Err(Error::ResponseTooLarge { limit });
+                        return Err(Error::ResponseTooLarge {
+                            status: status.as_u16(),
+                            limit,
+                        });
                     }
                     body.extend_from_slice(&chunk);
                 }
@@ -86,5 +92,8 @@ fn transport_error(error: reqwest::Error) -> Error {
         error = %error.without_url(),
         "Pipedream transport failure"
     );
-    Error::Unavailable { status: None }
+    Error::Unavailable {
+        status: None,
+        retry_after: None,
+    }
 }

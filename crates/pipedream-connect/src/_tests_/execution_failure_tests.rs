@@ -26,7 +26,7 @@ async fn malformed_execution_fields_remain_execution_failures_and_stay_lossless(
     for (body, failed_field) in cases {
         let harness = Harness::script(static_config(), vec![Ok(response(200, body.clone()))]);
         let request = ApiRequest::new(Method::POST, ApiPath::project(&["actions", "run"]))
-            .with_response_mode(ResponseMode::Execution { nonblocking: false });
+            .with_response_mode(ResponseMode::Execution);
         let error = harness
             .client
             .dispatcher()
@@ -48,4 +48,26 @@ async fn malformed_execution_fields_remain_execution_failures_and_stay_lossless(
         }
         harness.assert_requests(1);
     }
+}
+
+#[tokio::test]
+async fn execution_error_decoding_ignores_other_top_level_members() {
+    let harness = Harness::script(
+        static_config(),
+        vec![Ok(response(
+            200,
+            json!({
+                "error": {"name": "provider-error"},
+                "result": {"sensitive": "provider-data"},
+                "future": [1, 2, 3]
+            }),
+        ))],
+    );
+    let request = ApiRequest::new(Method::POST, ApiPath::project(&["actions", "run"]))
+        .with_response_mode(ResponseMode::Execution);
+    assert!(matches!(
+        harness.client.dispatcher().dispatch(request).await,
+        Err(Error::ExecutionFailed { .. })
+    ));
+    harness.assert_requests(1);
 }

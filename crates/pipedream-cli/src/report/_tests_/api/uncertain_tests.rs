@@ -14,7 +14,13 @@ use super::{MAY_HAVE_RUN, REPORT, text};
 #[test]
 fn unavailability_names_the_origin_and_warns_after_a_mutation() {
     assert_eq!(
-        text(Target::Apps, &Error::Unavailable { status: None }),
+        text(
+            Target::Apps,
+            &Error::Unavailable {
+                status: None,
+                retry_after: None
+            }
+        ),
         Failure::new(
             Exit::Unavailable,
             "The CLI could not reach Pipedream at https://api.pipedream.com. Check the network \
@@ -24,7 +30,10 @@ fn unavailability_names_the_origin_and_warns_after_a_mutation() {
     assert_eq!(
         describe(
             Target::Apps,
-            &Error::Unavailable { status: Some(503) },
+            &Error::Unavailable {
+                status: Some(503),
+                retry_after: None
+            },
             "https://api.example.com"
         ),
         Failure::new(
@@ -33,7 +42,13 @@ fn unavailability_names_the_origin_and_warns_after_a_mutation() {
         )
     );
     assert_eq!(
-        text(Target::ActionRun, &Error::Unavailable { status: None }),
+        text(
+            Target::ActionRun,
+            &Error::Unavailable {
+                status: None,
+                retry_after: None
+            }
+        ),
         Failure::new(
             Exit::Unavailable,
             format!(
@@ -45,7 +60,10 @@ fn unavailability_names_the_origin_and_warns_after_a_mutation() {
 
 #[test]
 fn unreadable_responses_exit_one_and_warn_after_a_mutation() {
-    let large = Error::ResponseTooLarge { limit: 10 << 20 };
+    let large = Error::ResponseTooLarge {
+        status: 0,
+        limit: 10 << 20,
+    };
     assert_eq!(
         text(Target::Apps, &large),
         Failure::new(
@@ -55,7 +73,13 @@ fn unreadable_responses_exit_one_and_warn_after_a_mutation() {
         )
     );
     assert_eq!(
-        text(Target::App, &Error::ResponseTooLarge { limit: 1000 }),
+        text(
+            Target::App,
+            &Error::ResponseTooLarge {
+                status: 0,
+                limit: 1000
+            }
+        ),
         Failure::new(
             Exit::Internal,
             format!(

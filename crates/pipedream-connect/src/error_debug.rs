@@ -18,12 +18,14 @@ impl fmt::Debug for Error {
             Self::NotFound { .. } => formatter.write_str("NotFound"),
             Self::RateLimited {
                 retry_after,
+                reset_after,
                 limit,
                 remaining,
                 reset,
             } => formatter
                 .debug_struct("RateLimited")
                 .field("retry_after", retry_after)
+                .field("reset_after", reset_after)
                 .field("limit", limit)
                 .field("remaining", remaining)
                 .field("reset", reset)
@@ -41,12 +43,17 @@ impl fmt::Debug for Error {
                 )
                 .finish_non_exhaustive(),
             Self::Accepted => formatter.write_str("Accepted"),
-            Self::Unavailable { status } => formatter
+            Self::Unavailable {
+                status,
+                retry_after,
+            } => formatter
                 .debug_struct("Unavailable")
                 .field("status", status)
+                .field("retry_after", retry_after)
                 .finish(),
-            Self::ResponseTooLarge { limit } => formatter
+            Self::ResponseTooLarge { status, limit } => formatter
                 .debug_struct("ResponseTooLarge")
+                .field("status", status)
                 .field("limit", limit)
                 .finish(),
             Self::Internal(source) => formatter.debug_tuple("Internal").field(source).finish(),

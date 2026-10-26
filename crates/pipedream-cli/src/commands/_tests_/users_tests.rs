@@ -74,6 +74,7 @@ async fn users_list_rate_limit_exits_five() {
             .next_call(matching!(_))
             .returns(Err(Error::RateLimited {
                 retry_after: None,
+                reset_after: None,
                 limit: None,
                 remaining: None,
                 reset: None,

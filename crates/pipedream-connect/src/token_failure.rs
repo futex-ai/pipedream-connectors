@@ -18,11 +18,13 @@ pub(crate) fn repeat_failure(error: &Arc<Error>) -> Error {
         },
         Error::RateLimited {
             retry_after,
+            reset_after,
             limit,
             remaining,
             reset,
         } => Error::RateLimited {
             retry_after: *retry_after,
+            reset_after: *reset_after,
             limit: *limit,
             remaining: *remaining,
             reset: *reset,
@@ -36,8 +38,17 @@ pub(crate) fn repeat_failure(error: &Arc<Error>) -> Error {
             code: code.clone(),
             message: message.clone(),
         },
-        Error::Unavailable { status } => Error::Unavailable { status: *status },
-        Error::ResponseTooLarge { limit } => Error::ResponseTooLarge { limit: *limit },
+        Error::Unavailable {
+            status,
+            retry_after,
+        } => Error::Unavailable {
+            status: *status,
+            retry_after: *retry_after,
+        },
+        Error::ResponseTooLarge { status, limit } => Error::ResponseTooLarge {
+            status: *status,
+            limit: *limit,
+        },
         Error::ExecutionFailed {
             status,
             error: execution,

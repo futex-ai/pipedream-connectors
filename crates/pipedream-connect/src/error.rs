@@ -104,6 +104,8 @@ pub enum Error {
     RateLimited {
         /// Parsed Retry-After delay.
         retry_after: Option<Duration>,
+        /// Parsed custom rate-limit reset delay.
+        reset_after: Option<Duration>,
         /// Request limit.
         limit: Option<u64>,
         /// Remaining requests.
@@ -129,7 +131,7 @@ pub enum Error {
         /// Structured provider execution details.
         error: Box<ExecutionError>,
     },
-    /// A nonblocking execution was accepted for later completion.
+    /// An execution was accepted for later completion.
     #[error("[pipedream-connect/execution] accepted")]
     Accepted,
     /// A timeout, transport error, 408, or 5xx occurred. The request may have run.
@@ -137,10 +139,14 @@ pub enum Error {
     Unavailable {
         /// HTTP status, if a response was received.
         status: Option<u16>,
+        /// Parsed Retry-After delay, when a response supplied it.
+        retry_after: Option<Duration>,
     },
     /// A response exceeded its configured byte limit.
     #[error("[pipedream-connect/http] response exceeded {limit} bytes")]
     ResponseTooLarge {
+        /// HTTP status of the response that exceeded the limit.
+        status: u16,
         /// Configured response byte limit.
         limit: usize,
     },

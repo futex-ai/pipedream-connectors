@@ -73,7 +73,10 @@ async fn an_unanswered_delete_warns_that_the_trigger_may_be_gone() {
                 matching!((_, request) if request.ignore_hook_errors.is_none()
                 && !request.missing_ok),
             )
-            .returns(Err(Error::Unavailable { status: None })),
+            .returns(Err(Error::Unavailable {
+                status: None,
+                retry_after: None,
+            })),
     );
     let ran = run(&trigger("delete"), clauses).await;
     assert_eq!(ran.exit, Exit::Unavailable);

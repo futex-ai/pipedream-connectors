@@ -31,7 +31,7 @@ async fn known_statuses_keep_typed_categories_and_redacted_messages() {
             | (404, Error::NotFound { message }) => {
                 assert_eq!(message.as_deref(), Some("provider-secret"))
             }
-            (408 | 500..=599, Error::Unavailable { status: actual }) => {
+            (408 | 500..=599, Error::Unavailable { status: actual, .. }) => {
                 assert_eq!(actual, Some(status))
             }
             (
@@ -41,6 +41,7 @@ async fn known_statuses_keep_typed_categories_and_redacted_messages() {
                     limit,
                     remaining,
                     reset,
+                    ..
                 },
             ) => assert_eq!(
                 (retry_after, limit, remaining, reset),
@@ -128,7 +129,7 @@ async fn retry_after_and_rate_limit_headers_are_optional_and_case_insensitive() 
             .insert("X-RateLimit-Reset", HeaderValue::from_static("1200"));
         let harness = Harness::script(static_config(), vec![Ok(reply)]);
         assert!(
-            matches!(harness.get().await, Err(Error::RateLimited { retry_after, limit: Some(100), remaining: Some(0), reset: Some(1200) }) if retry_after == expected.map(Duration::from_secs))
+            matches!(harness.get().await, Err(Error::RateLimited { retry_after, limit: Some(100), remaining: Some(0), reset: Some(1200), .. }) if retry_after == expected.map(Duration::from_secs))
         );
         harness.assert_requests(1);
     }
@@ -172,7 +173,7 @@ async fn execution_attribution_and_provider_text_stay_available_as_data() {
             );
             let harness = Harness::script(static_config(), vec![Ok(reply)]);
             let request = ApiRequest::new(Method::POST, ApiPath::project(&["actions", "run"]))
-                .with_response_mode(ResponseMode::Execution { nonblocking: false });
+                .with_response_mode(ResponseMode::Execution);
             let error = harness
                 .client
                 .dispatcher()
@@ -204,7 +205,7 @@ async fn accepted_and_redirect_results_require_the_operation_contract() {
         static_config(),
         vec![
             Ok(response(202, json!({}))),
-            Ok(response(202, json!({}))),
+            Ok(response(202, json!({"error":{"name":"still-pending"}}))),
             Ok(response(202, json!({}))),
             Ok(response(302, json!({}))),
             Ok(response(204, json!(null))),
@@ -219,20 +220,18 @@ async fn accepted_and_redirect_results_require_the_operation_contract() {
         harness
             .client
             .dispatcher()
-            .dispatch(operation(ResponseMode::Execution { nonblocking: true }))
+            .dispatch(operation(ResponseMode::Execution))
             .await,
         Err(Error::Accepted)
     ));
-    assert_eq!(
+    assert!(matches!(
         harness
             .client
             .dispatcher()
-            .dispatch(operation(ResponseMode::Execution { nonblocking: false }))
-            .await
-            .unwrap()
-            .status,
-        202
-    );
+            .dispatch(operation(ResponseMode::Execution))
+            .await,
+        Err(Error::Accepted)
+    ));
     assert_eq!(
         harness
             .client
@@ -266,7 +265,7 @@ async fn an_execution_error_object_cannot_be_an_empty_success() {
         ))],
     );
     let request = ApiRequest::new(Method::POST, ApiPath::project(&["actions", "run"]))
-        .with_response_mode(ResponseMode::Execution { nonblocking: false });
+        .with_response_mode(ResponseMode::Execution);
     let error = harness
         .client
         .dispatcher()

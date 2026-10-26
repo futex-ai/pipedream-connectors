@@ -50,6 +50,7 @@ async fn categories_rate_limit_exits_five_with_the_wait_time() {
             .next_call(matching!())
             .returns(Err(Error::RateLimited {
                 retry_after: Some(Duration::from_secs(30)),
+                reset_after: None,
                 limit: Some(60),
                 remaining: Some(0),
                 reset: Some(1_700_000_030),
