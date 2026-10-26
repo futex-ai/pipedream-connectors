@@ -240,8 +240,9 @@ print them. Only a command that exists to produce a credential prints it
 without the flag: `tokens create` prints the Connect token and the Connect
 Link URL. Provider fields that the SDK does not model print as they are.
 
-An action run that Pipedream accepts for later completion prints
-`{"status": "accepted"}` and exits with code 0.
+Pipedream answers an action run that it accepts for later completion with
+status 202. Every such answer prints `{"status": "accepted"}` and exits with
+code 0.
 
 ### Exit codes
 
@@ -262,16 +263,23 @@ Each error names what failed and gives one recovery action. Validation errors
 name the flag, the variable, or the argument. A JSON input error gives only
 the line and the column. JSON that nests more than 127 levels of arrays and
 objects gets its own message. Errors never print a secret, a bearer, a
-response body, or the provider message. A failed action names where it
-failed, for example the component code or the app API with its status. A
-network failure names the API origin. A rate-limit error names the wait that
-Pipedream asks for, rounded up to whole seconds. Without a wait, or with a
-zero wait, it asks you to wait a moment. After a command that changes data, an
-unanswered or unreadable response can mean that the change happened, and the
-error says so. When Pipedream makes the change but the CLI cannot print the
-result, for example because standard output is closed, the command exits with
-code 1 and the error says that the change happened. A failure that the user
-cannot fix links to the
+response body, or the provider message.
+
+A failed action names where it failed, for example the component code or the
+app API with its status. A network failure names the API origin. A rate-limit
+error names the longer of the `Retry-After` and `X-PD-Rate-Limit-Reset-In`
+waits. A 408 or 5xx answer names its `Retry-After` wait. Each wait is rounded
+up to whole seconds. Without a wait, or with a zero wait, the error asks you
+to wait a moment or to try again later.
+
+A response larger than the 10 MiB limit exits with code 1, and its error names
+the response status. After a command that changes data, an unanswered or
+unreadable response can mean that the change happened, and the error says so.
+When Pipedream makes the change but the CLI cannot print the result, the
+command exits with code 1 and the error says that the change happened. This
+covers a closed standard output and an oversized answer with a success status.
+
+A failure that the user cannot fix links to the
 [issue tracker](https://github.com/futex-ai/pipedream-connectors/issues).
 
 ## Quick Start

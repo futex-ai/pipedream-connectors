@@ -82,6 +82,23 @@ fn a_retryable_interruption_gives_the_resume_command_as_its_one_action() {
 }
 
 #[test]
+fn a_server_delay_comes_before_the_resume_hint() {
+    let unavailable = pipedream_connect::error::Error::Unavailable {
+        status: Some(503),
+        retry_after: Some(Duration::from_secs(30)),
+    };
+    assert_eq!(
+        interrupted(1, after("cursor_5"), unavailable),
+        Failure::new(
+            Exit::Unavailable,
+            "Pipedream at https://api.pipedream.com is unavailable with status 503. The CLI \
+             read 1 page before the failure. Wait 30 seconds, then run the command again with \
+             --after 'cursor_5'."
+        )
+    );
+}
+
+#[test]
 fn a_zero_wait_never_reaches_the_resume_hint() {
     let limited = pipedream_connect::error::Error::RateLimited {
         retry_after: Some(Duration::ZERO),

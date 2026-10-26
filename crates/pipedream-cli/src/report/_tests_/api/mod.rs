@@ -2,6 +2,7 @@
 
 mod status_tests;
 mod uncertain_tests;
+mod wait_tests;
 
 use pipedream_connect::error::Error;
 use pipedream_connect_types::ExecutionError;

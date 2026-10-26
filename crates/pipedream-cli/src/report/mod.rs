@@ -6,3 +6,4 @@ pub(crate) mod failure;
 mod input;
 pub(crate) mod outcome;
 mod target;
+mod wait;

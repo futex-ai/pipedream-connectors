@@ -59,45 +59,60 @@ fn unavailability_names_the_origin_and_warns_after_a_mutation() {
 }
 
 #[test]
-fn unreadable_responses_exit_one_and_warn_after_a_mutation() {
-    let large = Error::ResponseTooLarge {
-        status: 0,
+fn oversized_responses_exit_one_and_name_their_status() {
+    let large = |status| Error::ResponseTooLarge {
+        status,
         limit: 10 << 20,
     };
-    assert_eq!(
-        text(Target::Apps, &large),
-        Failure::new(
-            Exit::Internal,
-            "The Pipedream response is larger than 10 MiB, so the CLI could not read it. \
-             Request fewer records with --limit."
+    let summary = |status| {
+        format!(
+            "The Pipedream response with status {status} is larger than 10 MiB, so the CLI \
+             could not read it."
         )
-    );
+    };
+    let cases = [
+        (
+            Target::Apps,
+            200,
+            "Request fewer records with --limit.".to_owned(),
+        ),
+        (Target::Apps, 500, REPORT.to_owned()),
+        (Target::ActionRun, 502, MAY_HAVE_RUN.to_owned()),
+        (
+            Target::ActionRun,
+            200,
+            "Pipedream ran the action or accepted it for later completion. Check its effects \
+             before you run it again."
+                .to_owned(),
+        ),
+    ];
+    for (target, status, action) in cases {
+        assert_eq!(
+            text(target, &large(status)),
+            Failure::new(Exit::Internal, format!("{} {action}", summary(status))),
+            "{target:?} {status}"
+        );
+    }
     assert_eq!(
         text(
             Target::App,
             &Error::ResponseTooLarge {
-                status: 0,
+                status: 200,
                 limit: 1000
             }
         ),
         Failure::new(
             Exit::Internal,
             format!(
-                "The Pipedream response is larger than 1000 bytes, so the CLI could not read \
-                 it. {REPORT}"
+                "The Pipedream response with status 200 is larger than 1000 bytes, so the CLI \
+                 could not read it. {REPORT}"
             )
         )
     );
-    assert_eq!(
-        text(Target::ActionRun, &large),
-        Failure::new(
-            Exit::Internal,
-            format!(
-                "The Pipedream response is larger than 10 MiB, so the CLI could not read it. \
-                 {MAY_HAVE_RUN}"
-            )
-        )
-    );
+}
+
+#[test]
+fn unreadable_responses_exit_one_and_warn_after_a_mutation() {
     let decode = || Error::internal(io::Error::other("decode"));
     let unreadable = "Pipedream returned a response that the CLI cannot read.";
     assert_eq!(
