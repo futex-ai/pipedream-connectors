@@ -1,10 +1,5 @@
 //! Validated identifiers used in Connect paths and request bodies.
 
-#![allow(
-    clippy::disallowed_methods,
-    reason = "serde's try_from derives generate map_err"
-)]
-
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -37,8 +32,7 @@ pub(crate) fn prefixed_alphanumeric(value: &str, prefix: &str) -> bool {
 macro_rules! identifier {
     ($name:ident, $kind:ident, $doc:literal, $validator:expr) => {
         #[doc = $doc]
-        #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-        #[serde(try_from = "String", into = "String")]
+        #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
         pub struct $name(String);
 
         impl $name {
@@ -65,6 +59,19 @@ macro_rules! identifier {
 
             fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
                 Self::new(value)
+            }
+        }
+
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                let value = String::deserialize(deserializer)?;
+                match Self::new(value) {
+                    Ok(identifier) => Ok(identifier),
+                    Err(error) => Err(serde::de::Error::custom(error)),
+                }
             }
         }
 

@@ -5,7 +5,7 @@ use pipedream_connect_types::{ExternalUserId, SecretString, WorkflowRequest};
 use serde_json::json;
 
 use crate::error::Error;
-use crate::resources::test_support::assert_wire;
+use crate::resources::test_support::{ExpectedBody, assert_wire};
 use crate::tests::support::{Harness, response, static_config};
 
 #[tokio::test]
@@ -28,7 +28,7 @@ async fn workflow_invocation_sends_endpoint_headers_and_bytes() {
             ExternalUserId::new("user_1").unwrap(),
             Method::POST,
             WorkflowRequest {
-                body: Some(b"{\"message\":\"hello\"}".to_vec()),
+                body: Some(br#"{ "message": "hello" }"#.to_vec()),
                 content_type: Some("application/json".into()),
             },
         )
@@ -46,7 +46,7 @@ async fn workflow_invocation_sends_endpoint_headers_and_bytes() {
             ("x-pd-environment", "development"),
             ("content-type", "application/json"),
         ],
-        Some(&json!({"message":"hello"})),
+        Some(ExpectedBody::Exact(br#"{ "message": "hello" }"#)),
     );
     assert!(!request.headers.contains_key("x-pd-rate-limit"));
     harness.assert_requests(1);

@@ -39,9 +39,13 @@ Typed models MUST preserve integer values exactly only when they fit in the
 `i64` or `u64` range. Larger integers and long decimal values can round during
 decoding or re-encoding.
 
-Webhook payload fields MUST preserve the exact JSON text supplied by Pipedream.
+RawJson fields MUST preserve the exact JSON text supplied by Pipedream. These
+fields are the trigger `event`, the connection session ID, and unknown fields.
+Typed fields MUST preserve their values but MAY change their JSON text during
+decoding and re-encoding.
 
 Date fields MUST accept RFC 3339 strings and epoch-millisecond numbers.
+Usage records and project webhook date fields MUST accept epoch-second numbers.
 
 A date field MUST re-encode in the wire form that it decoded. When a field that
 the OpenAPI document types as an integer decodes an integer value, it MUST

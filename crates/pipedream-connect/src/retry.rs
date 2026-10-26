@@ -1,4 +1,6 @@
-//! Explicit GET retry budgets without SDK retry defaults.
+//! Explicit GET retry budgets with an SDK default policy.
+//!
+//! The client uses a retry policy only when the caller supplies one.
 
 use std::num::NonZeroU32;
 use std::time::Duration;

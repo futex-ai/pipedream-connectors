@@ -3,7 +3,7 @@
 use pipedream_connect_types::SetWebhookRequest;
 use serde_json::json;
 
-use crate::resources::test_support::assert_wire;
+use crate::resources::test_support::{ExpectedBody, assert_wire};
 use crate::tests::support::{Harness, response, static_config};
 
 #[tokio::test]
@@ -51,7 +51,7 @@ async fn project_webhook_operations_keep_wire_envelopes_and_redact_keys() {
             ("accept", "application/json"),
             ("content-type", "application/json"),
         ],
-        Some(&json!({"url":"https://example.com"})),
+        Some(ExpectedBody::Json(&json!({"url":"https://example.com"}))),
     );
     harness.assert_requests(4);
 }

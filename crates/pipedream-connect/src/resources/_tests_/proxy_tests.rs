@@ -9,7 +9,7 @@ use serde_json::json;
 
 use crate::error::Error;
 use crate::resources::proxy::ProxyRequest;
-use crate::resources::test_support::assert_wire;
+use crate::resources::test_support::{ExpectedBody, assert_wire};
 use crate::tests::support::{Harness, config, response, static_config};
 
 fn account() -> AccountRef {
@@ -102,31 +102,31 @@ async fn proxy_exposes_all_documented_methods() {
     harness
         .client
         .proxy()
-        .get(ProxyRequest::post(account(), "/resource"))
+        .get(ProxyRequest::post(account(), "/resource").with_body(vec![9, 8, 7]))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .post(ProxyRequest::get(account(), "/resource"))
+        .post(ProxyRequest::get(account(), "/resource").with_body(vec![9, 8, 7]))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .put(ProxyRequest::delete(account(), "/resource"))
+        .put(ProxyRequest::delete(account(), "/resource").with_body(vec![9, 8, 7]))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .patch(ProxyRequest::get(account(), "/resource"))
+        .patch(ProxyRequest::get(account(), "/resource").with_body(vec![9, 8, 7]))
         .await
         .unwrap();
     harness
         .client
         .proxy()
-        .delete(ProxyRequest::post(account(), "/resource"))
+        .delete(ProxyRequest::post(account(), "/resource").with_body(vec![9, 8, 7]))
         .await
         .unwrap();
     for (index, method) in [
@@ -151,7 +151,7 @@ async fn proxy_exposes_all_documented_methods() {
                 ("authorization", "Bearer static-secret"),
                 ("x-pd-environment", "development"),
             ],
-            None,
+            Some(ExpectedBody::Exact(&[9, 8, 7])),
         );
     }
     harness.assert_requests(5);
@@ -223,6 +223,7 @@ async fn invalid_proxy_targets_are_rejected_before_authentication() {
     for target in [
         "http://example.com/resource",
         "https://user:secret@example.com/resource",
+        "https://@example.com/a",
         "https://example.com/resource#fragment",
         "//example.com/resource",
         "/\\evil.example/api",

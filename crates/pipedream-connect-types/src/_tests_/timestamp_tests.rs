@@ -4,9 +4,11 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
+use crate::Timestamp;
 use crate::{
     Account, AppOverride, ConnectTokenResponse, EmittedEvent, Emitter, ExternalUser, HttpInterface,
-    OauthApp, Observation, TimerInterface, UsageRecord, Webhook,
+    OauthApp, Observation, TimerInterface, UsageRecord, Webhook, WebhookWithOptionalSigningKey,
+    WebhookWithSigningKey,
 };
 
 const RFC3339: &str = "2026-01-01T00:00:00Z";
@@ -70,6 +72,87 @@ fn integer_schema_dates_preserve_integer_output() {
         &["usage_start_ts", "usage_end_ts"],
     );
     assert_forms::<EmittedEvent>(json!({"e":{},"k":"emit","ts":0,"id":"event_1"}), &["ts"]);
+}
+
+#[test]
+fn epoch_seconds_schema_dates_decode_as_seconds_and_preserve_input() {
+    let seconds = 1_700_000_000;
+    assert_seconds(
+        json!({"credits_used":1,"usage_start_ts":seconds,"usage_end_ts":seconds}),
+        "usage_start_ts",
+        |value: &UsageRecord| &value.usage_start_ts,
+        seconds,
+    );
+    assert_seconds(
+        json!({"credits_used":1,"usage_start_ts":seconds,"usage_end_ts":seconds}),
+        "usage_end_ts",
+        |value: &UsageRecord| &value.usage_end_ts,
+        seconds,
+    );
+    for field in ["created_at", "updated_at"] {
+        assert_seconds(
+            json!({
+                "id":"wh_sample","url":"https://example.com","signing_key_set":false,
+                "created_at":seconds,"updated_at":seconds
+            }),
+            field,
+            if field == "created_at" {
+                (|value: &Webhook| &value.created_at) as fn(&Webhook) -> &Timestamp
+            } else {
+                (|value: &Webhook| &value.updated_at) as fn(&Webhook) -> &Timestamp
+            },
+            seconds,
+        );
+        assert_seconds(
+            json!({
+                "id":"wh_sample","url":"https://example.com","signing_key_set":false,
+                "created_at":seconds,"updated_at":seconds
+            }),
+            field,
+            if field == "created_at" {
+                (|value: &WebhookWithOptionalSigningKey| &value.created_at)
+                    as fn(&WebhookWithOptionalSigningKey) -> &Timestamp
+            } else {
+                (|value: &WebhookWithOptionalSigningKey| &value.updated_at)
+                    as fn(&WebhookWithOptionalSigningKey) -> &Timestamp
+            },
+            seconds,
+        );
+        assert_seconds(
+            json!({
+                "id":"wh_sample","url":"https://example.com","signing_key":"secret",
+                "signing_key_set":true,"created_at":seconds,"updated_at":seconds
+            }),
+            field,
+            if field == "created_at" {
+                (|value: &WebhookWithSigningKey| &value.created_at)
+                    as fn(&WebhookWithSigningKey) -> &Timestamp
+            } else {
+                (|value: &WebhookWithSigningKey| &value.updated_at)
+                    as fn(&WebhookWithSigningKey) -> &Timestamp
+            },
+            seconds,
+        );
+    }
+}
+
+fn assert_seconds<T>(
+    sample: Value,
+    field: &str,
+    timestamp: fn(&T) -> &Timestamp,
+    expected_seconds: i64,
+) where
+    T: DeserializeOwned + Serialize,
+{
+    let decoded: T = serde_json::from_value(sample).unwrap();
+    assert_eq!(
+        timestamp(&decoded).as_datetime().timestamp(),
+        expected_seconds
+    );
+    assert_eq!(
+        serde_json::to_value(decoded).unwrap()[field],
+        json!(expected_seconds)
+    );
 }
 
 #[test]

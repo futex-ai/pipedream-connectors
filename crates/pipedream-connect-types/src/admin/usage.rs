@@ -18,9 +18,11 @@ pub struct UsageRecord {
     /// Trigger emission credits.
     #[serde(default)]
     pub source_emit_credits_used: Option<i64>,
-    /// Start timestamp.
+    /// Start timestamp in epoch seconds.
+    #[serde(deserialize_with = "crate::shared::deserialize_timestamp_seconds")]
     pub usage_start_ts: Timestamp,
-    /// End timestamp.
+    /// End timestamp in epoch seconds.
+    #[serde(deserialize_with = "crate::shared::deserialize_timestamp_seconds")]
     pub usage_end_ts: Timestamp,
     /// Unknown provider fields.
     #[serde(flatten)]
