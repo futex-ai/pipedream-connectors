@@ -7,7 +7,7 @@ use pipedream_connect_types::{
 use serde_json::json;
 
 use crate::error::Error;
-use crate::resources::test_support::assert_wire;
+use crate::resources::test_support::{ExpectedBody, assert_wire};
 use crate::tests::support::{Harness, config, response, static_config};
 
 #[tokio::test]
@@ -50,7 +50,7 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
             ("accept", "application/json"),
             ("content-type", "application/json"),
         ],
-        Some(&json!({
+        Some(ExpectedBody::Json(&json!({
             "external_user_id":"user_1",
             "project_id":"proj_Test123",
             "expires_in":14400,
@@ -60,7 +60,7 @@ async fn create_validates_urls_before_authentication_and_sends_the_exact_body() 
             ,"allowed_origins":["https://app.example.com"]
             ,"scope":"connect:accounts:read"
             ,"allow_progressive_scopes":true
-        })),
+        }))),
     );
     harness.assert_requests(1);
 

@@ -3,11 +3,11 @@
 use pipedream_connect_types::RateLimitRequest;
 use serde_json::json;
 
-use crate::resources::test_support::assert_wire;
+use crate::resources::test_support::{ExpectedBody, assert_wire};
 use crate::tests::support::{Harness, response, static_config};
 
 #[tokio::test]
-async fn rate_limit_token_is_wrapped_and_request_body_is_exact() {
+async fn rate_limit_token_is_wrapped_and_request_body_matches_json() {
     let harness = Harness::script(
         static_config(),
         vec![
@@ -36,7 +36,9 @@ async fn rate_limit_token_is_wrapped_and_request_body_is_exact() {
             ("accept", "application/json"),
             ("content-type", "application/json"),
         ],
-        Some(&json!({"window_size_seconds":5,"requests_per_window":10})),
+        Some(ExpectedBody::Json(
+            &json!({"window_size_seconds":5,"requests_per_window":10}),
+        )),
     );
     let configured = harness
         .client

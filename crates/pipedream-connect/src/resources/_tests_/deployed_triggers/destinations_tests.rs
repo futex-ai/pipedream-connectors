@@ -6,7 +6,7 @@ use pipedream_connect_types::{
 };
 use serde_json::json;
 
-use crate::resources::test_support::assert_wire;
+use crate::resources::test_support::{ExpectedBody, assert_wire};
 use crate::tests::support::{Harness, response};
 
 use super::support::{query, trigger_id, webhook_id};
@@ -150,7 +150,7 @@ async fn workflow_and_webhook_updates_use_tenant_queries_and_json_bodies() {
             ("accept", "application/json"),
             ("content-type", "application/json"),
         ],
-        Some(&json!({"workflow_ids":["p_workflow1"]})),
+        Some(ExpectedBody::Json(&json!({"workflow_ids":["p_workflow1"]}))),
     );
     assert_wire(
         &harness.request(2),
@@ -162,7 +162,9 @@ async fn workflow_and_webhook_updates_use_tenant_queries_and_json_bodies() {
             ("accept", "application/json"),
             ("content-type", "application/json"),
         ],
-        Some(&json!({"webhook_urls":["http://127.0.0.1:50151/events"]})),
+        Some(ExpectedBody::Json(
+            &json!({"webhook_urls":["http://127.0.0.1:50151/events"]}),
+        )),
     );
     for index in 1..=2 {
         assert!(

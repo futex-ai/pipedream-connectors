@@ -53,7 +53,7 @@ pub(crate) use string_enum;
 /// Unknown response fields preserved during decoding and re-encoding.
 pub type UnknownFields = BTreeMap<String, Value>;
 
-/// An RFC 3339 or epoch-millisecond timestamp decoded to UTC.
+/// An RFC 3339, epoch-millisecond, or epoch-second timestamp decoded to UTC.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Timestamp {
     date: DateTime<Utc>,
@@ -64,6 +64,7 @@ pub struct Timestamp {
 enum TimestampEncoding {
     Rfc3339,
     EpochMillis(Number),
+    EpochSeconds(Number),
 }
 
 impl Timestamp {
@@ -92,6 +93,17 @@ impl Timestamp {
             .map(|date| Self {
                 date,
                 encoding: TimestampEncoding::EpochMillis(Number::from(value)),
+            })
+            .ok_or(Error::InvalidTimestamp)
+    }
+
+    /// Decodes an integer epoch-second value.
+    pub fn from_seconds(value: i64) -> Result<Self> {
+        Utc.timestamp_opt(value, 0)
+            .single()
+            .map(|date| Self {
+                date,
+                encoding: TimestampEncoding::EpochSeconds(Number::from(value)),
             })
             .ok_or(Error::InvalidTimestamp)
     }
@@ -152,7 +164,32 @@ impl Serialize for Timestamp {
         match &self.encoding {
             TimestampEncoding::Rfc3339 => self.date.serialize(serializer),
             TimestampEncoding::EpochMillis(value) => value.serialize(serializer),
+            TimestampEncoding::EpochSeconds(value) => value.serialize(serializer),
         }
+    }
+}
+
+pub(crate) fn deserialize_timestamp_seconds<'de, D>(
+    deserializer: D,
+) -> std::result::Result<Timestamp, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Value::deserialize(deserializer)?;
+    if let Some(seconds) = value.as_i64() {
+        return match Timestamp::from_seconds(seconds) {
+            Ok(timestamp) => Ok(timestamp),
+            Err(error) => Err(serde::de::Error::custom(error)),
+        };
+    }
+    if value.is_number() {
+        return Err(serde::de::Error::custom(
+            "epoch-second timestamp must be an integer",
+        ));
+    }
+    match Timestamp::deserialize(value) {
+        Ok(timestamp) => Ok(timestamp),
+        Err(error) => Err(serde::de::Error::custom(error)),
     }
 }
 

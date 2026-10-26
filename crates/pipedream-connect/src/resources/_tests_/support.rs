@@ -89,8 +89,16 @@ pub(super) fn assert_post(request: HttpRequest, path: &str, expected: &Value) {
             ("accept", "application/json"),
             ("content-type", "application/json"),
         ],
-        Some(expected),
+        Some(ExpectedBody::Json(expected)),
     );
+}
+
+#[derive(Debug)]
+pub(super) enum ExpectedBody<'a> {
+    /// Compares the request body as JSON data.
+    Json(&'a Value),
+    /// Compares every request body byte.
+    Exact(&'a [u8]),
 }
 
 pub(super) fn assert_wire(
@@ -98,14 +106,15 @@ pub(super) fn assert_wire(
     method: Method,
     url: &str,
     required_headers: &[(&str, &str)],
-    body: Option<&Value>,
+    body: Option<ExpectedBody<'_>>,
 ) {
     assert_eq!(request.method, method);
     assert_eq!(request.url.expose_secret(), url);
     match (request.body.as_deref(), body) {
-        (Some(actual), Some(expected)) => {
+        (Some(actual), Some(ExpectedBody::Json(expected))) => {
             assert_eq!(serde_json::from_slice::<Value>(actual).unwrap(), *expected);
         }
+        (Some(actual), Some(ExpectedBody::Exact(expected))) => assert_eq!(actual, expected),
         (None, None) => {}
         (actual, expected) => panic!("body mismatch: actual={actual:?}, expected={expected:?}"),
     }

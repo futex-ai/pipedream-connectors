@@ -9,9 +9,9 @@ requests and responses without an HTTP client or an async runtime.
 - Validate Connect identifiers and bounded request values.
 - Serialize and deserialize registry, account, execution, trigger, and
   administration models.
-- Decode date fields from RFC 3339 strings or epoch milliseconds and preserve
-  the decoded wire form when models re-encode. Call `Timestamp::as_datetime`
-  for the UTC value.
+- Decode date fields from RFC 3339 strings or epoch milliseconds. Usage records
+  and project webhook dates use epoch seconds. Preserve the decoded wire form
+  when models re-encode. Call `Timestamp::as_datetime` for the UTC value.
 - Send trigger callback URLs unchanged when a client sends a deployment or
   webhook update.
 - Preserve unknown response fields, enum values, and property definitions.
@@ -56,7 +56,8 @@ strings.
 The public `UrlRules`, `parse_validated`, and `is_valid` helpers share URL
 boundary checks for API origins, workflow endpoints, HTTPS hosts, and proxy
 targets. Proxy targets may be absolute HTTPS URLs or single-slash relative
-paths.
+paths. `parse_validated` checks only absolute proxy targets. Use `is_valid` to
+check relative proxy paths.
 
 ## Quick Start
 

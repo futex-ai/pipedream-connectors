@@ -13,9 +13,11 @@ pub struct Webhook {
     pub url: String,
     /// Whether a signing key is configured.
     pub signing_key_set: bool,
-    /// Creation timestamp.
+    /// Creation timestamp in epoch seconds.
+    #[serde(deserialize_with = "crate::shared::deserialize_timestamp_seconds")]
     pub created_at: Timestamp,
-    /// Last update timestamp.
+    /// Last update timestamp in epoch seconds.
+    #[serde(deserialize_with = "crate::shared::deserialize_timestamp_seconds")]
     pub updated_at: Timestamp,
     /// Unknown provider fields.
     #[serde(flatten)]
@@ -34,9 +36,11 @@ pub struct WebhookWithOptionalSigningKey {
     pub signing_key: Option<SecretString>,
     /// Whether a signing key is configured.
     pub signing_key_set: bool,
-    /// Creation timestamp.
+    /// Creation timestamp in epoch seconds.
+    #[serde(deserialize_with = "crate::shared::deserialize_timestamp_seconds")]
     pub created_at: Timestamp,
-    /// Last update timestamp.
+    /// Last update timestamp in epoch seconds.
+    #[serde(deserialize_with = "crate::shared::deserialize_timestamp_seconds")]
     pub updated_at: Timestamp,
     /// Unknown provider fields.
     #[serde(flatten)]
@@ -54,9 +58,11 @@ pub struct WebhookWithSigningKey {
     pub signing_key: SecretString,
     /// Whether a signing key is configured.
     pub signing_key_set: bool,
-    /// Creation timestamp.
+    /// Creation timestamp in epoch seconds.
+    #[serde(deserialize_with = "crate::shared::deserialize_timestamp_seconds")]
     pub created_at: Timestamp,
-    /// Last update timestamp.
+    /// Last update timestamp in epoch seconds.
+    #[serde(deserialize_with = "crate::shared::deserialize_timestamp_seconds")]
     pub updated_at: Timestamp,
     /// Unknown provider fields.
     #[serde(flatten)]

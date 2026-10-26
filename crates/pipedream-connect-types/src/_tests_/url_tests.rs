@@ -43,6 +43,7 @@ fn proxy_targets_reject_backslashes_and_raw_authority_at_signs() {
         "https://user@example.com/path",
         UrlRules::ProxyTarget
     ));
+    assert!(!is_valid("https://@example.com/a", UrlRules::ProxyTarget));
 }
 
 #[test]

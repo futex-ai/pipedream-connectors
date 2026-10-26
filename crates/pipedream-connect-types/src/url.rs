@@ -12,10 +12,12 @@ pub enum UrlRules {
     /// An absolute HTTPS URL with a host.
     HttpsHost,
     /// An absolute HTTPS URL or a single relative path for proxy forwarding.
+    /// `parse_validated` checks only absolute proxy targets.
     ProxyTarget,
 }
 
-/// Parses a URL when it satisfies the selected boundary rules.
+/// Parses an absolute URL when it satisfies the selected boundary rules.
+/// For `ProxyTarget`, relative paths are checked only by `is_valid`.
 pub fn parse_validated(value: &str, rules: UrlRules) -> Option<Url> {
     let url = Url::parse(value).ok()?;
     match rules {
@@ -78,6 +80,8 @@ pub fn parse_validated(value: &str, rules: UrlRules) -> Option<Url> {
 }
 
 /// Checks an absolute URL or relative path against the selected URL rules.
+/// `parse_validated` checks only absolute proxy targets, so this helper also
+/// validates single-slash relative proxy paths.
 pub fn is_valid(value: &str, rules: UrlRules) -> bool {
     if rules != UrlRules::ProxyTarget {
         return parse_validated(value, rules).is_some();

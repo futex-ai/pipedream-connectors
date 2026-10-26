@@ -14,6 +14,8 @@ mod query_schemas_tests;
 mod request_schemas_tests;
 #[path = "../_support/samples.rs"]
 mod samples;
+#[path = "timestamp_tests.rs"]
+mod timestamp_tests;
 
 use conformance_extra::HasExtra;
 use samples::{Mode, assert_preserved};

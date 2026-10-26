@@ -4,7 +4,7 @@ use pipedream_connect_types::{ListTriggerEventsRequest, UpdateTriggerWebhooksReq
 use serde_json::json;
 
 use crate::error::Error;
-use crate::resources::test_support::assert_wire;
+use crate::resources::test_support::{ExpectedBody, assert_wire};
 use crate::tests::support::{Harness, config, response};
 
 use super::support::{deployed_trigger, query, trigger_id, webhook_id};
@@ -53,11 +53,11 @@ async fn callback_urls_keep_provider_defined_admission_rules() {
             ("accept", "application/json"),
             ("content-type", "application/json"),
         ],
-        Some(&json!({
+        Some(ExpectedBody::Json(&json!({
             "id": "google_calendar-new-event",
             "external_user_id": "customer_1",
             "webhook_url": "http://public.example/events"
-        })),
+        }))),
     );
     harness
         .client
@@ -81,7 +81,9 @@ async fn callback_urls_keep_provider_defined_admission_rules() {
             ("accept", "application/json"),
             ("content-type", "application/json"),
         ],
-        Some(&json!({"webhook_urls":["http://public.example/events"]})),
+        Some(ExpectedBody::Json(
+            &json!({"webhook_urls":["http://public.example/events"]}),
+        )),
     );
     harness.assert_requests(3);
 }

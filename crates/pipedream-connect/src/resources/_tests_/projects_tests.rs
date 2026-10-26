@@ -7,7 +7,7 @@ use pipedream_connect_types::{
 use serde_json::json;
 
 use crate::error::Error;
-use crate::resources::test_support::assert_wire;
+use crate::resources::test_support::{ExpectedBody, assert_wire};
 use crate::tests::support::{Harness, response, static_config};
 
 #[tokio::test]
@@ -62,7 +62,7 @@ async fn project_operations_use_the_documented_routes_and_bodies() {
             ("accept", "application/json"),
             ("content-type", "application/json"),
         ],
-        Some(&json!({"name":"New"})),
+        Some(ExpectedBody::Json(&json!({"name":"New"}))),
     );
     let project_id = ProjectId::new("proj_Test123").unwrap();
     harness

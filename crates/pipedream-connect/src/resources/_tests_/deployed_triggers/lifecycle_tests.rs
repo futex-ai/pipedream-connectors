@@ -7,7 +7,7 @@ use pipedream_connect_types::{
 use serde_json::json;
 
 use crate::error::Error;
-use crate::resources::test_support::{assert_get, assert_wire};
+use crate::resources::test_support::{ExpectedBody, assert_get, assert_wire};
 use crate::tests::support::{Harness, response};
 
 use super::support::{deployed_trigger, page, query, trigger_id};
@@ -43,7 +43,7 @@ async fn deploy_sends_the_external_user_and_callback_options() {
             ("accept", "application/json"),
             ("content-type", "application/json"),
         ],
-        Some(&json!({
+        Some(ExpectedBody::Json(&json!({
             "id": "google_calendar-new-event",
             "version": "1.0.0",
             "external_user_id": "customer_1",
@@ -52,7 +52,7 @@ async fn deploy_sends_the_external_user_and_callback_options() {
             "workflow_id": "p_workflow1",
             "webhook_url": "http://127.0.0.1:50151/events",
             "emit_on_deploy": true
-        })),
+        }))),
     );
     harness.assert_requests(2);
 }
@@ -177,7 +177,9 @@ async fn crud_calls_keep_tenant_scope_and_delete_can_ignore_missing_deployments(
             ("accept", "application/json"),
             ("content-type", "application/json"),
         ],
-        Some(&json!({"active":false,"name":"Updated"})),
+        Some(ExpectedBody::Json(
+            &json!({"active":false,"name":"Updated"}),
+        )),
     );
     for index in 1..=4 {
         assert!(
