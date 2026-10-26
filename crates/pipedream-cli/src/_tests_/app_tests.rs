@@ -75,7 +75,7 @@ async fn setting_errors_never_print_the_secret() {
     assert_eq!(
         ran.stderr,
         "error: PIPEDREAM_PROJECT_ID is not a valid project ID. Use the project ID that starts \
-         with proj_ and then has only letters and digits.\n"
+         with proj_ and then has 1 to 245 ASCII letters or digits.\n"
     );
     let ran = run(
         &["categories", "list", "--client-id", " padded"],

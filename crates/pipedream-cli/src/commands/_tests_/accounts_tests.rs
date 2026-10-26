@@ -196,21 +196,23 @@ async fn a_listed_account_of_another_external_user_is_not_found() {
 
 #[tokio::test]
 async fn accounts_commands_reject_invalid_input_before_any_request() {
+    let hint = "error: <ACCOUNT> is not a valid account ID. Use an ID that starts with apn_ and \
+                then has 1 to 246 ASCII letters or digits.\n";
+    let too_long = format!("apn_{}", "a".repeat(247));
     let cases = [
-        (
-            &["accounts", "get", "apn_bad-id"][..],
-            "error: <ACCOUNT> is not a valid account ID. Use an ID that starts with apn_ and \
-             then has only letters and digits.\n",
-        ),
+        (&["accounts", "get", "apn_bad-id"][..], hint),
+        (&["accounts", "get", "apn_"], hint),
+        (&["accounts", "get", "apn_\u{e9}"], hint),
+        (&["accounts", "get", too_long.as_str()], hint),
         (
             &["accounts", "get", "account-1"],
             "error: <ACCOUNT> is not a valid account ID. Use an ID that starts with apn_ and \
-             then has only letters and digits.\n",
+             then has 1 to 246 ASCII letters or digits.\n",
         ),
         (
             &["accounts", "list", "--oauth-app-id", "custom"],
             "error: --oauth-app-id is not a valid OAuth app ID. Use an ID that starts with oa_ \
-             and then has only letters and digits.\n",
+             and then has 1 to 247 ASCII letters or digits.\n",
         ),
         (
             &["accounts", "list", "--external-user-id", "user/1"],

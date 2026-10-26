@@ -1,6 +1,8 @@
 //! Tests that each identifier hint states the whole rule of its identifier.
 
-use pipedream_connect_types::IdentifierKind;
+use pipedream_connect_types::{
+    AccountId, AppCategoryId, DeployedTriggerId, IdentifierKind, OauthAppId, ProjectId,
+};
 
 use crate::argument::Argument;
 
@@ -15,27 +17,28 @@ const HINTS: [(IdentifierKind, &str, &str); 14] = [
     (
         IdentifierKind::Project,
         "project ID",
-        "Use an ID that starts with proj_ and then has only letters and digits.",
+        "Use an ID that starts with proj_ and then has 1 to 245 ASCII letters or digits.",
     ),
     (
         IdentifierKind::Account,
         "account ID",
-        "Use an ID that starts with apn_ and then has only letters and digits.",
+        "Use an ID that starts with apn_ and then has 1 to 246 ASCII letters or digits.",
     ),
     (
         IdentifierKind::DeployedTrigger,
         "deployed trigger ID",
-        "Use an ID that starts with dc_, hi_, or ti_ and then has only letters and digits.",
+        "Use an ID that starts with dc_, hi_, or ti_ and then has 1 to 247 ASCII letters or \
+         digits.",
     ),
     (
         IdentifierKind::OauthApp,
         "OAuth app ID",
-        "Use an ID that starts with oa_ and then has only letters and digits.",
+        "Use an ID that starts with oa_ and then has 1 to 247 ASCII letters or digits.",
     ),
     (
         IdentifierKind::AppCategory,
         "category ID",
-        "Use an ID that starts with appcat_ and then has only letters and digits.",
+        "Use an ID that starts with appcat_ and then has 1 to 243 ASCII letters or digits.",
     ),
     (
         IdentifierKind::ConnectToken,
@@ -86,6 +89,36 @@ fn every_identifier_hint_states_the_whole_rule() {
             argument(Argument::App, cause),
             usage(&format!("<APP> is not a valid {name}. {hint}")),
             "{kind:?}"
+        );
+    }
+}
+
+/// Whether one SDK identifier rule accepts a value.
+type Accepts = fn(String) -> bool;
+
+#[test]
+fn prefixed_hints_give_the_sdk_length_limit() {
+    let cases: [(&str, usize, Accepts); 7] = [
+        ("proj_", 245, |value| ProjectId::new(value).is_ok()),
+        ("apn_", 246, |value| AccountId::new(value).is_ok()),
+        ("dc_", 247, |value| DeployedTriggerId::new(value).is_ok()),
+        ("hi_", 247, |value| DeployedTriggerId::new(value).is_ok()),
+        ("ti_", 247, |value| DeployedTriggerId::new(value).is_ok()),
+        ("oa_", 247, |value| OauthAppId::new(value).is_ok()),
+        ("appcat_", 243, |value| AppCategoryId::new(value).is_ok()),
+    ];
+    for (prefix, longest, accepts) in cases {
+        let id = |length: usize| format!("{prefix}{}", "a".repeat(length));
+        assert!(accepts(id(1)) && accepts(id(longest)), "{prefix}");
+        assert!(!accepts(id(0)) && !accepts(id(longest + 1)), "{prefix}");
+        assert!(!accepts(format!("{prefix}\u{e9}")), "{prefix}");
+        let (.., hint) = HINTS
+            .iter()
+            .find(|(.., hint)| hint.contains(prefix))
+            .unwrap();
+        assert!(
+            hint.ends_with(&format!("then has 1 to {longest} ASCII letters or digits.")),
+            "{prefix}: {hint}"
         );
     }
 }

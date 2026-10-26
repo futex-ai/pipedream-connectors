@@ -204,7 +204,7 @@ async fn apps_commands_reject_invalid_input_before_any_request() {
         (
             &["apps", "list", "--category", "productivity"][..],
             "error: --category is not a valid category ID. Use an ID that starts with appcat_ \
-             and then has only letters and digits.\n",
+             and then has 1 to 243 ASCII letters or digits.\n",
         ),
         (
             &["apps", "list", "--limit", "0"],

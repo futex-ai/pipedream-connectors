@@ -84,7 +84,7 @@ fn invalid_settings_name_their_source() {
             Setting::ProjectId,
             Supply::Variable,
             "PIPEDREAM_PROJECT_ID is not a valid project ID. Use the project ID that starts \
-             with proj_ and then has only letters and digits.",
+             with proj_ and then has 1 to 245 ASCII letters or digits.",
         ),
         (
             Setting::Environment,
@@ -95,7 +95,8 @@ fn invalid_settings_name_their_source() {
             Setting::ApiOrigin,
             Supply::Flag,
             "--api-origin is not a valid API origin. Use an HTTPS origin that has only a host \
-             and an optional port, such as https://api.pipedream.com.",
+             and an optional port, without surrounding spaces, such as \
+             https://api.pipedream.com.",
         ),
         (
             Setting::ClientId,
