@@ -9,9 +9,10 @@ requests and responses without an HTTP client or an async runtime.
 - Validate Connect identifiers and bounded request values.
 - Serialize and deserialize registry, account, execution, trigger, and
   administration models.
-- Decode date fields from RFC 3339 strings or epoch milliseconds. Usage records
-  and project webhook dates use epoch seconds. Preserve the decoded wire form
-  when models re-encode. Call `Timestamp::as_datetime` for the UTC value.
+- Decode date fields from RFC 3339 strings. Integers in usage records and project
+  webhook dates use epoch seconds. Integers in all other date fields use epoch
+  milliseconds. Preserve the decoded wire form when models re-encode. Call
+  `Timestamp::as_datetime` for the UTC value.
 - Send trigger callback URLs unchanged when a client sends a deployment or
   webhook update.
 - Preserve unknown response fields, enum values, and property definitions.

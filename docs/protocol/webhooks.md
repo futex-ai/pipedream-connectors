@@ -76,10 +76,11 @@ Typed models MUST preserve integer values exactly only when they fit in the
 `i64` or `u64` range. Larger integers and long decimal values can round during
 decoding or re-encoding.
 
-RawJson fields MUST preserve the exact JSON text supplied by Pipedream. These
-fields are the trigger `event`, the connection session ID, and unknown fields.
-Typed fields MUST preserve their values but MAY change their JSON text during
-decoding and re-encoding.
+The trigger delivery `event`, connection `connect_session_id`, top-level unknown
+fields in webhook payloads, and unknown fields in trigger `context` MUST preserve
+the exact JSON text supplied by Pipedream. Every other field, including an
+unknown field in a nested object, MAY change its JSON text during decoding and
+re-encoding, within the number limits above.
 
 ## Signing-key selection
 
