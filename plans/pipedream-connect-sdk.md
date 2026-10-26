@@ -665,7 +665,8 @@ no user answer. Each records the alternative and the reason.
 ## Open decisions
 
 The user answered every item below on 2026-10-26 except where an item says
-otherwise. Milestones 13 and 14 apply the outcomes.
+otherwise. Milestones 13 and 14 apply the outcomes. Decision numbers 66 to 76
+and finding numbers come from the final review report of 2026-10-22.
 
 - **GET retry defaults (2026-10-21).** Decision 4 requires an opt-in GET
   retry policy but does not settle the default total attempts or maximum
@@ -674,16 +675,16 @@ otherwise. Milestones 13 and 14 apply the outcomes.
   60-second maximum delay and `Retry-After` support. Effort: Medium.
   **Recommendation:** A, because it matches the settled two-retry wording
   while bounding delay and work. The protocol leaves this default open.
-  **Outcome:** A: three attempts and a 30-second maximum delay, chosen by the
-  user on 2026-10-26.
+  **Outcome (decision 67):** A: three attempts and a 30-second maximum delay,
+  chosen by the user on 2026-10-26.
 - **Webhook body limit (2026-10-21).** Milestone 9 requires a bounded webhook
   body but does not settle its default. **A.** Use a 1 MiB default, with a
   configurable limit. Effort: Small. **B.** Use the 10 MiB client response
   default, with a configurable limit. Effort: Small. **Recommendation:** A,
   because webhook ingress should have a smaller independent bound. The
   protocol leaves this default open.
-  **Outcome:** B: a 10 MiB default, configurable, chosen by the user on
-  2026-10-26.
+  **Outcome (decision 68):** B: a 10 MiB default, configurable, chosen by the
+  user on 2026-10-26.
 
 - **Literal dot path parameters (2026-10-21).** The URL library skips `.`
   and `..` when appending path segments. Some generic identifiers currently
@@ -694,8 +695,8 @@ otherwise. Milestones 13 and 14 apply the outcomes.
   change with one identifier rule. No new rejection is applied before the
   user answers. This choice blocks final handling of these identifiers in
     resource paths.
-  **Outcome:** A: reject `.` and `..` identifiers before the token call,
-  chosen by the user on 2026-10-26.
+  **Outcome (decision 66):** A: reject `.` and `..` identifiers before the
+  token call, chosen by the user on 2026-10-26.
 
 - **CLI contract home (2026-10-21).** The CLI exit codes, settings, output,
   and redaction rules are requirements at the CLI boundary. They live in the
@@ -705,8 +706,8 @@ otherwise. Milestones 13 and 14 apply the outcomes.
   CLI README. Effort: Large. **Recommendation:** B, because the post-push
   review checks behaviour against protocol docs. No protocol doc is added
   before the user answers.
-  **Outcome:** A: keep the CLI rules in the CLI README, chosen by the user on
-  2026-10-26.
+  **Outcome (decision 74):** A: keep the CLI rules in the CLI README, chosen
+  by the user on 2026-10-26.
 - **CLI redaction mechanism (2026-10-21).** Each printed model lists its
   credential-class fields in a `Redact` implementation. A new credential
   field in an existing model stays unredacted until someone adds it to the
@@ -718,8 +719,8 @@ otherwise. Milestones 13 and 14 apply the outcomes.
   Large. **Recommendation:** B, because a new model field then fails the CLI
   build until someone classifies it, without a change to the types crate. No
   option is applied before the user answers.
-  **Outcome:** A: keep the per-model field lists, chosen by the user on
-  2026-10-26.
+  **Outcome (decision 69):** A: keep the per-model field lists, chosen by the
+  user on 2026-10-26.
 
 - **Workflow host allow-list (2026-10-22).** Workflow invocation sends the
   project bearer to any HTTPS URL that the caller passes. The official
@@ -730,8 +731,8 @@ otherwise. Milestones 13 and 14 apply the outcomes.
   constructible only inside the crate. Effort: Medium. **Recommendation:** C,
   because it keeps the bearer on Pipedream hosts and removes the generic
   path. Final review finding 1, severity High.
-  **Outcome:** A: keep any HTTPS host, and document the risk, chosen by the
-  user on 2026-10-26.
+  **Outcome (finding 1):** A: keep any HTTPS host, and document the risk,
+  chosen by the user on 2026-10-26.
 - **Proxy target backslash and raw `@` (2026-10-22).** A relative proxy target
   such as `/\evil.example/api` passes the origin check, and WHATWG URL
   resolution turns it into another host. **A.** Keep the current rules.
@@ -739,41 +740,44 @@ otherwise. Milestones 13 and 14 apply the outcomes.
   raw `@` in an absolute target's authority. Effort: Small. **C.** B, through
   the shared URL rule helper. Effort: Large. **Recommendation:** B. Final
   review finding 4.
-  **Outcome:** C: reject them through the shared URL rule helper, chosen by
-  the user on 2026-10-26.
+  **Outcome (finding 4):** C: reject them through the shared URL rule helper,
+  chosen by the user on 2026-10-26.
 - **Cursor grammar (2026-10-21).** Cursors use the common identifier grammar:
   at most 250 bytes and no `/`, `\`, `?`, or `#`. The Firna adapter accepted
   visible ASCII up to 2 KiB. A real cursor outside the grammar fails the whole
   page. **A.** Keep the common grammar. Effort: Small. **B.** Accept visible
   ASCII up to 2 KiB for cursors, which go into query strings. Effort: Small.
   **Recommendation:** B, because cursors are opaque and never enter a path.
-  **Outcome:** B: visible ASCII up to 2 KiB, chosen by the user on 2026-10-26.
+  **Outcome (decision 70):** B: visible ASCII up to 2 KiB, chosen by the user
+  on 2026-10-26.
 - **`appcat_` prefix (2026-10-21).** `AppCategoryId` requires `appcat_`. The
   OpenAPI document gives `AppCategory.id` no pattern, and the retrieve path
   uses `^appcar_`. **A.** Keep `appcat_`. Effort: Small. **B.** Use the common
   grammar for category IDs. Effort: Small. **C.** Decide after one live
   category list. Effort: Small. **Recommendation:** C, then A or B.
-  **Outcome:** A: keep `appcat_`, chosen by the user on 2026-10-26.
+  **Outcome (decision 71):** A: keep `appcat_`, chosen by the user on
+  2026-10-26.
 - **Trigger callback URL rule (2026-10-22).** Milestone 7 added an HTTPS or
   loopback-HTTP rule for trigger callback URLs without a user decision. The
   fix round removed it, so callback URLs pass unchanged. **A.** No rule.
   Effort: Small. **B.** Require HTTPS, as for Connect token URIs. Effort:
   Small. **Recommendation:** B, because Pipedream cannot reach loopback URLs.
-  **Outcome:** A: no rule, chosen by the user on 2026-10-26.
+  **Outcome (decision 72):** A: no rule, chosen by the user on 2026-10-26.
 - **202 for a blocking request (2026-10-21).** A 202 from configure or
   reload is `Accepted` when `blocking` is omitted or false. A 202 for an
   explicit `blocking: true` decodes its body. **A.** Keep it. Effort: Small.
   **B.** Map every 202 in execution mode to `Accepted`. Effort: Medium.
   **Recommendation:** B, because a 202 has no result body.
-  **Outcome:** B: every 202 in execution mode is `Accepted`, chosen by the
-  user on 2026-10-26.
+  **Outcome (decision 73):** B: every 202 in execution mode is `Accepted`,
+  chosen by the user on 2026-10-26.
 - **Unknown-field redaction (2026-10-22).** `Emitter::Other` and the
   unknown-field maps print raw JSON in `Debug`, so a credential field that
   Pipedream adds later prints in diagnostics. **A.** Keep decision 5:
   credential-class fields only. Effort: Small. **B.** Mask unknown fields
   whose names look like secrets. Effort: Medium. **Recommendation:** B, with
   a fixed name list. Final review finding 50.
-  **Outcome:** A: keep decision 5, chosen by the user on 2026-10-26.
+  **Outcome (finding 50):** A: keep decision 5, chosen by the user on
+  2026-10-26.
 
 ## Public API sketch
 
