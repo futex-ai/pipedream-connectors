@@ -10,8 +10,9 @@ use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
 use crate::commands::pages::{End, Traversal};
-use crate::document::{Document, Secrets};
+use crate::document::{Output, Secrets};
 use crate::redact::Redact;
+use crate::target::Target;
 
 const CREDENTIAL: &str = "MARKER-account-credential";
 const SIGNING_KEY: &str = "MARKER-webhook-signing-key";
@@ -50,7 +51,8 @@ fn emitter() -> Value {
 }
 
 fn text<T: Serialize + Redact>(model: T, secrets: Secrets) -> String {
-    String::from_utf8(Document::redacted(model, secrets).unwrap().bytes().to_vec()).unwrap()
+    let output = Output::redacted(Target::Apps, model, secrets).unwrap();
+    String::from_utf8(output.document.bytes().to_vec()).unwrap()
 }
 
 fn check<T: DeserializeOwned + Serialize + Redact>(raw: Value, markers: &[&str]) {
@@ -103,7 +105,7 @@ fn the_token_command_reveals_the_token_and_the_link() {
         "expires_at": "2026-10-21T04:00:00Z",
     }))
     .unwrap();
-    let printed =
-        String::from_utf8(Document::revealed(&response).unwrap().bytes().to_vec()).unwrap();
+    let output = Output::revealed(Target::TokenCreate, &response).unwrap();
+    let printed = String::from_utf8(output.document.bytes().to_vec()).unwrap();
     assert!(printed.contains(TOKEN) && printed.contains(LINK));
 }

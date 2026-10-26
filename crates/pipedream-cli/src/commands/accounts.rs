@@ -12,7 +12,7 @@ use pipedream_connect_types::{
 
 use crate::argument::Argument;
 use crate::commands::pages::{self, PageArgs, Paging};
-use crate::document::{Document, Output, Secrets};
+use crate::document::{Output, Secrets};
 use crate::error::{Result, called, checked};
 use crate::target::Target;
 
@@ -130,11 +130,11 @@ pub(crate) async fn run(
         }
         AccountsTask::Get(account_id, request) => {
             let account = called(api.get(account_id, request).await, Target::Account)?;
-            Ok(Document::redacted(account, secrets)?.into())
+            Output::redacted(Target::Account, account, secrets)
         }
         AccountsTask::GetOwned(account, request) => {
             let account = called(api.get_owned(account, request).await, Target::Account)?;
-            Ok(Document::redacted(account, secrets)?.into())
+            Output::redacted(Target::Account, account, secrets)
         }
     }
 }

@@ -1,6 +1,7 @@
 //! A harness that runs the CLI against one mock for every process boundary.
 
 use std::ffi::OsString;
+use std::io::{self, Write};
 use std::sync::Arc;
 
 use pipedream_connect::resources::accounts::AccountsApi;
@@ -41,22 +42,52 @@ pub(crate) struct Ran {
     pub(crate) stderr: String,
 }
 
+/// A standard output that the reader closed. Every write fails.
+pub(crate) struct Closed;
+
+impl Write for Closed {
+    fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+        Err(io::Error::from(io::ErrorKind::BrokenPipe))
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Err(io::Error::from(io::ErrorKind::BrokenPipe))
+    }
+}
+
 /// Runs the CLI with `args`. One mock serves the variables, inputs, and connector.
 pub(crate) async fn run(args: &[&str], clauses: impl Clause) -> Ran {
+    let mut stdout = Vec::new();
+    let (exit, stderr) = run_into(args, clauses, &mut stdout).await;
+    Ran {
+        exit,
+        stdout: String::from_utf8(stdout).unwrap(),
+        stderr,
+    }
+}
+
+/// Runs the CLI with `args` against a standard output that rejects every write.
+pub(crate) async fn run_closed(args: &[&str], clauses: impl Clause) -> Ran {
+    let (exit, stderr) = run_into(args, clauses, &mut Closed).await;
+    Ran {
+        exit,
+        stdout: String::new(),
+        stderr,
+    }
+}
+
+async fn run_into(
+    args: &[&str],
+    clauses: impl Clause,
+    stdout: &mut (dyn Write + Send),
+) -> (Exit, String) {
     let mock = Arc::new(Unimock::new(clauses));
     let app = App::new(mock.clone(), mock.clone(), mock);
     let mut argv = vec![OsString::from("pipedream-cli")];
     argv.extend(args.iter().map(OsString::from));
-    let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit = app
-        .run(argv, &mut Terminal::new(&mut stdout, &mut stderr))
-        .await;
-    Ran {
-        exit,
-        stdout: String::from_utf8(stdout).unwrap(),
-        stderr: String::from_utf8(stderr).unwrap(),
-    }
+    let exit = app.run(argv, &mut Terminal::new(stdout, &mut stderr)).await;
+    (exit, String::from_utf8(stderr).unwrap())
 }
 
 /// Raw values of the configuration variables.

@@ -4,6 +4,7 @@ use pipedream_connect_types::PageRequest;
 
 use crate::error::{Error, Interruption};
 use crate::report::exit::Exit;
+use crate::report::target::{Sent, after_request};
 use crate::report::{api, input};
 
 /// The action for a failure that the user cannot fix.
@@ -65,6 +66,13 @@ pub(crate) fn describe(error: &Error, origin: &str) -> Failure {
         Error::Client(cause) => api::client(cause),
         Error::Api { target, cause } => api::describe(*target, cause, origin),
         Error::Interrupted(interruption) => interrupted(interruption, origin),
+        Error::Unencodable { target, .. } => Failure::new(
+            Exit::Internal,
+            format!(
+                "The CLI could not print the result. {}",
+                after_request(*target, Sent::Completed).unwrap_or(REPORT)
+            ),
+        ),
         Error::Internal(_) => Failure::new(
             Exit::Internal,
             format!("The CLI could not complete the command. {REPORT}"),

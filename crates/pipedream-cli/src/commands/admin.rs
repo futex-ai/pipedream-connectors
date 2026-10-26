@@ -10,7 +10,7 @@ use pipedream_connect::resources::usage::UsageApi;
 use pipedream_connect_types::ListUsageRequest;
 
 use crate::argument::Argument;
-use crate::document::{Document, Output, Secrets};
+use crate::document::{Output, Secrets};
 use crate::error::{Error, Result, called};
 use crate::target::Target;
 
@@ -66,7 +66,7 @@ pub(crate) async fn project(
 ) -> Result<Output> {
     let ProjectCommand::Info = command;
     let info = called(api.info().await, Target::ProjectInfo)?;
-    Ok(Document::redacted(info, secrets)?.into())
+    Output::redacted(Target::ProjectInfo, info, secrets)
 }
 
 /// Lists Connect usage for the validated time window.
@@ -76,7 +76,7 @@ pub(crate) async fn usage(
     secrets: Secrets,
 ) -> Result<Output> {
     let records = called(api.list(request).await, Target::Usage)?;
-    Ok(Document::redacted(records, secrets)?.into())
+    Output::redacted(Target::Usage, records, secrets)
 }
 
 /// Reads the project environment webhook. A project without one prints `"data": null`.
@@ -87,7 +87,7 @@ pub(crate) async fn webhook(
 ) -> Result<Output> {
     let WebhookCommand::Get = command;
     let webhook = called(api.get().await, Target::Webhook)?;
-    Ok(Document::redacted(webhook, secrets)?.into())
+    Output::redacted(Target::Webhook, webhook, secrets)
 }
 
 #[cfg(test)]

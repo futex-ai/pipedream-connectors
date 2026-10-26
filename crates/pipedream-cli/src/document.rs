@@ -5,6 +5,7 @@ use serde::Serialize;
 
 use crate::error::{Error, Result};
 use crate::redact::Redact;
+use crate::target::Target;
 
 /// Whether a result may show credential-class values.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -22,22 +23,6 @@ pub(crate) struct Document {
 }
 
 impl Document {
-    /// Encodes `value` after it redacts its credentials, unless `secrets` is `Show`.
-    pub(crate) fn redacted<T: Serialize + Redact>(mut value: T, secrets: Secrets) -> Result<Self> {
-        if secrets == Secrets::Redact {
-            value.redact();
-        }
-        Self::revealed(&value)
-    }
-
-    /// Encodes `value` as it is. Only a command that exists to produce credentials uses it.
-    pub(crate) fn revealed<T: Serialize>(value: &T) -> Result<Self> {
-        match serde_json::to_vec_pretty(value) {
-            Ok(json) => Ok(Self { json }),
-            Err(source) => Err(Error::internal(source)),
-        }
-    }
-
     /// Returns the encoded JSON without a trailing newline.
     pub(crate) fn bytes(&self) -> &[u8] {
         &self.json
@@ -94,21 +79,48 @@ pub(crate) enum Notice {
     StuckCursor,
 }
 
-/// A finished command: its result document and its notices for standard error.
+/// A finished command: the target of its request, its result, and its notices.
 #[derive(Debug)]
 pub(crate) struct Output {
+    /// The resource of the request that produced the result.
+    pub(crate) target: Target,
     /// The result for standard output.
     pub(crate) document: Document,
     /// Notices for standard error.
     pub(crate) notices: Vec<Notice>,
 }
 
-impl From<Document> for Output {
-    fn from(document: Document) -> Self {
-        Self {
-            document,
-            notices: Vec::new(),
+impl Output {
+    /// Encodes the result of a request on `target`, with its credentials redacted
+    /// unless `secrets` is `Show`.
+    pub(crate) fn redacted<T: Serialize + Redact>(
+        target: Target,
+        mut value: T,
+        secrets: Secrets,
+    ) -> Result<Self> {
+        if secrets == Secrets::Redact {
+            value.redact();
         }
+        Self::revealed(target, &value)
+    }
+
+    /// Encodes the result of a request on `target` as it is. Only a command that
+    /// exists to produce credentials uses it.
+    pub(crate) fn revealed<T: Serialize>(target: Target, value: &T) -> Result<Self> {
+        match serde_json::to_vec_pretty(value) {
+            Ok(json) => Ok(Self {
+                target,
+                document: Document { json },
+                notices: Vec::new(),
+            }),
+            Err(cause) => Err(Error::Unencodable { target, cause }),
+        }
+    }
+
+    /// Adds the notices that standard error shows after the result.
+    pub(crate) fn with_notices(mut self, notices: Vec<Notice>) -> Self {
+        self.notices = notices;
+        self
     }
 }
 

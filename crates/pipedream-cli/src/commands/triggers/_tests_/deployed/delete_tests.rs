@@ -5,7 +5,7 @@ use pipedream_connect::resources::deployed_triggers::DeployedTriggersApiMock;
 use unimock::{MockFn, matching};
 
 use crate::report::exit::Exit;
-use crate::test_support::{connected, deployed_triggers_handle, run};
+use crate::test_support::{connected, deployed_triggers_handle, run, run_closed};
 
 use super::trigger;
 
@@ -104,4 +104,21 @@ async fn an_http_emitter_id_reaches_the_delete_request() {
         "user_1",
     ];
     assert_eq!(run(&args, clauses).await.exit, Exit::Success);
+}
+
+#[tokio::test]
+async fn a_closed_stdout_after_a_delete_says_that_the_trigger_is_deleted() {
+    let clauses = (
+        connected(),
+        deployed_triggers_handle(),
+        DeployedTriggersApiMock::delete
+            .next_call(matching!(_))
+            .returns(Ok(())),
+    );
+    let ran = run_closed(&trigger("delete"), clauses).await;
+    assert_eq!(ran.exit, Exit::Internal);
+    assert_eq!(
+        ran.stderr,
+        "error: The CLI cannot write to standard output. Pipedream deleted the trigger.\n"
+    );
 }

@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 use unimock::{Clause, MockFn, matching};
 
 use crate::report::exit::Exit;
-use crate::test_support::{connected, proxy_handle, run};
+use crate::test_support::{connected, proxy_handle, run, run_closed};
 
 use super::proxy;
 
@@ -130,5 +130,35 @@ async fn a_failed_execution_names_the_proxy_request() {
         ran.stderr,
         "error: The proxy request failed at the app API with status 401. Check the account and \
          the request, then run the command again.\n"
+    );
+}
+
+fn ok() -> ProxyResponse {
+    ProxyResponse {
+        status: StatusCode::OK,
+        headers: HeaderMap::new(),
+        body: br#"{"ok":true}"#.to_vec(),
+    }
+}
+
+#[tokio::test]
+async fn a_closed_stdout_after_a_write_says_that_the_upstream_request_ran() {
+    let ran = run_closed(&proxy("post", "/api/chat.postMessage", &[]), sent(Ok(ok()))).await;
+    assert_eq!(ran.exit, Exit::Internal);
+    assert_eq!(
+        ran.stderr,
+        "error: The CLI cannot write to standard output. The upstream request ran. Check its \
+         effects before you send it again.\n"
+    );
+}
+
+#[tokio::test]
+async fn a_closed_stdout_after_a_read_asks_for_an_open_stream() {
+    let ran = run_closed(&proxy("get", "/api/users.list", &[]), sent(Ok(ok()))).await;
+    assert_eq!(ran.exit, Exit::Internal);
+    assert_eq!(
+        ran.stderr,
+        "error: The CLI cannot write to standard output. Check that the output stream is \
+         open.\n"
     );
 }

@@ -7,7 +7,7 @@ use pipedream_connect_types::{ErrorOrigin, ExecutionError};
 
 use crate::report::exit::Exit;
 use crate::report::failure::{Failure, REPORT, seconds};
-use crate::report::target::text;
+use crate::report::target::{Sent, after_request, text};
 use crate::target::Target;
 
 /// An SDK failure, split into what failed and the one recovery action.
@@ -37,11 +37,11 @@ pub(super) fn describe(target: Target, cause: &Error, origin: &str) -> Failure {
 /// action becomes the warning that the change may have happened.
 pub(super) fn explain(target: Target, cause: &Error, origin: &str) -> ApiText {
     let mut explained = base(target, cause, origin);
-    let unknown = matches!(
+    let unanswered = matches!(
         cause,
         Error::Unavailable { .. } | Error::ResponseTooLarge { .. } | Error::Internal(_)
     );
-    if let (true, Some(warning)) = (unknown, text(target).uncertain) {
+    if let (true, Some(warning)) = (unanswered, after_request(target, Sent::Unanswered)) {
         explained.action = warning.to_owned();
         explained.retryable = false;
     }

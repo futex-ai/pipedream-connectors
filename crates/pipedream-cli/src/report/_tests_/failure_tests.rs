@@ -132,3 +132,27 @@ fn internal_failures_name_the_issue_tracker() {
          ran at https://github.com/futex-ai/pipedream-connectors/issues."
     );
 }
+
+#[test]
+fn a_result_that_does_not_encode_says_whether_the_change_happened() {
+    let unencodable = |target| Error::Unencodable {
+        target,
+        cause: serde_json::from_str::<u8>("x").unwrap_err(),
+    };
+    assert_eq!(
+        describe(&unencodable(Target::TokenCreate), DEFAULT_ORIGIN),
+        Failure::new(
+            Exit::Internal,
+            "The CLI could not print the result. Pipedream created the token. Run the command \
+             again for a new one."
+        )
+    );
+    assert_eq!(
+        describe(&unencodable(Target::Apps), DEFAULT_ORIGIN),
+        Failure::new(
+            Exit::Internal,
+            "The CLI could not print the result. Report this problem with the command that you \
+             ran at https://github.com/futex-ai/pipedream-connectors/issues."
+        )
+    );
+}

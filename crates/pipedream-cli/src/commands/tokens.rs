@@ -8,7 +8,7 @@ use pipedream_connect_types::{CreateConnectTokenRequest, ExternalUserId, UrlFiel
 
 use crate::argument::Argument;
 use crate::commands::numbers::bounded;
-use crate::document::{Document, Output};
+use crate::document::Output;
 use crate::error::{Error, Result, called, checked};
 use crate::target::Target;
 
@@ -90,7 +90,7 @@ pub(crate) async fn run(
     api: Arc<dyn TokensApi + Send + Sync>,
 ) -> Result<Output> {
     let response = called(api.create(request).await, Target::TokenCreate)?;
-    Ok(Document::revealed(&response)?.into())
+    Output::revealed(Target::TokenCreate, &response)
 }
 
 #[cfg(test)]

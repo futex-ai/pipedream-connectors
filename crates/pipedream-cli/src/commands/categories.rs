@@ -5,7 +5,7 @@ use std::sync::Arc;
 use clap::Subcommand;
 use pipedream_connect::resources::app_categories::AppCategoriesApi;
 
-use crate::document::{Document, Output, Secrets};
+use crate::document::{Output, Secrets};
 use crate::error::{Result, called};
 use crate::target::Target;
 
@@ -25,7 +25,7 @@ pub(crate) async fn run(
     match command {
         CategoriesCommand::List => {
             let categories = called(api.list().await, Target::Categories)?;
-            Ok(Document::redacted(categories, secrets)?.into())
+            Output::redacted(Target::Categories, categories, secrets)
         }
     }
 }

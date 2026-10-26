@@ -9,7 +9,7 @@ use pipedream_connect_types::{
 
 use crate::argument::Argument;
 use crate::commands::triggers::args::DeployTriggerArgs;
-use crate::document::{Document, Output, Secrets};
+use crate::document::{Output, Secrets};
 use crate::error::{Result, called, checked};
 use crate::inputs::{InputSource, Inputs, read_props};
 use crate::target::Target;
@@ -49,7 +49,7 @@ pub(crate) async fn run(
     secrets: Secrets,
 ) -> Result<Output> {
     let response = called(api.deploy(request).await, Target::TriggerDeploy)?;
-    Ok(Document::redacted(response, secrets)?.into())
+    Output::redacted(Target::TriggerDeploy, response, secrets)
 }
 
 #[cfg(test)]

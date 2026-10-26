@@ -1,37 +1,23 @@
 //! Tests that results go to standard output and diagnostics go to standard error.
 
-use std::io::{self, Write};
-
 use clap::Parser;
 use pipedream_connect_types::{Cursor, PageRequest};
 use serde_json::json;
 
 use crate::cli::Cli;
-use crate::document::{Document, Notice, Output};
+use crate::document::{Notice, Output};
 use crate::error::Error;
 use crate::report::exit::Exit;
 use crate::report::outcome::{finish, usage};
 use crate::settings::{DEFAULT_ORIGIN, Setting};
+use crate::target::Target;
 use crate::terminal::Terminal;
-
-/// A standard output that the reader closed.
-struct Closed;
-
-impl Write for Closed {
-    fn write(&mut self, _: &[u8]) -> io::Result<usize> {
-        Err(io::Error::from(io::ErrorKind::BrokenPipe))
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Err(io::Error::from(io::ErrorKind::BrokenPipe))
-    }
-}
+use crate::test_support::Closed;
 
 fn output(notices: Vec<Notice>) -> Output {
-    Output {
-        document: Document::revealed(&json!({"data": []})).unwrap(),
-        notices,
-    }
+    Output::revealed(Target::Apps, &json!({"data": []}))
+        .unwrap()
+        .with_notices(notices)
 }
 
 fn written(outcome: crate::error::Result<Output>) -> (Exit, String, String) {

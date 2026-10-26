@@ -266,7 +266,10 @@ response body, or the provider message. A failed action names where it
 failed, for example the component code or the app API with its status. A
 network failure names the API origin. After a command that changes data, an
 unanswered or unreadable response can mean that the change happened, and the
-error says so. A failure that the user cannot fix links to the
+error says so. When Pipedream makes the change but the CLI cannot print the
+result, for example because standard output is closed, the command exits with
+code 1 and the error says that the change happened. A failure that the user
+cannot fix links to the
 [issue tracker](https://github.com/futex-ai/pipedream-connectors/issues).
 
 ## Quick Start
@@ -332,7 +335,9 @@ To add a command, add its group module under `src/commands/`. Define its
 `clap` arguments, a `prepare` function that validates them, and a `run`
 function that takes one resource trait object. Add a `Target` for its failure
 text, an arm in `src/report/target.rs`, and a `Redact` implementation for
-each model that it prints.
+each model that it prints. A command that changes data also gives the arm its
+`Change` text: the warning for an unanswered request and the text for a change
+that completed. Every failure after a sent request reads that text.
 
 ### Key Code
 
