@@ -5,8 +5,8 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use pipedream_connect_types::SecretString;
 
 use crate::{
-    DEFAULT_SIGNATURE_TOLERANCE_SECONDS, HmacWebhookSignatureVerifier, SignatureError,
-    WebhookSignatureVerifier,
+    DEFAULT_BODY_LIMIT_BYTES, DEFAULT_SIGNATURE_TOLERANCE_SECONDS, FaultClass,
+    HmacWebhookSignatureVerifier, SignatureError, WebhookSignatureVerifier,
 };
 
 const KEY: &str = "webhook-test-key";
@@ -19,7 +19,20 @@ fn receipt(seconds: u64) -> SystemTime {
 }
 
 fn verifier() -> HmacWebhookSignatureVerifier {
-    HmacWebhookSignatureVerifier::new(1024)
+    HmacWebhookSignatureVerifier::new().with_body_limit(1024)
+}
+
+#[test]
+fn verifier_defaults_to_ten_megabytes_and_accepts_a_custom_limit() {
+    assert_eq!(
+        HmacWebhookSignatureVerifier::new().body_limit(),
+        DEFAULT_BODY_LIMIT_BYTES
+    );
+    assert_eq!(
+        HmacWebhookSignatureVerifier::default().body_limit(),
+        DEFAULT_BODY_LIMIT_BYTES
+    );
+    assert_eq!(verifier().body_limit(), 1024);
 }
 
 #[test]
@@ -58,12 +71,35 @@ fn rejects_duplicate_parts_unknown_parts_bad_hex_and_wrong_lengths() {
         format!("t=1000,v1={}z", "a".repeat(63)),
         "t=+1000,v1=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
         "t=,v1=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+        "t=1000".to_owned(),
+        "v1=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+        "t=1000,v1=".to_owned(),
         "t=1000,v1=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,".to_owned(),
     ] {
         assert_eq!(
             verifier().verify(&SecretString::new(KEY), &header, BODY, receipt(1000),),
             Err(SignatureError::InvalidHeader)
         );
+    }
+}
+
+#[test]
+fn status_codes_follow_sender_and_host_fault_classes() {
+    let cases = [
+        (SignatureError::InvalidHeader, FaultClass::Sender, 400),
+        (SignatureError::InvalidKey, FaultClass::Host, 500),
+        (SignatureError::StaleTimestamp, FaultClass::Sender, 401),
+        (SignatureError::InvalidSignature, FaultClass::Sender, 401),
+        (SignatureError::InvalidReceiptTime, FaultClass::Host, 500),
+        (
+            SignatureError::BodyTooLarge { limit: 1 },
+            FaultClass::Sender,
+            413,
+        ),
+    ];
+    for (error, class, status) in cases {
+        assert_eq!(error.fault_class(), class);
+        assert_eq!(error.status_code(), status);
     }
 }
 

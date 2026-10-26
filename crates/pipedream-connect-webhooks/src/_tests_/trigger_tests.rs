@@ -143,6 +143,19 @@ fn serde_rejects_invalid_context_ids() {
 }
 
 #[test]
+fn default_decode_limit_is_ten_megabytes_and_configurable() {
+    let body = vec![b' '; crate::DEFAULT_BODY_LIMIT_BYTES + 1];
+    assert!(matches!(
+        TriggerDelivery::decode(&body),
+        Err(PayloadError::BodyTooLarge { limit }) if limit == crate::DEFAULT_BODY_LIMIT_BYTES
+    ));
+    assert!(matches!(
+        TriggerDelivery::decode_with_limit(&body, body.len()),
+        Err(PayloadError::InvalidJson)
+    ));
+}
+
+#[test]
 fn invalid_delivery_shapes_return_the_delivery_error() {
     for body in [
         &br#"{"context":{}}"#[..],

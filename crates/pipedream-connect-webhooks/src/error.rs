@@ -2,6 +2,27 @@
 
 use thiserror::Error;
 
+/// Identifies whether the sender or receiving host caused an error.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FaultClass {
+    /// The request sender supplied invalid or oversized input.
+    Sender,
+    /// The receiving host supplied invalid configuration or state.
+    Host,
+}
+
+impl FaultClass {
+    pub(crate) const fn status_code(self, sender_status: u16) -> u16 {
+        match self {
+            Self::Sender => sender_status,
+            Self::Host => 500,
+        }
+    }
+}
+
+/// The default maximum raw webhook body size, in bytes.
+pub const DEFAULT_BODY_LIMIT_BYTES: usize = 10 * 1024 * 1024;
+
 /// Errors returned while decoding a connection event or trigger delivery.
 #[derive(Debug, Error)]
 pub enum PayloadError {
@@ -33,16 +54,29 @@ pub enum PayloadError {
 }
 
 impl PayloadError {
+    /// Returns the sender or host class for this error.
+    pub const fn fault_class(&self) -> FaultClass {
+        match self {
+            Self::BodyTooLarge { .. }
+            | Self::InvalidJson
+            | Self::Json { .. }
+            | Self::InvalidConnectionEvent
+            | Self::InvalidTriggerDelivery
+            | Self::InvalidContextId => FaultClass::Sender,
+        }
+    }
+
     /// Returns the HTTP status that normally represents this payload failure.
     pub const fn status_code(&self) -> u16 {
-        match self {
+        let sender_status = match self {
             Self::BodyTooLarge { .. } => 413,
             Self::InvalidJson
             | Self::Json { .. }
             | Self::InvalidConnectionEvent
             | Self::InvalidTriggerDelivery
             | Self::InvalidContextId => 400,
-        }
+        };
+        self.fault_class().status_code(sender_status)
     }
 }
 

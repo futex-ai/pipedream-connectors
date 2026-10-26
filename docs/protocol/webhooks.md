@@ -52,12 +52,18 @@ The caller MAY configure a different absolute tolerance.
 
 The verifier MUST read the raw body before JSON parsing.
 
-The raw webhook body limit is configurable.
+The raw webhook body limit defaults to 10 MiB.
+
+The caller MAY configure a different raw webhook body limit.
 
 The verifier MUST reject a body larger than the configured limit.
 
 The verifier MUST NOT include the signature header, signing key, or raw body in
 a signature error.
+
+Invalid headers, stale timestamps, invalid signatures, and oversized bodies are
+sender faults and keep their 4xx statuses. An empty signing key and an invalid
+receipt time are host faults and map to status 500.
 
 **Decision.** The verifier authenticates the exact bytes Pipedream sent and uses
 constant-time comparison with a 300-second two-sided window. Parsing decoded
@@ -135,6 +141,9 @@ A delivery without a context ID uses the SHA-256 digest of the raw body as its
 event identity.
 
 An invalid context ID MUST reject the delivery.
+
+A context ID is invalid when it is empty, longer than 250 bytes, or contains a
+control character.
 
 The body cap applies before payload processing.
 

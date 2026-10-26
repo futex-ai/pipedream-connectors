@@ -3,7 +3,7 @@
 use pipedream_connect_types::{Account, ConnectToken, Environment};
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::error::PayloadError;
+use crate::error::{DEFAULT_BODY_LIMIT_BYTES, PayloadError};
 use crate::raw_json::{RawFields, RawJson, optional, parse_bounded, required};
 
 /// The two connection event discriminator values defined by Connect.
@@ -44,33 +44,68 @@ impl<'de> Deserialize<'de> for ConnectionEvent {
     where
         D: Deserializer<'de>,
     {
-        let mut fields = RawFields::deserialize(deserializer)?;
-        Ok(Self {
-            event: required(&mut fields, "event")?,
-            connect_token: required(&mut fields, "connect_token")?,
-            environment: required(&mut fields, "environment")?,
-            connect_session_id: fields
-                .remove("connect_session_id")
-                .ok_or_else(|| serde::de::Error::missing_field("connect_session_id"))?,
-            account: optional(&mut fields, "account")?,
-            error: optional(&mut fields, "error")?,
-            extra: fields,
-        })
+        let raw = RawJson::deserialize(deserializer)?;
+        match Self::decode_value(&raw) {
+            Ok(event) => Ok(event),
+            Err(error) => Err(serde::de::Error::custom(error)),
+        }
     }
 }
 
 impl ConnectionEvent {
-    /// Decodes a connection event without applying a body limit.
+    /// Decodes a connection event with the default 10 MiB body limit.
     pub fn decode(raw_body: &[u8]) -> Result<Self, PayloadError> {
-        Self::decode_with_limit(raw_body, usize::MAX)
+        Self::decode_with_limit(raw_body, DEFAULT_BODY_LIMIT_BYTES)
     }
 
     /// Checks the body limit before decoding a connection event.
     pub fn decode_with_limit(raw_body: &[u8], body_limit: usize) -> Result<Self, PayloadError> {
         let raw = parse_bounded(raw_body, body_limit)?;
-        let event: Self = match raw.decode() {
+        Self::decode_value(&raw)
+    }
+
+    fn decode_value(raw: &RawJson) -> Result<Self, PayloadError> {
+        let fields: RawFields = match raw.decode() {
+            Ok(fields) => fields,
+            Err(_) => return Err(PayloadError::InvalidConnectionEvent),
+        };
+        Self::from_fields(fields)
+    }
+
+    fn from_fields(mut fields: RawFields) -> Result<Self, PayloadError> {
+        let event = match required::<ConnectionEventKind, serde_json::Error>(&mut fields, "event") {
             Ok(event) => event,
             Err(_) => return Err(PayloadError::InvalidConnectionEvent),
+        };
+        let connect_token =
+            match required::<ConnectToken, serde_json::Error>(&mut fields, "connect_token") {
+                Ok(connect_token) => connect_token,
+                Err(_) => return Err(PayloadError::InvalidConnectionEvent),
+            };
+        let environment =
+            match required::<Environment, serde_json::Error>(&mut fields, "environment") {
+                Ok(environment) => environment,
+                Err(_) => return Err(PayloadError::InvalidConnectionEvent),
+            };
+        let connect_session_id = fields
+            .remove("connect_session_id")
+            .ok_or(PayloadError::InvalidConnectionEvent)?;
+        let account = match optional::<Account, serde_json::Error>(&mut fields, "account") {
+            Ok(account) => account,
+            Err(_) => return Err(PayloadError::InvalidConnectionEvent),
+        };
+        let error = match optional::<String, serde_json::Error>(&mut fields, "error") {
+            Ok(error) => error,
+            Err(_) => return Err(PayloadError::InvalidConnectionEvent),
+        };
+        let event = Self {
+            event,
+            connect_token,
+            environment,
+            connect_session_id,
+            account,
+            error,
+            extra: fields,
         };
         event.validate()
     }
