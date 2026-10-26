@@ -2,11 +2,10 @@
 
 use std::collections::BTreeMap;
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
-use crate::{App, AppOverrideId, OauthAppId, UnknownFields};
+use crate::{App, AppOverrideId, OauthAppId, Timestamp, UnknownFields};
 
 /// A named app configuration override.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -27,10 +26,10 @@ pub struct AppOverride {
     pub owner_id: String,
     /// Creation time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<DateTime<Utc>>,
+    pub created_at: Option<Timestamp>,
     /// Last update time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<Timestamp>,
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,

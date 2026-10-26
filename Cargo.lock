@@ -937,7 +937,6 @@ dependencies = [
 name = "pipedream-connect-webhooks"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "hex",
  "hmac",
  "pipedream-connect-types",

@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{SecretString, UnknownFields, WebhookId};
+use crate::{SecretString, Timestamp, UnknownFields, WebhookId};
 
 /// A project or trigger webhook without a response envelope.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -13,10 +13,10 @@ pub struct Webhook {
     pub url: String,
     /// Whether a signing key is configured.
     pub signing_key_set: bool,
-    /// Creation timestamp in epoch seconds.
-    pub created_at: i64,
-    /// Last update timestamp in epoch seconds.
-    pub updated_at: i64,
+    /// Creation timestamp.
+    pub created_at: Timestamp,
+    /// Last update timestamp.
+    pub updated_at: Timestamp,
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,
@@ -34,10 +34,10 @@ pub struct WebhookWithOptionalSigningKey {
     pub signing_key: Option<SecretString>,
     /// Whether a signing key is configured.
     pub signing_key_set: bool,
-    /// Creation timestamp in epoch seconds.
-    pub created_at: i64,
-    /// Last update timestamp in epoch seconds.
-    pub updated_at: i64,
+    /// Creation timestamp.
+    pub created_at: Timestamp,
+    /// Last update timestamp.
+    pub updated_at: Timestamp,
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,
@@ -54,10 +54,10 @@ pub struct WebhookWithSigningKey {
     pub signing_key: SecretString,
     /// Whether a signing key is configured.
     pub signing_key_set: bool,
-    /// Creation timestamp in epoch seconds.
-    pub created_at: i64,
-    /// Last update timestamp in epoch seconds.
-    pub updated_at: i64,
+    /// Creation timestamp.
+    pub created_at: Timestamp,
+    /// Last update timestamp.
+    pub updated_at: Timestamp,
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,

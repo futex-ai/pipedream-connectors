@@ -1,11 +1,10 @@
 //! Connect token creation and response models.
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{
-    ConnectToken, Error, ExternalUserId, ProjectId, Result, SecretString, UnknownFields, UrlField,
-    UrlRules, ValidationField, parse_validated,
+    ConnectToken, Error, ExternalUserId, ProjectId, Result, SecretString, Timestamp, UnknownFields,
+    UrlField, UrlRules, ValidationField, parse_validated,
 };
 
 /// Hosted Connect token creation request.
@@ -142,7 +141,7 @@ pub struct ConnectTokenResponse {
     /// Connect Link URL.
     pub connect_link_url: SecretString,
     /// Token expiration.
-    pub expires_at: DateTime<Utc>,
+    pub expires_at: Timestamp,
     /// Short-lived token.
     pub token: ConnectToken,
     /// Unknown provider fields.

@@ -1,11 +1,10 @@
 //! Connected accounts and external users.
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     AccountId, App, AppSlug, ConnectToken, ExternalUserId, OauthAppId, PageRequest, SecretJson,
-    SecretString, UnknownFields,
+    SecretString, Timestamp, UnknownFields,
 };
 
 /// An account identity paired with its external-user partition.
@@ -55,10 +54,10 @@ pub struct Account {
     pub app: Option<App>,
     /// Creation time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<DateTime<Utc>>,
+    pub created_at: Option<Timestamp>,
     /// Last update time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<Timestamp>,
     /// OAuth scopes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authorized_scopes: Option<Vec<String>>,
@@ -67,16 +66,16 @@ pub struct Account {
     pub credentials: Option<SecretJson>,
     /// Credential expiry.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub expires_at: Option<DateTime<Utc>>,
+    pub expires_at: Option<Timestamp>,
     /// Provider health error.
     #[serde(default)]
     pub error: Option<String>,
     /// Last credential refresh.
     #[serde(default)]
-    pub last_refreshed_at: Option<DateTime<Utc>>,
+    pub last_refreshed_at: Option<Timestamp>,
     /// Next credential refresh.
     #[serde(default)]
-    pub next_refresh_at: Option<DateTime<Utc>>,
+    pub next_refresh_at: Option<Timestamp>,
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,
@@ -128,10 +127,10 @@ pub struct ExternalUser {
     pub external_id: ExternalUserId,
     /// Creation time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<DateTime<Utc>>,
+    pub created_at: Option<Timestamp>,
     /// Last update time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<Timestamp>,
     /// Unknown provider fields.
     #[serde(flatten)]
     pub extra: UnknownFields,

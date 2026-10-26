@@ -9,6 +9,9 @@ requests and responses without an HTTP client or an async runtime.
 - Validate Connect identifiers and bounded request values.
 - Serialize and deserialize registry, account, execution, trigger, and
   administration models.
+- Decode date fields from RFC 3339 strings or epoch milliseconds and preserve
+  the decoded wire form when models re-encode. Call `Timestamp::as_datetime`
+  for the UTC value.
 - Send trigger callback URLs unchanged when a client sends a deployment or
   webhook update.
 - Preserve unknown response fields, enum values, and property definitions.
@@ -99,6 +102,7 @@ crates/pipedream-connect-types/tests/fixtures/refresh-openapi.sh
   Connect token requests.
 - `src/execution/` defines configuration, dynamic props, observations, and
   action results.
+- `src/shared.rs` defines the lossless `Timestamp` used by date fields.
 - `src/triggers/` defines emitters, deployed triggers, webhooks, workflows,
   and events.
 - `src/admin/` defines projects, OAuth apps, overrides, webhooks, usage, and

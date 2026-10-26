@@ -139,7 +139,11 @@ The `event` field contains the app-defined event JSON without lossy conversion.
 
 The `context` field MAY contain an `id` string.
 
-The `context` field MAY contain a timestamp in an ISO 8601 string.
+The `context` field MAY contain a timestamp as an RFC 3339 string or an
+epoch-millisecond number.
+
+If the context timestamp is neither form, the decoder MUST preserve it as an
+unknown context field and continue decoding the delivery.
 
 The consumer MUST preserve the raw event JSON and unknown context fields.
 

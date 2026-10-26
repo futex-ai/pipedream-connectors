@@ -1,6 +1,6 @@
 //! Lossless trigger delivery and context models.
 
-use chrono::{DateTime, Utc};
+use pipedream_connect_types::Timestamp;
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -14,8 +14,13 @@ pub struct TriggerContext {
     #[serde(default)]
     pub id: Option<String>,
     /// Provider event timestamp from the `ts` field.
-    #[serde(default, rename = "ts", alias = "timestamp")]
-    pub timestamp: Option<DateTime<Utc>>,
+    #[serde(
+        default,
+        rename = "ts",
+        alias = "timestamp",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub timestamp: Option<Timestamp>,
     /// Unknown context fields preserved for forward compatibility.
     #[serde(flatten)]
     pub extra: RawFields,
@@ -45,15 +50,26 @@ impl<'de> Deserialize<'de> for TriggerContext {
         let mut fields = RawFields::deserialize(deserializer)?;
         let id = optional(&mut fields, "id")?;
         let timestamp = if fields.contains_key("ts") {
-            optional(&mut fields, "ts")?
+            optional_timestamp(&mut fields, "ts")
         } else {
-            optional(&mut fields, "timestamp")?
+            optional_timestamp(&mut fields, "timestamp")
         };
         Ok(Self {
             id,
             timestamp,
             extra: fields,
         })
+    }
+}
+
+fn optional_timestamp(fields: &mut RawFields, key: &'static str) -> Option<Timestamp> {
+    let raw = fields.remove(key)?;
+    match raw.decode() {
+        Ok(timestamp) => Some(timestamp),
+        Err(_) => {
+            fields.insert(key.to_owned(), raw);
+            None
+        }
     }
 }
 
