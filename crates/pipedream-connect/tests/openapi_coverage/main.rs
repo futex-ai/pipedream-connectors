@@ -26,6 +26,19 @@ use wire::Wire;
 const OPENAPI: &str =
     include_str!("../../../pipedream-connect-types/tests/fixtures/pipedream_openapi_swagger.json");
 
+#[test]
+fn oauth_coverage_row_uses_the_openapi_operation_values() {
+    let operations = HashMap::from([(
+        "createOauthToken".to_owned(),
+        ("PATCH".to_owned(), "/custom/oauth-token".to_owned()),
+    )]);
+
+    assert_eq!(
+        oauth_operation(&operations),
+        ("PATCH".to_owned(), "/custom/oauth-token".to_owned())
+    );
+}
+
 #[tokio::test]
 async fn covered_operations_have_documentation_and_golden_wire_rows() {
     let openapi = openapi_operations();
@@ -70,11 +83,12 @@ async fn covered_operations_have_documentation_and_golden_wire_rows() {
     }
 
     let expected = Wire::for_operation("createOauthToken").expect("OAuth row");
+    let (oauth_method, oauth_path) = oauth_operation(&openapi);
     recorder.clear();
     let client = credentials_client(recorder.clone());
     let _ = client.projects().info().await;
     let request = recorder.take_oauth();
-    expected.assert_request(&request, "POST", "/v1/oauth/token");
+    expected.assert_request(&request, &oauth_method, &oauth_path);
 }
 
 fn static_client(recorder: Arc<Recorder>) -> PipedreamClient {
@@ -135,6 +149,13 @@ fn openapi_operations() -> HashMap<String, (String, String)> {
         }
     }
     operations
+}
+
+fn oauth_operation(operations: &HashMap<String, (String, String)>) -> (String, String) {
+    operations
+        .get("createOauthToken")
+        .cloned()
+        .expect("OAuth OpenAPI operation")
 }
 
 fn documented_operations() -> HashMap<String, (String, String)> {
