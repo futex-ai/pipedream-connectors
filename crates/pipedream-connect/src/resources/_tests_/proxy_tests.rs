@@ -9,6 +9,7 @@ use serde_json::json;
 
 use crate::error::Error;
 use crate::resources::proxy::ProxyRequest;
+use crate::resources::test_support::assert_wire;
 use crate::tests::support::{Harness, config, response, static_config};
 
 fn account() -> AccountRef {
@@ -138,7 +139,20 @@ async fn proxy_exposes_all_documented_methods() {
     .into_iter()
     .enumerate()
     {
-        assert_eq!(harness.request(index).method, method);
+        let target = URL_SAFE_NO_PAD.encode("/resource");
+        let url = format!(
+            "https://api.pipedream.com/v1/connect/proj_Test123/proxy/{target}?account_id=apn_Account1&external_user_id=user_1"
+        );
+        assert_wire(
+            &harness.request(index),
+            method,
+            &url,
+            &[
+                ("authorization", "Bearer static-secret"),
+                ("x-pd-environment", "development"),
+            ],
+            None,
+        );
     }
     harness.assert_requests(5);
 }

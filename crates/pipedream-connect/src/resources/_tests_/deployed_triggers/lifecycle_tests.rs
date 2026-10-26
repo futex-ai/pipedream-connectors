@@ -7,10 +7,10 @@ use pipedream_connect_types::{
 use serde_json::json;
 
 use crate::error::Error;
-use crate::resources::test_support::assert_get;
+use crate::resources::test_support::{assert_get, assert_wire};
 use crate::tests::support::{Harness, response};
 
-use super::support::{deployed_trigger, page, query, request_body, trigger_id};
+use super::support::{deployed_trigger, page, query, trigger_id};
 
 #[tokio::test]
 async fn deploy_sends_the_external_user_and_callback_options() {
@@ -33,13 +33,27 @@ async fn deploy_sends_the_external_user_and_callback_options() {
     assert!(matches!(result.data, Emitter::DeployedComponent(_)));
     assert!(!format!("{result:?}").contains("deployment-secret"));
     assert_eq!(result.extra["future"], true);
-    let sent = harness.request(1);
-    assert_eq!(
-        sent.url.expose_secret(),
-        "https://api.pipedream.com/v1/connect/proj_Test123/triggers/deploy"
+    assert_wire(
+        &harness.request(1),
+        http::Method::POST,
+        "https://api.pipedream.com/v1/connect/proj_Test123/triggers/deploy",
+        &[
+            ("authorization", "Bearer access-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+            ("content-type", "application/json"),
+        ],
+        Some(&json!({
+            "id": "google_calendar-new-event",
+            "version": "1.0.0",
+            "external_user_id": "customer_1",
+            "configured_props": {},
+            "dynamic_props_id": "dynamic_1",
+            "workflow_id": "p_workflow1",
+            "webhook_url": "http://127.0.0.1:50151/events",
+            "emit_on_deploy": true
+        })),
     );
-    assert_eq!(request_body(sent)["external_user_id"], "customer_1");
-    assert_eq!(request_body(harness.request(1))["emit_on_deploy"], true);
     harness.assert_requests(2);
 }
 
@@ -153,9 +167,17 @@ async fn crud_calls_keep_tenant_scope_and_delete_can_ignore_missing_deployments(
         )
         .await;
     assert!(matches!(result, Err(Error::NotFound { .. })));
-    assert_eq!(
-        request_body(harness.request(2)),
-        json!({"active":false,"name":"Updated"})
+    assert_wire(
+        &harness.request(2),
+        http::Method::PUT,
+        "https://api.pipedream.com/v1/connect/proj_Test123/deployed-triggers/dc_Trigger123?external_user_id=customer_1",
+        &[
+            ("authorization", "Bearer access-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+            ("content-type", "application/json"),
+        ],
+        Some(&json!({"active":false,"name":"Updated"})),
     );
     for index in 1..=4 {
         assert!(

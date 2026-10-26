@@ -7,6 +7,7 @@ use pipedream_connect_types::{
 use serde_json::json;
 
 use crate::error::Error;
+use crate::resources::test_support::assert_wire;
 use crate::tests::support::{Harness, response, static_config};
 
 #[tokio::test]
@@ -29,12 +30,16 @@ async fn project_operations_use_the_documented_routes_and_bodies() {
         .list(ListProjectsRequest::default())
         .await
         .unwrap();
-    assert!(
-        harness
-            .request(0)
-            .url
-            .expose_secret()
-            .ends_with("/v1/connect/projects?limit=100")
+    assert_wire(
+        &harness.request(0),
+        http::Method::GET,
+        "https://api.pipedream.com/v1/connect/projects?limit=100",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+        ],
+        None,
     );
     harness
         .client
@@ -47,15 +52,17 @@ async fn project_operations_use_the_documented_routes_and_bodies() {
         })
         .await
         .unwrap();
-    assert_eq!(harness.request(1).method, http::Method::POST);
-    assert_eq!(
-        harness.request(1).url.expose_secret(),
-        "https://api.pipedream.com/v1/connect/projects"
-    );
-    assert_eq!(
-        serde_json::from_slice::<serde_json::Value>(harness.request(1).body.as_ref().unwrap())
-            .unwrap()["name"],
-        "New"
+    assert_wire(
+        &harness.request(1),
+        http::Method::POST,
+        "https://api.pipedream.com/v1/connect/projects",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+            ("content-type", "application/json"),
+        ],
+        Some(&json!({"name":"New"})),
     );
     let project_id = ProjectId::new("proj_Test123").unwrap();
     harness
@@ -94,9 +101,16 @@ async fn project_operations_use_the_documented_routes_and_bodies() {
         .await
         .unwrap();
     harness.client.projects().info().await.unwrap();
-    assert_eq!(
-        harness.request(6).url.expose_secret(),
-        "https://api.pipedream.com/v1/connect/proj_Test123/projects/info"
+    assert_wire(
+        &harness.request(6),
+        http::Method::GET,
+        "https://api.pipedream.com/v1/connect/proj_Test123/projects/info",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+        ],
+        None,
     );
     harness.assert_requests(7);
 }

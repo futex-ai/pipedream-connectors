@@ -7,7 +7,7 @@ use pipedream_connect_types::{
 use serde_json::json;
 
 use crate::error::Error;
-use crate::resources::test_support::{assert_get, page};
+use crate::resources::test_support::{assert_get, assert_wire, page};
 use crate::tests::support::{Harness, response, static_config};
 
 fn account() -> serde_json::Value {
@@ -182,7 +182,17 @@ async fn owned_account_cleanup_checks_the_external_user_before_delete() {
         harness.request(1).url.expose_secret(),
         "https://api.pipedream.com/v1/connect/proj_Test123/accounts/apn_Account1?include_credentials=false&external_user_id=user_1"
     );
-    assert_eq!(harness.request(2).method, http::Method::DELETE);
+    assert_wire(
+        &harness.request(2),
+        http::Method::DELETE,
+        "https://api.pipedream.com/v1/connect/proj_Test123/accounts/apn_Account1?external_user_id=user_1",
+        &[
+            ("authorization", "Bearer access-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+        ],
+        None,
+    );
     harness.assert_requests(3);
 }
 

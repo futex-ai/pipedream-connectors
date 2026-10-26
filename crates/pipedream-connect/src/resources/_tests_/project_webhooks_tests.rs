@@ -3,6 +3,7 @@
 use pipedream_connect_types::SetWebhookRequest;
 use serde_json::json;
 
+use crate::resources::test_support::assert_wire;
 use crate::tests::support::{Harness, response, static_config};
 
 #[tokio::test]
@@ -40,6 +41,17 @@ async fn project_webhook_operations_keep_wire_envelopes_and_redact_keys() {
         .await
         .unwrap();
     assert!(!format!("{:?}", regenerated).contains("regen-secret"));
-    assert_eq!(harness.request(1).method, http::Method::PUT);
+    assert_wire(
+        &harness.request(1),
+        http::Method::PUT,
+        "https://api.pipedream.com/v1/connect/proj_Test123/webhook",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+            ("content-type", "application/json"),
+        ],
+        Some(&json!({"url":"https://example.com"})),
+    );
     harness.assert_requests(4);
 }

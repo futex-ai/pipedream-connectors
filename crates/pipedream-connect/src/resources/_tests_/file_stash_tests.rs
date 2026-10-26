@@ -5,6 +5,7 @@ use pipedream_connect_types::DownloadFileStashRequest;
 use serde_json::json;
 
 use crate::resources::file_stash::FileStashDownload;
+use crate::resources::test_support::assert_wire;
 use crate::tests::support::{Harness, response, static_config};
 
 #[tokio::test]
@@ -33,6 +34,25 @@ async fn file_stash_returns_bytes_and_does_not_follow_redirects() {
         harness.client.file_stash().download(request).await.unwrap(),
         FileStashDownload::Redirect("https://signed.example/file".into())
     );
+    for (index, url) in [
+        "https://api.pipedream.com/v1/connect/proj_Test123/file_stash/download?s3_key=1day%2Fa%2Fb%2Fc%2Fu%2Ffile",
+        "https://api.pipedream.com/v1/connect/proj_Test123/file_stash/download?s3_key=1day%2Fa%2Fb%2Fc%2Fu%2Ffile",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        assert_wire(
+            &harness.request(index),
+            http::Method::GET,
+            url,
+            &[
+                ("authorization", "Bearer static-secret"),
+                ("x-pd-environment", "development"),
+                ("user-agent", concat!("pipedream-connect/", env!("CARGO_PKG_VERSION"))),
+            ],
+            None,
+        );
+    }
     assert_eq!(harness.requests.lock().unwrap().len(), 2);
     harness.assert_requests(2);
 }

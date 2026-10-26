@@ -6,6 +6,7 @@ use pipedream_connect_types::{
 use serde_json::json;
 
 use crate::error::Error;
+use crate::resources::test_support::assert_wire;
 use crate::tests::support::{Harness, response, static_config};
 
 fn override_value(id: &str) -> serde_json::Value {
@@ -61,6 +62,17 @@ async fn override_operations_encode_routes_and_updates() {
         .await
         .unwrap();
     harness.client.app_overrides().delete(id).await.unwrap();
+    assert_wire(
+        &harness.request(0),
+        http::Method::GET,
+        "https://api.pipedream.com/v1/connect/proj_Test123/app_overrides?limit=100",
+        &[
+            ("authorization", "Bearer static-secret"),
+            ("x-pd-environment", "development"),
+            ("accept", "application/json"),
+        ],
+        None,
+    );
     harness.assert_requests(5);
 }
 
