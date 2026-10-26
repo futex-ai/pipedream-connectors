@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use crate::command::{self, CommandRunner, CommandSpec};
 use crate::error::{Error, FileLengthViolation, FileLengthViolations, Result};
-use crate::file_access::FileAccess;
+use crate::file_access::{FileAccess, walk_workspace_roots};
 
 const MAX_LINES: usize = 300;
 
@@ -60,35 +60,21 @@ pub(crate) fn run(
 
 fn collect_rust_files(root: &Path, file_access: &dyn FileAccess) -> std::io::Result<Vec<PathBuf>> {
     let mut files = Vec::new();
-    for relative_root in ["crates", "xtask"] {
-        let path = root.join(relative_root);
-        match collect_rust_files_below(&path, file_access, &mut files) {
-            Ok(()) => {}
-            Err(source) if source.kind() == std::io::ErrorKind::NotFound => {}
-            Err(source) => return Err(source),
+    walk_workspace_roots(root, file_access, |entries| {
+        for entry in entries {
+            if !entry.is_directory
+                && entry
+                    .path
+                    .extension()
+                    .is_some_and(|extension| extension == "rs")
+            {
+                files.push(entry.path.clone());
+            }
         }
-    }
+        Ok(())
+    })?;
     files.sort();
     Ok(files)
-}
-
-fn collect_rust_files_below(
-    path: &Path,
-    file_access: &dyn FileAccess,
-    files: &mut Vec<PathBuf>,
-) -> std::io::Result<()> {
-    for entry in file_access.read_dir(path)? {
-        if entry.is_directory {
-            collect_rust_files_below(&entry.path, file_access, files)?;
-        } else if entry
-            .path
-            .extension()
-            .is_some_and(|extension| extension == "rs")
-        {
-            files.push(entry.path);
-        }
-    }
-    Ok(())
 }
 
 fn changed_rust_files(root: &Path, runner: &dyn CommandRunner) -> Result<Vec<PathBuf>> {
