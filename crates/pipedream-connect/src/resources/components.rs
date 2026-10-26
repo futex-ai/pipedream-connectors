@@ -60,11 +60,7 @@ impl ComponentsApi for Components {
     ) -> Result<GetComponentResponse> {
         let response = operation::json(
             &self.dispatcher,
-            Ok(operation::get_component(
-                CatalogGroup::Components,
-                &key,
-                &request,
-            )),
+            operation::get_component(CatalogGroup::Components, &key, &request),
         )
         .await?;
         operation::check_component(response, &key)

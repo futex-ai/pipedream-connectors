@@ -67,7 +67,7 @@ async fn live_pipedream_managed_auth_and_proxy() {
         .create(token_request)
         .await
         .expect("create live Connect token");
-    client
+    let validation = client
         .tokens()
         .validate(
             ConnectToken::new(token.token.expose_secret()).expect("valid returned token"),
@@ -79,6 +79,7 @@ async fn live_pipedream_managed_auth_and_proxy() {
         )
         .await
         .expect("validate live Connect token");
+    assert!(validation.success, "live Connect token validation failed");
     client
         .accounts()
         .list(ListAccountsRequest {
@@ -88,25 +89,38 @@ async fn live_pipedream_managed_auth_and_proxy() {
         .await
         .expect("list live accounts");
     let account = AccountRef::new(external_user_id, account_id);
-    client
+    let response = client
         .proxy()
         .get(ProxyRequest::get(
             account.clone(),
-            "https://slack.com/api/auth.test",
+            "https://www.googleapis.com/calendar/v3/users/me/calendarList",
         ))
         .await
         .expect("proxy GET smoke");
-    client
+    assert!(
+        response.status.is_success(),
+        "proxy GET returned {}",
+        response.status
+    );
+    let response = client
         .proxy()
         .post(
-            ProxyRequest::post(account, "https://slack.com/api/auth.test")
+            ProxyRequest::post(account, "https://www.googleapis.com/calendar/v3/freeBusy")
                 .with_header(
                     HeaderName::from_static("content-type"),
-                    HeaderValue::from_static("application/x-www-form-urlencoded"),
+                    HeaderValue::from_static("application/json"),
                 )
-                .with_body(Vec::<u8>::new()),
+                .with_body(
+                    br#"{"timeMin":"2026-01-01T00:00:00Z","timeMax":"2026-01-02T00:00:00Z","items":[{"id":"primary"}]}"#
+                        .to_vec(),
+                ),
         )
         .await
         .expect("proxy POST smoke");
+    assert!(
+        response.status.is_success(),
+        "proxy POST returned {}",
+        response.status
+    );
     eprintln!("managed-auth and proxy smoke completed; Connect token expires in 60 seconds");
 }

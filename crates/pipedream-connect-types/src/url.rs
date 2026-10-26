@@ -11,6 +11,8 @@ pub enum UrlRules {
     WorkflowEndpoint,
     /// An absolute HTTPS URL with a host.
     HttpsHost,
+    /// An absolute HTTPS URL or a single relative path for proxy forwarding.
+    ProxyTarget,
 }
 
 /// Parses a URL when it satisfies the selected boundary rules.
@@ -57,14 +59,47 @@ pub fn parse_validated(value: &str, rules: UrlRules) -> Option<Url> {
                 return None;
             }
         }
+        UrlRules::ProxyTarget => {
+            if value.trim() != value
+                || value.chars().any(char::is_control)
+                || value.contains('\\')
+                || url.scheme() != "https"
+                || url.host_str().is_none()
+                || authority_contains_at(value)
+                || !url.username().is_empty()
+                || url.password().is_some()
+                || url.fragment().is_some()
+            {
+                return None;
+            }
+        }
     }
     Some(url)
+}
+
+/// Checks an absolute URL or relative path against the selected URL rules.
+pub fn is_valid(value: &str, rules: UrlRules) -> bool {
+    if rules != UrlRules::ProxyTarget {
+        return parse_validated(value, rules).is_some();
+    }
+    parse_validated(value, rules).is_some()
+        || (value.trim() == value
+            && !value.is_empty()
+            && !value.chars().any(char::is_control)
+            && !value.contains('\\')
+            && value.starts_with('/')
+            && !value.starts_with("//")
+            && !value.contains('#'))
 }
 
 fn authority(value: &str) -> Option<(&str, &str)> {
     let (_, rest) = value.split_once("://")?;
     let boundary = rest.find(['/', '?', '#']).unwrap_or(rest.len());
     Some(rest.split_at(boundary))
+}
+
+fn authority_contains_at(value: &str) -> bool {
+    authority(value).is_some_and(|(authority, _)| authority.contains('@'))
 }
 
 #[cfg(test)]

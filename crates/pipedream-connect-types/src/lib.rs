@@ -60,7 +60,7 @@ pub use triggers::{
     TimerInterface, TriggerWebhook, TriggerWebhooks, TriggerWorkflows, UpdateTriggerRequest,
     UpdateTriggerWebhooksRequest, UpdateTriggerWorkflowsRequest,
 };
-pub use url::{UrlRules, parse_validated};
+pub use url::{UrlRules, is_valid, parse_validated};
 pub use wire::{
     ConnectUsageResponse, CreateAccountResponse, Data, ErrorMessage, ErrorResponse,
     GetAccountResponse, GetAccountsResponse, GetAppCategoryResponse, GetAppResponse,

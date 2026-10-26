@@ -96,9 +96,9 @@ impl ProxyRequest {
         Self::new(account, ProxyMethod::Delete, target)
     }
 
-    /// Replaces the caller headers without sending a request.
+    /// Merges caller headers without sending a request.
     pub fn with_headers(mut self, headers: HeaderMap) -> Self {
-        self.headers = headers;
+        self.headers.extend(headers);
         self
     }
 

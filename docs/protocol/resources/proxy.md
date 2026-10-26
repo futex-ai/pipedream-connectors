@@ -20,6 +20,15 @@ workflow for an external user.
 The proxy target is an absolute HTTPS URL or a relative path accepted by the
 selected app.
 
+The proxy target MUST be non-empty, have no leading or trailing whitespace,
+and contain no control character or backslash.
+
+An absolute proxy target MUST use HTTPS and have a host. It MUST NOT contain
+user information or a fragment. Its authority MUST NOT contain a raw `@`.
+
+A relative proxy target MUST start with one slash, MUST NOT start with `//`,
+and MUST NOT contain a fragment.
+
 The client MUST encode the exact target as URL-safe Base64 without padding.
 
 The encoded target MUST occupy the `{url_64}` path segment.
@@ -121,8 +130,9 @@ The workflow endpoint MUST use HTTPS.
 The workflow endpoint MUST NOT contain user information, a fragment, a
 control character, or a backslash.
 
-These URL rules keep the Connect bearer encrypted and stop URL tricks from
-changing the host. The SDK sends the bearer to the host that the caller names.
+The SDK sends the project bearer to the workflow URL that the caller passes.
+This bearer authorizes the whole Connect project. The host MUST pass only
+trusted workflow URLs.
 
 Workflow invocation MUST return every status, response header, and body byte
 unchanged.
