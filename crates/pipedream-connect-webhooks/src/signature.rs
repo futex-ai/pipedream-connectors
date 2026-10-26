@@ -9,6 +9,8 @@ use sha2::Sha256;
 use subtle::ConstantTimeEq;
 use thiserror::Error;
 
+use crate::error::{DEFAULT_BODY_LIMIT_BYTES, FaultClass};
+
 /// The default absolute timestamp tolerance in seconds.
 pub const DEFAULT_SIGNATURE_TOLERANCE_SECONDS: u64 = 300;
 
@@ -57,20 +59,32 @@ pub trait WebhookSignatureVerifier: Send + Sync {
 /// A shared signature verifier trait object.
 pub type DynWebhookSignatureVerifier = Arc<dyn WebhookSignatureVerifier + Send + Sync>;
 
-/// HMAC-SHA256 verifier with an explicit raw-body limit and replay tolerance.
+/// HMAC-SHA256 verifier with a configurable raw-body limit and replay tolerance.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HmacWebhookSignatureVerifier {
     body_limit: usize,
     tolerance_seconds: u64,
 }
 
+impl Default for HmacWebhookSignatureVerifier {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HmacWebhookSignatureVerifier {
-    /// Constructs a verifier with the caller's body limit and the 300-second default tolerance.
-    pub const fn new(body_limit: usize) -> Self {
+    /// Constructs a verifier with a 10 MiB body limit and the default tolerance.
+    pub const fn new() -> Self {
         Self {
-            body_limit,
+            body_limit: DEFAULT_BODY_LIMIT_BYTES,
             tolerance_seconds: DEFAULT_SIGNATURE_TOLERANCE_SECONDS,
         }
+    }
+
+    /// Sets the maximum raw body size in bytes.
+    pub const fn with_body_limit(mut self, body_limit: usize) -> Self {
+        self.body_limit = body_limit;
+        self
     }
 
     /// Sets the absolute replay tolerance in seconds.
@@ -142,13 +156,25 @@ impl WebhookSignatureVerifier for HmacWebhookSignatureVerifier {
 }
 
 impl SignatureError {
+    /// Returns the sender or host class for this error.
+    pub const fn fault_class(self) -> FaultClass {
+        match self {
+            Self::InvalidKey | Self::InvalidReceiptTime => FaultClass::Host,
+            Self::InvalidHeader
+            | Self::StaleTimestamp
+            | Self::InvalidSignature
+            | Self::BodyTooLarge { .. } => FaultClass::Sender,
+        }
+    }
+
     /// Returns the HTTP status that normally represents this verification failure.
     pub const fn status_code(self) -> u16 {
-        match self {
+        let sender_status = match self {
             Self::BodyTooLarge { .. } => 413,
             Self::InvalidSignature | Self::StaleTimestamp | Self::InvalidKey => 401,
             Self::InvalidHeader | Self::InvalidReceiptTime => 400,
-        }
+        };
+        self.fault_class().status_code(sender_status)
     }
 }
 

@@ -7,7 +7,7 @@ mod raw_json;
 mod signature;
 mod trigger;
 
-pub use error::PayloadError;
+pub use error::{DEFAULT_BODY_LIMIT_BYTES, FaultClass, PayloadError};
 pub use events::{ConnectionEvent, ConnectionEventKind};
 pub use raw_json::{RawFields, RawJson};
 #[cfg(feature = "unimock")]

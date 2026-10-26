@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::error::PayloadError;
+use crate::error::{DEFAULT_BODY_LIMIT_BYTES, PayloadError};
 use crate::raw_json::{RawFields, RawJson, optional, parse_bounded};
 
 /// Trigger delivery context supplied by Pipedream.
@@ -73,10 +73,10 @@ impl<'de> Deserialize<'de> for TriggerDelivery {
 impl TriggerDelivery {
     /// Decodes a delivery and hashes the exact body when no context ID exists.
     ///
-    /// This method does not apply a body limit. Direct serde decoding hashes
-    /// the JSON value text, which excludes whitespace outside that value.
+    /// This method applies the default 10 MiB body limit. Direct serde decoding
+    /// hashes the JSON value text, which excludes whitespace outside that value.
     pub fn decode(raw_body: &[u8]) -> Result<Self, PayloadError> {
-        Self::decode_with_limit(raw_body, usize::MAX)
+        Self::decode_with_limit(raw_body, DEFAULT_BODY_LIMIT_BYTES)
     }
 
     /// Checks the body limit before decoding a trigger delivery.
