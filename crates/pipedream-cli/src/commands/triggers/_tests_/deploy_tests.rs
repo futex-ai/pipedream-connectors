@@ -153,12 +153,12 @@ async fn invalid_deployments_fail_before_reading_props_or_any_request() {
                 "props.json",
             ],
             "error: <COMPONENT> is not a valid component key. Use 1 to 250 visible ASCII \
-             characters without /, \\, ?, or #.\n",
+             characters without spaces, /, \\, ?, or #. The values . and .. are not valid.\n",
         ),
         (
             deploy(&["--workflow-id", "p/abc", "--props", "props.json"]),
             "error: --workflow-id is not a valid workflow ID. Use 1 to 250 visible ASCII \
-             characters without /, \\, ?, or #.\n",
+             characters without spaces, /, \\, ?, or #. The values . and .. are not valid.\n",
         ),
     ];
     for (args, stderr) in cases {

@@ -163,12 +163,12 @@ async fn components_commands_reject_invalid_input_before_any_request() {
         (
             &["components", "list", "--app", "google/calendar"][..],
             "error: --app is not a valid app slug. Use 1 to 250 visible ASCII characters \
-             without /, \\, ?, or #.\n",
+             without spaces, /, \\, ?, or #. The values . and .. are not valid.\n",
         ),
         (
             &["components", "get", "list?events"],
             "error: <COMPONENT> is not a valid component key. Use 1 to 250 visible ASCII \
-             characters without /, \\, ?, or #.\n",
+             characters without spaces, /, \\, ?, or #. The values . and .. are not valid.\n",
         ),
     ];
     for (args, stderr) in cases {

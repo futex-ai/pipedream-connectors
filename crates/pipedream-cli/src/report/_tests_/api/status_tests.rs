@@ -180,7 +180,9 @@ fn invalid_requests_exit_two() {
         ),
         (
             InvalidRequest::ProxyTarget,
-            "<URL> must be an HTTPS URL or a path that starts with /. Fix the proxy target.",
+            "<URL> must be an HTTPS URL with a host, or a path that starts with one /. Remove \
+             any surrounding spaces, control characters, backslashes, credentials, and \
+             fragment.",
         ),
         (
             InvalidRequest::ProxyHeader,
@@ -192,7 +194,8 @@ fn invalid_requests_exit_two() {
         ),
         (
             InvalidRequest::WorkflowEndpoint,
-            "The workflow URL is not valid. Use an HTTPS URL without credentials or a fragment.",
+            "The workflow URL is not valid. Use an HTTPS URL with a host, without surrounding \
+             spaces, control characters, backslashes, credentials, or a fragment.",
         ),
     ];
     for (reason, message) in cases {

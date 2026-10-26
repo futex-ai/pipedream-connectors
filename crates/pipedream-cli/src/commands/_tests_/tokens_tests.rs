@@ -121,15 +121,15 @@ async fn tokens_create_rejects_invalid_input_before_any_request() {
         ),
         (
             &["--success-redirect-uri", "http://app.example.com/done"],
-            "error: --success-redirect-uri must be an HTTPS URL.\n",
+            "error: --success-redirect-uri must be an HTTPS URL with a host.\n",
         ),
         (
             &["--error-redirect-uri", "ftp://app.example.com/failed"],
-            "error: --error-redirect-uri must be an HTTPS URL.\n",
+            "error: --error-redirect-uri must be an HTTPS URL with a host.\n",
         ),
         (
             &["--webhook-uri", "not a url"],
-            "error: --webhook-uri must be an HTTPS URL.\n",
+            "error: --webhook-uri must be an HTTPS URL with a host.\n",
         ),
     ];
     for (extra, stderr) in cases {

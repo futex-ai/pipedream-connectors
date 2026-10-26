@@ -155,8 +155,9 @@ fn invalid_request(reason: &InvalidRequest) -> (&'static str, &'static str) {
             "Check the command arguments.",
         ),
         InvalidRequest::ProxyTarget => (
-            "<URL> must be an HTTPS URL or a path that starts with /.",
-            "Fix the proxy target.",
+            "<URL> must be an HTTPS URL with a host, or a path that starts with one /.",
+            "Remove any surrounding spaces, control characters, backslashes, credentials, and \
+             fragment.",
         ),
         InvalidRequest::ProxyHeader => (
             "Pipedream does not forward one of the --header values.",
@@ -168,7 +169,8 @@ fn invalid_request(reason: &InvalidRequest) -> (&'static str, &'static str) {
         ),
         InvalidRequest::WorkflowEndpoint => (
             "The workflow URL is not valid.",
-            "Use an HTTPS URL without credentials or a fragment.",
+            "Use an HTTPS URL with a host, without surrounding spaces, control characters, \
+             backslashes, credentials, or a fragment.",
         ),
         InvalidRequest::Origin
         | InvalidRequest::Credentials

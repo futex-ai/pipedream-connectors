@@ -232,7 +232,8 @@ async fn invalid_run_input_fails_before_any_request() {
     assert_eq!(
         ran.stderr,
         "error: --external-user-id is not a valid external user ID. Use 1 to 250 visible \
-         ASCII characters without /, \\, ?, or #.\n"
+         ASCII characters without spaces, /, \\, ?, or #. The values . and .. are not \
+         valid.\n"
     );
 }
 

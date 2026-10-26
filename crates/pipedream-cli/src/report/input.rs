@@ -66,14 +66,18 @@ pub(super) fn invalid_setting(setting: Setting, supply: Supply) -> String {
     let name = supply.name(setting);
     match setting {
         Setting::ProjectId => {
-            format!("{name} is not a valid project ID. Use the project ID that starts with proj_.")
+            format!(
+                "{name} is not a valid project ID. Use the project ID that starts with proj_ and \
+                 then has only letters and digits."
+            )
         }
         Setting::Environment => {
             format!("{name} is not a valid environment. Use development or production.")
         }
         Setting::ApiOrigin => format!(
             "{name} is not a valid API origin. \
-             Use an HTTPS origin without a path, such as https://api.pipedream.com."
+             Use an HTTPS origin that has only a host and an optional port, such as \
+             https://api.pipedream.com."
         ),
         Setting::ClientId | Setting::ClientSecret => format!(
             "{name} is not a valid {}. Copy it again from your Pipedream OAuth client.",
@@ -97,7 +101,7 @@ pub(super) fn invalid_argument(
             minimum, maximum, ..
         } => format!("{argument} must be from {minimum} to {maximum}."),
         pipedream_connect_types::Error::InvalidHttpsUrl { .. } => {
-            format!("{argument} must be an HTTPS URL.")
+            format!("{argument} must be an HTTPS URL with a host.")
         }
         pipedream_connect_types::Error::ConflictingCursors => {
             "Pass --after or --before, not both.".to_owned()
@@ -129,24 +133,34 @@ fn identifier(kind: IdentifierKind) -> &'static str {
     }
 }
 
-fn identifier_hint(kind: IdentifierKind) -> &'static str {
+/// States the whole rule of an identifier, so the hint never names a rule that the input meets.
+fn identifier_hint(kind: IdentifierKind) -> String {
+    let prefixed = |prefix: &str| {
+        format!("Use an ID that starts with {prefix} and then has only letters and digits.")
+    };
     match kind {
-        IdentifierKind::Project => "Use an ID that starts with proj_.",
-        IdentifierKind::Account => "Use an ID that starts with apn_.",
-        IdentifierKind::DeployedTrigger => "Use an ID that starts with dc_, hi_, or ti_.",
-        IdentifierKind::OauthApp => "Use an ID that starts with oa_.",
-        IdentifierKind::AppCategory => "Use an ID that starts with appcat_.",
-        IdentifierKind::ConnectToken => "Use a token that starts with ctok_.",
-        IdentifierKind::Cursor => "Copy the cursor from the page_info of an earlier result.",
+        IdentifierKind::Project => prefixed("proj_"),
+        IdentifierKind::Account => prefixed("apn_"),
+        IdentifierKind::DeployedTrigger => prefixed("dc_, hi_, or ti_"),
+        IdentifierKind::OauthApp => prefixed("oa_"),
+        IdentifierKind::AppCategory => prefixed("appcat_"),
+        IdentifierKind::ConnectToken => {
+            "Use a token that starts with ctok_ and then has 32 lowercase hexadecimal digits."
+                .to_owned()
+        }
+        IdentifierKind::Cursor => "A cursor has 1 to 2048 visible ASCII characters without \
+                                   spaces. Copy it from the page_info of an earlier result."
+            .to_owned(),
         IdentifierKind::ExternalUser
         | IdentifierKind::AppOverride
         | IdentifierKind::AppSlug
         | IdentifierKind::ComponentKey
         | IdentifierKind::PropName
         | IdentifierKind::Webhook
-        | IdentifierKind::WorkflowEndpoint => {
-            "Use 1 to 250 visible ASCII characters without /, \\, ?, or #."
-        }
+        | IdentifierKind::WorkflowEndpoint => "Use 1 to 250 visible ASCII characters without \
+                                               spaces, /, \\, ?, or #. The values . and .. \
+                                               are not valid."
+            .to_owned(),
     }
 }
 
@@ -225,5 +239,5 @@ pub(super) fn invalid_json(
 }
 
 #[cfg(test)]
-#[path = "_tests_/input_tests.rs"]
+#[path = "_tests_/input/mod.rs"]
 mod input_tests;

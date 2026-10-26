@@ -118,7 +118,7 @@ takes these options:
 - `--allowed-origin <ORIGIN>` names a browser origin that may use the token.
   Repeat it for more origins.
 - `--success-redirect-uri <URL>`, `--error-redirect-uri <URL>`, and
-  `--webhook-uri <URL>` take HTTPS URLs.
+  `--webhook-uri <URL>` take HTTPS URLs with a host.
 - `--scope <SCOPE>` and `--allow-progressive-scopes` set the Connect scope.
 
 `tokens create` prints the Connect token, its expiry, and the Connect Link
@@ -136,8 +136,10 @@ and the CLI prints them only with `--show-secrets`.
 `users list` takes `--query <TEXT>` and the page flags.
 
 `proxy <method> <URL>` takes `--external-user-id <ID>` and
-`--account <ACCOUNT>`, which are required. The URL is an HTTPS URL or a path
-that starts with `/` on the base URL of the app. Repeat
+`--account <ACCOUNT>`, which are required. The URL is an HTTPS URL with a
+host, or a path that starts with one `/` on the base URL of the app. It cannot
+have surrounding spaces, control characters, backslashes, credentials, or a
+fragment. Repeat
 `--header 'Name: value'` for each upstream header. `--body <FILE>` sends the
 file bytes, and `--body -` sends standard input. The CLI checks each header
 before any request. Pipedream reserves some names, such as `Cookie`, `Host`,
@@ -169,8 +171,9 @@ as the app API and its status.
 `--emitter-type <email|http|source|timer>`, and the page flags.
 `triggers get`, `triggers delete`, and `triggers events` take the trigger ID
 and `--external-user-id <ID>`. A trigger ID starts with `dc_`, `hi_`, or
-`ti_`. `triggers delete` takes `--ignore-hook-errors` and prints
-`{"status": "deleted"}`. With `--missing-ok`, it prints the same result when
+`ti_` and then has only letters and digits. `triggers delete` takes
+`--ignore-hook-errors` and prints `{"status": "deleted"}`. With
+`--missing-ok`, it prints the same result when
 the trigger does not exist. Without it, a missing trigger exits with code 4.
 `triggers events` takes `--limit <COUNT>`, from 1 to 100. The default is 20,
 the Pipedream default.
@@ -193,7 +196,8 @@ Every paged list command takes the same flags:
 - `--limit <COUNT>` sets the records for each page, from 1 to 200. The
   default is 100. Any other value fails before a request.
 - `--after <CURSOR>` or `--before <CURSOR>` continues from a cursor in the
-  `page_info` of an earlier result.
+  `page_info` of an earlier result. A cursor has 1 to 2048 visible ASCII
+  characters without spaces.
 - `--all` reads every page up to the `--max-pages` budget. The default budget
   is 10 pages. The budget has no upper limit.
 
@@ -260,7 +264,8 @@ code 0.
 ### Errors
 
 Each error names what failed and gives one recovery action. Validation errors
-name the flag, the variable, or the argument. A JSON input error gives only
+name the flag, the variable, or the argument, and state the whole rule of its
+value. A JSON input error gives only
 the line and the column. JSON that nests more than 127 levels of arrays and
 objects gets its own message. Errors never print a secret, a bearer, a
 response body, or the provider message.

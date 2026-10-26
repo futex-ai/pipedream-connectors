@@ -72,8 +72,9 @@ async fn an_invalid_target_exits_two() {
     assert_eq!(ran.exit, Exit::Usage);
     assert_eq!(
         ran.stderr,
-        "error: <URL> must be an HTTPS URL or a path that starts with /. Fix the proxy \
-         target.\n"
+        "error: <URL> must be an HTTPS URL with a host, or a path that starts with one /. \
+         Remove any surrounding spaces, control characters, backslashes, credentials, and \
+         fragment.\n"
     );
 }
 
