@@ -1371,33 +1371,33 @@ Summary: the final checks and the review loop.
 Summary: apply the SDK, docs, and workspace outcomes that the user chose on
 2026-10-26. Finding and decision numbers refer to the final review report.
 
-- [ ] Types crate: reject `.` and `..` identifiers (66 A), cursors take
+- [x] Types crate: reject `.` and `..` identifiers (66 A), cursors take
       visible ASCII up to 2 KiB (70 B), `serde_json::Number` for the four
       `number` fields (33 A), delete `ProjectWebhook` (37 A), and one shared
       date type for every date field (9 C).
-- [ ] Client core: `retry_after` on `Unavailable` (3 B), the status on
+- [x] Client core: `retry_after` on `Unavailable` (3 B), the status on
       `ResponseTooLarge` (13 B), the `x-pd-rate-limit-reset-in` delay (52 A),
       decode only the `error` member (14 A), shared `Bytes` bodies (15 B),
       merging `ProxyRequest::with_headers` (64 B), GET retry defaults (67 A),
       every execution 202 is `Accepted` (73 B), `with_query` for component
       retrieval (21 A), and backslash and raw `@` proxy target rejection
       through the shared URL rules (4 C).
-- [ ] Webhooks crate: one connection constructor for both paths (23 B), a
+- [x] Webhooks crate: one connection constructor for both paths (23 B), a
       fault class on each error (26 C), header cases (28 A), one decoder
       error table (55 B), and a 10 MiB default body limit (68 B).
-- [ ] Tests: managed-auth live test targets and assertions (5 A), a shared
+- [x] Tests: managed-auth live test targets and assertions (5 A), a shared
       `assert_wire` helper with the four missing rules (6 B), and OpenAPI
       values for the OAuth coverage row (56 A).
-- [ ] Docs: the workflow bearer risk (1 A), the account ownership outcomes
+- [x] Docs: the workflow bearer risk (1 A), the account ownership outcomes
       (7 A), the invalid context ID rule (27 A), the number limit (42 A), and
       every protocol sentence that the items above change.
-- [ ] Workspace: chrono without default features (38 A), `--locked` in the
+- [x] Workspace: chrono without default features (38 A), `--locked` in the
       xtask alias (39 A), gate failure tests (40 A), CI runs
       `cargo xtask check` (41 A), a clippy ban on `map_err` (75 A), and an
       xtask check for `<name>.rs` beside `<name>/` (76 A).
 - [x] Plan: restore the words of the two rewritten checked TODOs and add
       correction TODOs (49 A).
-- [ ] Run the gate, commit, and push.
+- [x] Run the gate, commit, and push.
 
 ## Milestone 14: CLI updates for the review decisions
 
