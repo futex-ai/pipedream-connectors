@@ -264,7 +264,9 @@ the line and the column. JSON that nests more than 127 levels of arrays and
 objects gets its own message. Errors never print a secret, a bearer, a
 response body, or the provider message. A failed action names where it
 failed, for example the component code or the app API with its status. A
-network failure names the API origin. After a command that changes data, an
+network failure names the API origin. A rate-limit error names the wait that
+Pipedream asks for, rounded up to whole seconds. Without a wait, or with a
+zero wait, it asks you to wait a moment. After a command that changes data, an
 unanswered or unreadable response can mean that the change happened, and the
 error says so. When Pipedream makes the change but the CLI cannot print the
 result, for example because standard output is closed, the command exits with

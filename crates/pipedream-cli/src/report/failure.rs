@@ -1,5 +1,7 @@
 //! The exit status and the message of each command failure.
 
+use std::num::NonZeroU64;
+
 use pipedream_connect_types::PageRequest;
 
 use crate::error::{Error, Interruption};
@@ -119,7 +121,7 @@ pub(crate) fn cursor_flag(request: &PageRequest) -> Option<(&'static str, String
 /// Returns the command that continues a listing from `request`, when it has a cursor.
 ///
 /// A rate-limit `wait` comes first.
-pub(crate) fn resume(request: &PageRequest, wait: Option<u64>) -> Option<String> {
+pub(crate) fn resume(request: &PageRequest, wait: Option<NonZeroU64>) -> Option<String> {
     let (flag, cursor) = cursor_flag(request)?;
     Some(match wait {
         Some(wait) => format!(
@@ -130,9 +132,9 @@ pub(crate) fn resume(request: &PageRequest, wait: Option<u64>) -> Option<String>
     })
 }
 
-/// Returns a wait in words, such as `1 second` or `30 seconds`.
-pub(crate) fn seconds(count: u64) -> String {
-    if count == 1 {
+/// Returns a wait in words, such as `1 second` or `30 seconds`. A wait is never zero.
+pub(crate) fn seconds(count: NonZeroU64) -> String {
+    if count.get() == 1 {
         "1 second".to_owned()
     } else {
         format!("{count} seconds")

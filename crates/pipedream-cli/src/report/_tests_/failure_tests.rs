@@ -1,6 +1,7 @@
 //! Tests for exit codes, interrupted listings, and internal failures.
 
 use std::io;
+use std::num::NonZeroU64;
 use std::time::Duration;
 
 use pipedream_connect_types::{Cursor, PageRequest};
@@ -81,6 +82,25 @@ fn a_retryable_interruption_gives_the_resume_command_as_its_one_action() {
 }
 
 #[test]
+fn a_zero_wait_never_reaches_the_resume_hint() {
+    let limited = pipedream_connect::error::Error::RateLimited {
+        retry_after: Some(Duration::ZERO),
+        reset_after: None,
+        limit: None,
+        remaining: None,
+        reset: None,
+    };
+    assert_eq!(
+        interrupted(2, after("cursor_4"), limited),
+        Failure::new(
+            Exit::RateLimited,
+            "Pipedream rate limited the request. The CLI read 2 pages before the failure. To \
+             continue, run the command again with --after 'cursor_4'."
+        )
+    );
+}
+
+#[test]
 fn other_interruptions_keep_their_own_action() {
     let forbidden = pipedream_connect::error::Error::Forbidden { message: None };
     assert_eq!(
@@ -113,7 +133,7 @@ fn resume_hints_follow_the_cursor_direction_and_quote_the_cursor() {
         Some("To continue, run the command again with --before 'cursor_0'.")
     );
     assert_eq!(
-        resume(&after("it's$x"), Some(1)).as_deref(),
+        resume(&after("it's$x"), NonZeroU64::new(1)).as_deref(),
         Some("Wait 1 second, then run the command again with --after 'it'\\''s$x'.")
     );
     assert_eq!(resume(&PageRequest::default(), None), None);

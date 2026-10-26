@@ -1,5 +1,6 @@
 //! User-facing text for SDK failures, chosen by the resource of the command.
 
+use std::num::NonZeroU64;
 use std::time::Duration;
 
 use pipedream_connect::error::{Error, InvalidRequest};
@@ -21,8 +22,8 @@ pub(super) struct ApiText {
     pub(super) action: String,
     /// Whether the same request can succeed later without a change.
     pub(super) retryable: bool,
-    /// The wait that a rate limit asks for, in seconds.
-    pub(super) wait: Option<u64>,
+    /// The wait that the failure asks for, in whole seconds. It is never zero.
+    pub(super) wait: Option<NonZeroU64>,
 }
 
 /// Describes an SDK failure without provider messages, provider codes, or bodies.
@@ -169,7 +170,7 @@ fn invalid_request(reason: &InvalidRequest) -> (&'static str, &'static str) {
 }
 
 fn rate_limited(retry_after: Option<Duration>) -> ApiText {
-    let wait = retry_after.map(|delay| delay.as_secs() + u64::from(delay.subsec_nanos() > 0));
+    let wait = retry_after.and_then(whole_seconds);
     let action = match wait {
         Some(wait) => format!("Wait {}, then run the command again.", seconds(wait)),
         None => "Wait a moment, then run the command again.".to_owned(),
@@ -201,6 +202,15 @@ fn unavailable(status: Option<u16>, origin: &str) -> ApiText {
         retryable: true,
         wait: None,
     }
+}
+
+/// Rounds a delay up to whole seconds. A zero delay asks for no wait.
+fn whole_seconds(delay: Duration) -> Option<NonZeroU64> {
+    NonZeroU64::new(
+        delay
+            .as_secs()
+            .saturating_add(u64::from(delay.subsec_nanos() > 0)),
+    )
 }
 
 fn place(error: &ExecutionError) -> String {

@@ -82,6 +82,8 @@ fn rate_limits_exit_five_with_the_wait_time() {
     let cases = [
         (Some(Duration::from_secs(30)), "Wait 30 seconds"),
         (Some(Duration::from_millis(500)), "Wait 1 second"),
+        (Some(Duration::ZERO), "Wait a moment"),
+        (Some(Duration::MAX), "Wait 18446744073709551615 seconds"),
         (None, "Wait a moment"),
     ];
     for (retry_after, wait) in cases {
